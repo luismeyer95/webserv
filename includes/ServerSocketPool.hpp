@@ -3,12 +3,14 @@
 #include "header.h"
 #include "Logger.hpp"
 #include "Parser.hpp"
+#include "ByteBuffer.hpp"
 #include <map>
 #include <list>
 #include <vector>
 #include <queue>
+#include <deque>
 
-#define MAXBUF 4096
+#define MAXBUF 16384
 #define MAXQUEUE 30
 
 void	http_print(const std::string& s);
@@ -21,21 +23,24 @@ struct HTTPExchange
 	private:
 		friend struct ClientSocket;
 		friend class ServerSocketPool;
-		std::string 		response_buffer;
-		std::string			response;
+		// std::string 		response_buffer;
+		// std::string			response;
+		ByteBuffer			response_buffer;
+		ByteBuffer			response;
 		bool				end;
 	public:
 		HTTPExchange(const std::string& req)
-			: response_buffer(""), response(""), end(false), request(req) {}
+			: response_buffer(), response(), end(false), request(req) {}
+			// : response_buffer(""), response(""), end(false), request(req) {}
 
 		const std::string	request;
-		void	bufferResponse(const std::string& str, bool mark_end)
+		void	bufferResponse(const ByteBuffer& str, bool mark_end = false)
 		{
 			response_buffer += str;
 			response += str;
 			end = mark_end;
 		}
-		std::string getResponse() { return response; }
+		ByteBuffer getResponse() { return response; }
 };
 
 struct Socket {
@@ -108,10 +113,10 @@ class ServerSocketPool
 		void (*connection_handler)(HTTPExchange&);
 		void (*request_handler)(HTTPExchange&);
 
-		std::vector<Socket*> socket_list;
+		std::deque<Socket*> socket_list;
 		ServerSocketPool();
 	public:
-		typedef std::vector<Socket*>::iterator iterator;
+		typedef std::deque<Socket*>::iterator iterator;
 		~ServerSocketPool() {}
 
 		void	addListener(unsigned short port);
@@ -122,9 +127,9 @@ class ServerSocketPool
 
 		bool	selected(Socket* socket, fd_set* set);
 		void	closeComm(ClientSocket* comm);
-		std::vector<Socket*>&	getSocketList();
+		std::deque<Socket*>&	getSocketList();
 
-		size_t	httpRequestToStr(ClientSocket* cli, int& retflags);
+		size_t	recvRequest(ClientSocket* cli, int& retflags);
 		size_t	sendResponse(ClientSocket* cli, int& retflags);
 
 		void	runServer(

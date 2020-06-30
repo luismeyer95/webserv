@@ -1,13 +1,7 @@
 #pragma once
 
-#include <string>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <fstream>
-#include <limits>
-#include <time.h>
-#include <sys/time.h>
+#include "header.h"
+#include "Utils.hpp"
 
 class Logger {
 	private:
@@ -26,6 +20,7 @@ class Logger {
 		void					setLogPath(const std::string& logpath);
 		std::stringstream&		err();
 		std::ostream&			out(bool entry = true, bool timeheader = true);
+		void					out(const std::string& str);
 		bool					assert(bool expr, bool fatal);
 		void					toggleLog();
 

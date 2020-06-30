@@ -50,6 +50,21 @@ std::ostream&		Logger::out(bool entry, bool timeheader)
 	return o;
 }
 
+void		Logger::out(const std::string& str)
+{
+	// std::cout << "OUT ON";
+	std::ostream& o = _file.is_open() ? _file : std::cout;
+	std::vector<std::string> tokens = tokenizer(str, '\n');
+	std::string s;
+	for (size_t i = 0; i < tokens.size(); ++i)
+	{
+		o << std::setw(25) << std::left << "";
+		o << std::setw(0);
+		o << tokens[i] << std::endl;
+	}
+	// std::cout << "OUT OFF\n";
+}
+
 std::string				Logger::getTime()
 {
 	struct timeval tv;

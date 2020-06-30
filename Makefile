@@ -14,12 +14,15 @@ INC_DIR		=	includes
 SRCS	=	main.cpp \
 			Logger.cpp \
 			ServerSocketPool.cpp \
-			Parser.cpp 
+			Parser.cpp \
+			Utils.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
 				ServerSocketPool.hpp \
 				Parser.hpp \
+				Utils.hpp \
+				ByteBuffer.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)
