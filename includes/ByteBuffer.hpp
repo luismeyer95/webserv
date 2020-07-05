@@ -31,11 +31,18 @@ class ByteBuffer
 			data.insert(data.end(), buffer, buffer + size);
 		}
 
+		void	appendBuffer(const std::ostringstream& stream)
+		{
+			appendBuffer((BYTE*)stream.str().c_str(), stream.str().size());
+		}
+
 		void	appendBinaryData(const std::string& filename)
 		{
 			// open the file:
 			std::streampos file_size;
 			std::ifstream file(filename.c_str(), std::ios::binary);
+			if (!file.is_open())
+				throw std::runtime_error("Error opening file in ByteBuffer::peekSize()");
 
 			// get its size:
 			file.seekg(0, std::ios::end);
@@ -53,11 +60,11 @@ class ByteBuffer
 		size_t	peekSize(const std::string& filename)
 		{
 			// open the file:
-			std::cout << "opening file " << filename << std::endl;
+			// std::cout << "opening file " << filename << std::endl;
 			std::streampos file_size;
 			std::ifstream file(filename.c_str(), std::ios::binary);
-			if (file.is_open())
-				std::cout << "successful open" << std::endl;
+			if (!file.is_open())
+				throw std::runtime_error("Error opening file in ByteBuffer::peekSize()");
 
 			// get its size:
 			file.seekg(0, std::ios::end);

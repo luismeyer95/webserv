@@ -17,7 +17,6 @@ void	handle_request(HTTPExchange& comm)
 
 	std::string get = tokenizer(msg, ' ')[1];
 
-	std::cout << "TOKEN: :" << get << std::endl;
 	if (get == "/")
 		get = "./simple_site/index.html";
 	else
@@ -30,17 +29,8 @@ void	handle_request(HTTPExchange& comm)
 	std::ostringstream stream;
 	stream << "HTTP/1.1 200 OK\r\n";
 	stream << "Content-Length: " << doc.peekSize(get) << "\r\n\r\n";
-	doc.appendBuffer((BYTE*)stream.str().c_str(), stream.str().size());
+	doc.appendBuffer(stream);
 	doc.appendBinaryData(get);
-
-	// comm.bufferResponse("HEY HOMIE WASSUP IN THE HOOD MOFO\r\n\r\n", true);
-	// for (size_t i = 0; i < msg.size(); ++i)
-	// 	if (i % 2)
-	// 		msg[i] = std::toupper(msg[i]);
-	// comm.bufferResponse(msg, true);
-
-	
-	// resp.write((char*)&doc[0], doc.size());
 
 	comm.bufferResponse(doc, true);
 }
@@ -48,6 +38,12 @@ void	handle_request(HTTPExchange& comm)
 int main(int ac, char **av)
 {
 	(void)ac;
+
+	if (ac != 2)
+	{
+		std::cout << "usage: " << av[0] << " <port>" << std::endl;
+		return (0);
+	}
 
 	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();

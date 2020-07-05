@@ -23,6 +23,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Parser.hpp \
 				Utils.hpp \
 				ByteBuffer.hpp \
+				Containers.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)

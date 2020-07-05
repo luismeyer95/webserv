@@ -1,4 +1,7 @@
 #include "../includes/ServerSocketPool.hpp"
+#include <cstring>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 void	http_print(const std::string& s)
 {
@@ -30,7 +33,7 @@ ServerSocketPool&	ServerSocketPool::getInstance()
 	return pool;
 }
 
-std::deque<Socket*>&		ServerSocketPool::getSocketList()
+ft::deque<Socket*>&		ServerSocketPool::getSocketList()
 {
 	return socket_list;
 }
@@ -83,8 +86,18 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 {
 	ClientSocket* comm = new ClientSocket();
 	comm->lstn_socket = lstn;
+
+	Logger& log = Logger::getInstance(); 
+	char ipstr[INET_ADDRSTRLEN];
+	struct sockaddr store;
+	socklen_t len;
+
 	// MIGHT NEED TO STORE ACCEPT PARAM VALUES LATER
-	comm->socket_fd = accept(lstn->socket_fd, nullptr, nullptr);
+	comm->socket_fd = accept(lstn->socket_fd, &store, &len);
+	struct sockaddr_in *s = (struct sockaddr_in*)&store;
+	inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+	log.out() << "connection ip = " << ipstr << std::endl;
+
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);
 	comm->req_buffer = "";
 	lstn->comm_sockets.push_back(comm);
@@ -173,6 +186,9 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 	size_t sendbytes = std::min(response_buf.size(), (size_t)MAXBUF);
 	while ( (ret = send(cli->socket_fd, response_buf.get(), sendbytes, MSG_NOSIGNAL)) > 0 )
 	{
+		// CHECK AGAINST -1... OTHERWISE RIP NEXT LINE
+		if (ret == -1)
+			throw std::runtime_error("sendResponse send() call returned -1");
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;
@@ -264,19 +280,22 @@ void	ServerSocketPool::pollWrite(Socket* s)
 			if (msg.find("\r\n\r\n") != std::string::npos)
 				msg = msg.substr(0, msg.find("\r\n\r\n"));
 			log.out() << "[response]: fd=" << cli->socket_fd << std::endl;
-			// log.out(true, false) << msg << std::endl;
 			log.out(msg);
 
 			cli->closeExchange();
 		}
 		else
 		{
-			if (!cli->getExchange().end)
+			if (!(retflags & (int)IOSTATE::ONCE))
+				FD_CLR(cli->socket_fd, &master_write);
+			else if (!cli->getExchange().end)
 				request_handler(cli->getExchange());
 			break;
 		}
 	}
 
+	// TO FIX: Client prematurely closing connection during the sending of a response
+	// causes the exchange ticket to remain and the socket to be on write poll forever
 	if (cli->exchanges.empty())
 		FD_CLR(cli->socket_fd, &master_write);
 }
@@ -298,16 +317,6 @@ void	ServerSocketPool::runServer(
 		fd_set copy_write = master_write;
 		int socket_count = select(fd_max + 1, &copy_read, &copy_write, nullptr, nullptr);
 
-		// int size = socket_list.size();
-		// for (int i = 0; i != size; i++)
-		// {
-		// 	Socket* s = socket_list[i];
-		// 	if (selected(s, &copy_write))
-		// 		pollWrite(s);
-		// 	if (selected(s, &copy_read))
-		// 		pollRead(s);
-			
-		// }
 		size_t i = 0;
 		size_t size = socket_list.size();
 		iterator it = socket_list.begin();

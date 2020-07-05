@@ -113,10 +113,10 @@ class ServerSocketPool
 		void (*connection_handler)(HTTPExchange&);
 		void (*request_handler)(HTTPExchange&);
 
-		std::deque<Socket*> socket_list;
+		ft::deque<Socket*> socket_list;
 		ServerSocketPool();
 	public:
-		typedef std::deque<Socket*>::iterator iterator;
+		typedef ft::deque<Socket*>::iterator iterator;
 		~ServerSocketPool() {}
 
 		void	addListener(unsigned short port);
@@ -127,7 +127,7 @@ class ServerSocketPool
 
 		bool	selected(Socket* socket, fd_set* set);
 		void	closeComm(ClientSocket* comm);
-		std::deque<Socket*>&	getSocketList();
+		ft::deque<Socket*>&	getSocketList();
 
 		size_t	recvRequest(ClientSocket* cli, int& retflags);
 		size_t	sendResponse(ClientSocket* cli, int& retflags);
@@ -139,8 +139,5 @@ class ServerSocketPool
 		void	pollRead(Socket* s);
 		void	pollWrite(Socket* s);
 
-
 		static ServerSocketPool&	getInstance();
 };
-
-
