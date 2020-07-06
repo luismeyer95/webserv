@@ -117,7 +117,7 @@ class ServerSocketPool
 		ServerSocketPool();
 	public:
 		typedef ft::deque<Socket*>::iterator iterator;
-		~ServerSocketPool() {}
+		~ServerSocketPool();
 
 		void	addListener(unsigned short port);
 		ClientSocket*	acceptConnection(Listener* lstn);

@@ -5,6 +5,18 @@
 #include "../includes/header.h"
 #include "../includes/ByteBuffer.hpp"
 
+// sig_atomic_t& sigflag()
+// {
+// 	static sig_atomic_t sigflag = 0;
+// 	return sigflag;
+// }
+
+// void	handle_signal(int sig)
+// {
+// 	(void)sig;
+// 	sigflag() = 1;
+// }
+
 void	handle_connection(HTTPExchange& comm)
 {
 	(void)comm;
@@ -44,6 +56,8 @@ int main(int ac, char **av)
 		std::cout << "usage: " << av[0] << " <port>" << std::endl;
 		return (0);
 	}
+
+	// signal(SIGINT, handle_signal);
 
 	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();

@@ -6,7 +6,7 @@
 /*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/07/01 09:03:30 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/07/05 11:45:46 by lumeyer          ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,3 +38,5 @@
 #include <queue>
 #include <vector>
 #include "Containers.hpp"
+
+sig_atomic_t& sigflag();

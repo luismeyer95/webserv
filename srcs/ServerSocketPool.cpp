@@ -27,6 +27,23 @@ void	dec_print(const char *s)
 
 ServerSocketPool::ServerSocketPool() : fd_max(-1) {}
 
+ServerSocketPool::~ServerSocketPool()
+{
+	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	{
+		if (*it)
+		{
+			close((*it)->socket_fd);
+			FD_CLR((*it)->socket_fd, &master_read);
+			FD_CLR((*it)->socket_fd, &master_write);
+			delete *it;
+			*it = nullptr;
+		}
+	}
+	// std::cout << "destructor called\n";
+}
+
+
 ServerSocketPool&	ServerSocketPool::getInstance()
 {
 	static ServerSocketPool pool;
@@ -226,7 +243,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 		ClientSocket* cli = static_cast<ClientSocket*>(s);
 		int retflags = 0;
 		size_t readbytes = recvRequest(cli, retflags);
-		if (!(retflags & (int)IOSTATE::ONCE) && !selected(s, &master_write))
+		if (!(retflags & (int)IOSTATE::ONCE))
 		{
 			log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
 			closeComm(cli);
@@ -330,5 +347,6 @@ void	ServerSocketPool::runServer(
 			it = next;
 			++i;
 		}
+		// std::cout << "loop";
 	}
 }
