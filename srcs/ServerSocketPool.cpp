@@ -310,8 +310,6 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 	size_t sendbytes = std::min(response_buf.size(), (size_t)MAXBUF);
 	while ( (ret = send(cli->socket_fd, response_buf.get(), sendbytes, MSG_NOSIGNAL)) > 0 )
 	{
-		if (ret == -1)
-			throw std::runtime_error("sendResponse send() call returned -1");
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;
