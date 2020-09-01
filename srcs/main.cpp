@@ -5,63 +5,48 @@
 #include "../includes/header.h"
 #include "../includes/ByteBuffer.hpp"
 
-// sig_atomic_t& sigflag()
-// {
-// 	static sig_atomic_t sigflag = 0;
-// 	return sigflag;
-// }
-
-// void	handle_signal(int sig)
-// {
-// 	(void)sig;
-// 	sigflag() = 1;
-// }
-
 void	handle_connection(HTTPExchange& comm)
 {
 	(void)comm;
-	// comm.bufferResponse("Welcome to the server!\r\n\r\n", true);
 }
 
 void	handle_request(HTTPExchange& comm)
 {
+	// Extracting the resource's path
 	std::string msg(comm.request);
+	std::string resource = tokenizer(msg, ' ')[1];
 
-	std::string get = tokenizer(msg, ' ')[1];
-
-	if (get == "/")
-		get = "./simple_site/index.html";
-	else
-		get = "./simple_site" + get;
-
-	if (get.find("/..") != std::string::npos)
+	if (resource.find("/..") != std::string::npos)
 		return;
+	
+	if (resource == "/")
+		resource = "./simple_site/index.html";
+	else
+		resource = "./simple_site" + resource;
 
+	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
-	std::ostringstream stream;
-	stream << "HTTP/1.1 200 OK\r\n";
-	stream << "Content-Length: " << doc.peekSize(get) << "\r\n\r\n";
-	doc.appendBuffer(stream);
-	doc.appendBinaryData(get);
+	doc << "HTTP/1.1 200 OK\r\n";
+	doc << "Content-Length: " << ByteBuffer::peekFileSize(resource) << "\r\n\r\n";
+	doc.appendFile(resource);
 
+	// Load the response in the http exchange ticket and mark as ready
 	comm.bufferResponse(doc, true);
 }
 
 int main(int ac, char **av)
 {
-	(void)ac;
+	std::vector<std::string> args(av, av + ac);
 
 	if (ac != 2)
 	{
-		std::cout << "usage: " << av[0] << " <port>" << std::endl;
+		std::cout << "usage: " << args[0] << " <port>" << std::endl;
 		return (0);
 	}
 
-	// signal(SIGINT, handle_signal);
-
 	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();
-	pool.addListener(atoi(av[1]));
-
+	
+	pool.addListener(std::stoi(args[1]));
 	pool.runServer(handle_connection, handle_request);
 }
