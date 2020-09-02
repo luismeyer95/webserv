@@ -92,7 +92,7 @@ void	ServerSocketPool::runServer(
 		// We need to ensure we don't process those that were created within
 		// the select scan loop, because otherwise we will select-test fds
 		// that did not go through a select() call, hence why we limit the
-		// loop's range to the initial size of the socket list
+		// loop's maximum index to the initial size of the socket list
 		while (i < size && it != socket_list.end())
 		{
 			iterator next = it + 1;

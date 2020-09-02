@@ -30,11 +30,12 @@ void				Logger::setLogPath(const std::string& path)
 	}
 }
 
-std::stringstream&	Logger::err()
-{
-	return _errstr;
-}
 
+// Prepares the indentation/format of the log stream for an entry given the parameters
+// and returns the log stream. Timestamped entry is the default (log.out(true, true))
+// - entry: preindents the current line
+// - timeheader: timestamps the current line in the indentation space
+// Ex: log.out() << "this is a timestamped log entry\n";
 std::ostream&		Logger::out(bool entry, bool timeheader)
 {
 	std::ostream& o = _file.is_open() ? _file : std::cout;
@@ -50,9 +51,11 @@ std::ostream&		Logger::out(bool entry, bool timeheader)
 	return o;
 }
 
+// Outputs the string str to the log stream.
+// String is broken into line tokens and each line is printed
+// individually to keep format consistency (indentation)
 void		Logger::out(const std::string& str)
 {
-	// std::cout << "OUT ON";
 	std::ostream& o = _file.is_open() ? _file : std::cout;
 	std::vector<std::string> tokens = tokenizer(str, '\n');
 	std::string s;
@@ -62,7 +65,6 @@ void		Logger::out(const std::string& str)
 		o << std::setw(0);
 		o << tokens[i] << std::endl;
 	}
-	// std::cout << "OUT OFF\n";
 }
 
 std::string				Logger::getTime()
@@ -79,6 +81,16 @@ std::string				Logger::getTime()
 	return std::string(buffer);
 }
 
+// Returns the error buffer stream
+std::stringstream&	Logger::err()
+{
+	return _errstr;
+}
+
+// Asserts that the expression expr is true.
+// - expr == true: nothing happens
+// - expr == false: the buffered error stream's content is output to the log stream
+//			 and the error stream is cleared. if fatal == true, the program exits
 bool				Logger::assert(bool expr, bool fatal)
 {
 	if (!expr)
