@@ -225,7 +225,6 @@ void	ServerSocketPool::pollRead(Socket* s)
 
 size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 {
-	Parser& parse = Parser::getInstance();
 	size_t total = 0;
 	char buf[MAXBUF + 1];
 	*buf = 0;
@@ -300,7 +299,6 @@ void	ServerSocketPool::pollWrite(Socket* s)
 
 size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 {
-	Parser& parse = Parser::getInstance();
 	size_t total = 0;
 	ByteBuffer& response_buf = cli->getExchange().response_buffer;
 

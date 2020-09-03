@@ -1,6 +1,6 @@
 #include "../includes/Logger.hpp"
 #include "../includes/ServerSocketPool.hpp"
-#include "../includes/Parser.hpp"
+#include "../includes/RequestParser.hpp"
 #include "../includes/Utils.hpp"
 #include "../includes/header.h"
 #include "../includes/ByteBuffer.hpp"
@@ -12,10 +12,14 @@ void	handle_connection(HTTPExchange& comm)
 
 void	handle_request(HTTPExchange& comm)
 {
+	Logger& log = Logger::getInstance();
 	// Extracting the resource's path
 	std::string msg(comm.request);
 	std::string resource = tokenizer(msg, ' ')[1];
 
+	//call RequestParser here
+
+	//GET
 	if (resource.find("/..") != std::string::npos)
 		return;
 	
