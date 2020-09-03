@@ -21,7 +21,7 @@ SRCS	=	main.cpp \
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
 				ServerSocketPool.hpp \
-				Parser.hpp \
+				RequestParser.hpp \
 				Utils.hpp \
 				ByteBuffer.hpp \
 				Containers.hpp \
