@@ -14,7 +14,7 @@ INC_DIR		=	includes
 SRCS	=	main.cpp \
 			Logger.cpp \
 			ServerSocketPool.cpp \
-			Parser.cpp \
+			RequestParser.cpp \
 			ByteBuffer.cpp \
 			Utils.cpp
 
