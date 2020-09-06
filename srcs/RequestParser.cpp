@@ -1,5 +1,5 @@
-#include "../includes/Utils.hpp"
-#include <Requestparser.hpp>
+#include <Utils.hpp>
+#include <RequestParser.hpp>
 
 RequestParser::RequestParser()
     : _method(""), _resource(""), _protocol("")
