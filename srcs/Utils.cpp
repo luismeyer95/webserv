@@ -61,3 +61,96 @@ void	dec_print(const char *s)
 	std::cout << std::endl;
 
 }
+
+bool is_number(const std::string s)
+{
+	std::string::const_iterator it = s.begin();
+	while (it != s.end() && *it == ' ')
+		it++;
+	while (it != s.end() && std::isdigit(*it))
+		it++;
+	return (it == s.end());
+}
+
+std::string trim(const std::string &str)
+{
+	size_t first = str.find_first_not_of(' ');
+	if (std::string::npos == first)
+		return (str);
+	size_t last = str.find_last_not_of(' ');
+	return str.substr(first, (last - first + 1));
+} 
+
+std::vector<std::string> get_header_name(std::string str, char c)
+{
+	std::vector<std::string> out;
+	std::stringstream   stream(str);
+	std::string         temp;
+	
+	getline(stream, temp, c);
+	out.push_back(temp);
+	getline(stream, temp, '\n');
+	out.push_back(temp);
+	/*
+	out.push_back(str.substr(0, str.find(c)));
+	out.push_back(str.substr(0, str.find('\n')));*/
+	return (out);
+}
+
+std::vector<std::string> header_finder(const std::vector<std::string> lines, const std::string to_find)
+{
+	std::vector<std::string> out;
+	
+	for (int i = 0; i < (int)lines.size(); i++)
+    {
+        out = get_header_name(lines[i], ':');
+        if (out[0] == to_find)
+            break;
+        if (i == (int)lines.size() - 1)
+        {
+            out.clear();
+			out.resize(0);
+            return (out);
+        }
+    }
+    return (out);
+}
+
+bool check_str_len(const std::string &str, int min, int max)
+{
+	if (str.length() < min || str.length() > max)
+		return (0);
+}
+
+bool is_http_date(std::string str)
+{
+	std::vector<std::string> tmp;
+	std::string day_name[] = {"Mon,","Tue,", "Wed,","Thu,", "Fri,", "Sat,", "Sun,"};
+	std::string month_name[] = {"Jan","Feb", "Mar","Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+	tmp = tokenizer(str, ',');
+	if (tmp.size() != 6)
+		return (0);
+	for (int i = 0; i < 7; i++)
+	{
+		if (tmp[0] == day_name[i])
+			break;
+		if (i == 6)
+			return (0);
+	}
+	if(tmp[1].length() != 2 || !is_number(tmp[1]) || tmp[3].length() != 4 || !is_number(tmp[3]))
+		return (0);
+	for (int i = 0; i < 12; i++)
+	{
+		if (tmp[2] == month_name[i])
+			break;
+		if (i == 12)
+			return (0);
+	}
+	if (tmp[5] != "GMT")
+		return (0);
+	tmp = tokenizer(tmp[4], ':');
+	if (tmp.size() != 3 || tmp[0].length() != 2 || !is_number(tmp[0]) ||tmp[1].length() != 2 || !is_number(tmp[1]) ||tmp[2].length() != 2 || !is_number(tmp[2]))
+		return (0);
+	return (1);
+}
