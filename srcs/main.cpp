@@ -20,13 +20,24 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	(void)router;
 
 	Logger& log = Logger::getInstance();
-	// Extracting the resource's path
+	// Extracting header in 
 	std::string msg(comm.request);
-	std::string resource = tokenizer(msg, ' ')[1];
-
 	//call RequestParser here
+	RequestParser request;
+	if (request.parser(msg))
+	{//error in request
+		ByteBuffer d;
+		d << "HTTP/1.1 400 Bad Request\r\n";
+		d << "Content-Length: " << ByteBuffer::peekFileSize("./simple_site/index.html") << "\r\n\r\n";
+		d.appendFile("./simple_site/index.html");
+		comm.bufferResponse(d, true);
+		return;
+	}
+
+	//response constructor
 
 	//GET
+	std::string resource(request.getResource());
 	if (resource.find("/..") != std::string::npos)
 		return;
 	
@@ -34,6 +45,7 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 		resource = "./simple_site/index.html";
 	else
 		resource = "./simple_site" + resource;
+
 
 	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
