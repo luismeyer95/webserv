@@ -4,7 +4,8 @@
 #include <string>
 #include <iostream>
 
-class Parser {
+class Parser
+{
 	private:
 		Parser() {}
 	public:
