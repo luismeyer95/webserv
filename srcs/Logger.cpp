@@ -1,4 +1,4 @@
-#include "../includes/Logger.hpp"
+#include <Logger.hpp>
 
 Logger&	Logger::getInstance()
 {

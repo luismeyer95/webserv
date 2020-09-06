@@ -1,4 +1,4 @@
-#include "../includes/ByteBuffer.hpp"
+#include <ByteBuffer.hpp>
 
 ByteBuffer::ByteBuffer() : head(0) {}
 

@@ -16,7 +16,11 @@ SRCS	=	main.cpp \
 			ServerSocketPool.cpp \
 			RequestParser.cpp \
 			ByteBuffer.cpp \
-			Utils.cpp
+			Utils.cpp \
+			Regex/NFA.cpp \
+			Regex/NFAState.cpp \
+			Regex/PatternValidation.cpp \
+			Regex/Regex.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -25,6 +29,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Utils.hpp \
 				ByteBuffer.hpp \
 				Containers.hpp \
+				Regex.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)
@@ -32,11 +37,11 @@ OBJS		= $(SRCS:.cpp=.o)
 all:	$(NAME)
 
 $(NAME): $(addprefix $(OBJS_DIR)/, $(OBJS)) $(INCLUDE)
-	$(CC) $(FLAGS) $(addprefix $(OBJS_DIR)/, $(OBJS)) -I $(INC_DIR)
+	$(CC) $(FLAGS) $(addprefix $(OBJS_DIR)/, $(OBJS)) $(addprefix -I, $(INC_DIR))
 	mv a.out $(NAME)
 
 $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
-	$(CC) $(FLAGS) -c $< -o $@
+	$(CC) $(FLAGS) $(addprefix -I, $(INC_DIR)) -c $< -o $@
 
 clean:
 	@rm -f $(addprefix $(OBJS_DIR)/, $(OBJS))

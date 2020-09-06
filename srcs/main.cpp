@@ -1,9 +1,11 @@
-#include "../includes/Logger.hpp"
-#include "../includes/ServerSocketPool.hpp"
-#include "../includes/RequestParser.hpp"
-#include "../includes/Utils.hpp"
-#include "../includes/header.h"
-#include "../includes/ByteBuffer.hpp"
+#include <Logger.hpp>
+#include <ServerSocketPool.hpp>
+#include <RequestParser.hpp>
+#include <Utils.hpp>
+#include <header.h>
+#include <ByteBuffer.hpp>
+
+#include <Regex.hpp>
 
 void	handle_connection(HTTPExchange& comm)
 {
@@ -40,6 +42,7 @@ void	handle_request(HTTPExchange& comm)
 
 int main(int ac, char **av)
 {
+
 	std::vector<std::string> args(av, av + ac);
 
 	if (ac != 2)
@@ -54,3 +57,27 @@ int main(int ac, char **av)
 	pool.addListener(std::stoi(args[1]));
 	pool.runServer(handle_connection, handle_request);
 }
+
+/* MAIN POUR TESTER LES REGEXS */
+
+// int main(int ac, char **av)
+// {
+// 	if (ac != 3)
+// 	{
+// 		std::cout << "usage: " << av[0] << " <pattern> <string_to_match>" << std::endl;
+// 		return(1);
+// 	}
+
+// 	try {
+// 		Regex rgx(av[1]);
+// 		std::pair<bool, std::string> p = rgx.match(av[2]);
+// 		std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
+// 		if (p.first)
+// 			std::cout << "String matched: \"" << p.second << "\"" << std::endl;
+// 	} 
+// 	catch (const std::runtime_error& e) {
+// 		std::cout << e.what() << std::endl;
+// 	}
+
+// 	return 0;
+// }

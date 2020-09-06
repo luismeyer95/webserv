@@ -1,5 +1,4 @@
-#include "../includes/Utils.hpp"
-
+#include <Utils.hpp>
 
 std::string filetostr( std::string filename )
 {
