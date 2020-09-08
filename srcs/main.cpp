@@ -6,6 +6,7 @@
 #include <ByteBuffer.hpp>
 
 #include <Regex.hpp>
+#include <ConfParser.hpp>
 
 void	handle_connection(HTTPExchange& comm)
 {
@@ -40,44 +41,66 @@ void	handle_request(HTTPExchange& comm)
 	comm.bufferResponse(doc, true);
 }
 
-int main(int ac, char **av)
-{
+// int main(int ac, char **av)
+// {
 
-	std::vector<std::string> args(av, av + ac);
+// 	std::vector<std::string> args(av, av + ac);
 
-	if (ac != 2)
-	{
-		std::cout << "usage: " << args[0] << " <port>" << std::endl;
-		return (0);
-	}
+// 	if (ac != 2)
+// 	{
+// 		std::cout << "usage: " << args[0] << " <port>" << std::endl;
+// 		return (0);
+// 	}
 
-	ServerSocketPool& pool = ServerSocketPool::getInstance();
-	Logger& log = Logger::getInstance();
+// 	ServerSocketPool& pool = ServerSocketPool::getInstance();
+// 	Logger& log = Logger::getInstance();
 	
-	pool.addListener(std::stoi(args[1]));
-	pool.runServer(handle_connection, handle_request);
-}
+// 	pool.addListener(std::stoi(args[1]));
+// 	pool.runServer(handle_connection, handle_request);
+// }
 
 /* MAIN POUR TESTER LES REGEXS */
 
-// int main(int ac, char **av)
-// {
-// 	if (ac != 3)
-// 	{
-// 		std::cout << "usage: " << av[0] << " <pattern> <string_to_match>" << std::endl;
-// 		return(1);
-// 	}
+int main(int ac, char **av)
+{
 
-// 	try {
-// 		Regex rgx(av[1]);
-// 		std::pair<bool, std::string> p = rgx.match(av[2]);
-// 		std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
-// 		if (p.first)
-// 			std::cout << "String matched: \"" << p.second << "\"" << std::endl;
-// 	} 
-// 	catch (const std::runtime_error& e) {
-// 		std::cout << e.what() << std::endl;
-// 	}
+	ConfParser conf("./webserv.conf");
 
-// 	return 0;
-// }
+	// std::cout << conf.mainContext().blocks[0].blocks[2].prefixes[0] << std::endl;
+	// for (auto& val : conf.mainContext().blocks[0].blocks[0].directives[0].values)
+	// 	std::cout << val << std::endl;
+	exit(0);
+
+	if (ac != 3 && ac != 5)
+	{
+		std::cout << "usage: " << av[0] << " <pattern> <string_to_match>" << std::endl;
+		std::cout << "| " << av[0] << " <prereq> <pattern> <postreq> <string_to_match>" << std::endl;
+		return(1);
+	}
+
+	try {
+
+		if (ac == 3)
+		{
+			Regex rgx(av[1]);
+			std::pair<bool, std::string> p = rgx.match(av[2]);
+			std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
+			if (p.first)
+				std::cout << "String matched: \"" << p.second << "\"" << std::endl;
+		}
+		else
+		{
+			Regex rgx(av[2]);
+			std::pair<bool, std::string> p = rgx.matchIn(av[4], av[1], av[3]);
+			std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
+			if (p.first)
+				std::cout << "String matched: \"" << p.second << "\"" << std::endl;
+		}
+	} 
+	catch (const std::runtime_error& e) {
+		std::cout << e.what() << std::endl;
+	}
+
+
+	return 0;
+}

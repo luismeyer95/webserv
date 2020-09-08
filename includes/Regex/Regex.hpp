@@ -22,6 +22,11 @@ class Regex
 		~Regex();
 
 		std::pair<bool, std::string> match(const std::string& str);
+		std::pair<bool, std::string> matchIn(
+			const std::string& str,
+			const std::string& before,
+			const std::string& after
+		);
 		void	setNextStates(
 			NFAState *state,
 			std::vector<NFAState*>& next_states,

@@ -1,9 +1,10 @@
 CC			=	clang++-6.0
 
 FWARN		=	-Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable
+FSTD		=	-std=c++11
 FDEBUG		=	-g
 FOPTI		=	-O3 -Ofast
-FLAGS		=	$(FWARN) $(FDEBUG) $(FOPTI)
+FLAGS		=	$(FWARN) $(FSTD) $(FDEBUG) $(FOPTI)
 
 NAME		=	server
 
@@ -30,6 +31,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				ByteBuffer.hpp \
 				Containers.hpp \
 				Regex.hpp \
+				ConfParser.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)
