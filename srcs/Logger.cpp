@@ -67,6 +67,16 @@ void		Logger::out(const std::string& str)
 	}
 }
 
+void		Logger::ok()
+{
+	out() << "[" BOLDGREEN "OK" RESET "]" << std::endl;
+}
+
+void		Logger::error(const std::string& err)
+{
+	out() << "[" BOLDRED "ERROR" RESET "]: " << err << std::endl;
+}
+
 std::string				Logger::getTime()
 {
 	struct timeval tv;

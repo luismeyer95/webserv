@@ -21,6 +21,10 @@ class Logger {
 		std::stringstream&		err();
 		std::ostream&			out(bool entry = true, bool timeheader = true);
 		void					out(const std::string& str);
+
+		void					ok();
+		void					error(const std::string& err);
+		
 		bool					assert(bool expr, bool fatal);
 		void					toggleLog();
 

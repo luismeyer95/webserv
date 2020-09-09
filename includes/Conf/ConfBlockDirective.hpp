@@ -13,6 +13,8 @@ std::string							contextKeyToString(ContextKey key);
 struct ConfBlockDirective
 {
 	public:
+		int								line_nb;
+		ConfBlockDirective				*parent;
 
 		ContextKey						key;			// location
 		std::vector<std::string>		prefixes;		// {"~", "\.(gif|png)$"}
@@ -21,7 +23,10 @@ struct ConfBlockDirective
 		std::vector<ConfDirective>		directives;
 
 		ConfBlockDirective();
-		ConfBlockDirective(ContextKey key, const std::vector<std::string>& prefixes = {});
+		ConfBlockDirective (
+			int line_number, ContextKey key,
+			const std::vector<std::string>& prefixes = {}
+		);
 
 		void validate();
 

@@ -49,14 +49,22 @@ int main(int ac, char **av)
 		return (0);
 	}
 
-	std::vector<std::string> args(av, av + ac);
-
-	ConfParser conf(args[1]);
-	// exit(0);
-	std::cout << "Configuration file OK" << std::endl;
-
 	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();
+	std::vector<std::string> args(av, av + ac);
+
+	log.out() << "Initializing server..." << std::endl;
+	log.out() << "Loading configuration file" << std::endl;
+
+	try {
+		ConfParser conf(args[1]);
+		log.ok();
+	} catch (const std::runtime_error& e) {
+		log.out() << "[" BOLDRED "ERROR" RESET "]: " << e.what() << std::endl;
+		return (0);
+	}
+
+	log.out() << "Setting up virtual hosts" << std::endl;
 	
 	try {
 		pool.addListener("localhost", 80);
@@ -65,41 +73,3 @@ int main(int ac, char **av)
 	}
 	pool.runServer(handle_connection, handle_request);
 }
-
-/* MAIN POUR TESTER LES REGEXS */
-
-// int main(int ac, char **av)
-// {
-// 	if (ac != 3 && ac != 5)
-// 	{
-// 		std::cout << "usage: " << av[0] << " <pattern> <string_to_match>" << std::endl;
-// 		std::cout << "| " << av[0] << " <prereq> <pattern> <postreq> <string_to_match>" << std::endl;
-// 		return(1);
-// 	}
-
-// 	try {
-
-// 		if (ac == 3)
-// 		{
-// 			Regex rgx(av[1]);
-// 			std::pair<bool, std::string> p = rgx.match(av[2]);
-// 			std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
-// 			if (p.first)
-// 				std::cout << "String matched: \"" << p.second << "\"" << std::endl;
-// 		}
-// 		else
-// 		{
-// 			Regex rgx(av[2]);
-// 			std::pair<bool, std::string> p = rgx.matchIn(av[4], av[1], av[3]);
-// 			std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
-// 			if (p.first)
-// 				std::cout << "String matched: \"" << p.second << "\"" << std::endl;
-// 		}
-// 	} 
-// 	catch (const std::runtime_error& e) {
-// 		std::cout << e.what() << std::endl;
-// 	}
-
-
-// 	return 0;
-// }

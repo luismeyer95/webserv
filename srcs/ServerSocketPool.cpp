@@ -44,16 +44,15 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 		addrbin = htonl(INADDR_LOOPBACK);
 	else
 		addrbin = inet_addr(host.c_str());
-	log.err() << "Invalid IP address `" << host.c_str() << "`";
-	log.assert(addrbin != INADDR_NONE, true);
-	log.out() << "`" << host << "` is a valid address\n";
-
+	log.out() << "Verifying IP `" << host << "`" << std::endl;
+	if (addrbin == INADDR_NONE)
+		throw std::runtime_error("invalid IP address `" + host + "`");
 
 	int sock = 0;
+	log.out() << "Creating virtual host socket for `" << host << ":" << port << "`\n";
 	sock = socket(AF_INET, SOCK_STREAM, 0);
-	log.err() << "Failed to create server socket. " << strerror(errno);
-	log.assert(sock != -1, true);
-	log.out() << "Virtual host socket created for `" << host << ":" << port << "`\n";
+	if (sock == -1)
+		throw std::runtime_error("Failed to create server socket. " + std::string(strerror(errno)));
 
 	Listener* lstn = new Listener();
 	lstn->socket_fd = sock;
@@ -66,11 +65,15 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	
 	// when binding, check for EADDRINUSE and EADDRNOTAVAIL
 	int ret = bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address));
-	log.err() << "Failed to bind socket to `" << host << ":" << port << "`. " << strerror(errno) << ".";
-	log.assert(ret != -1, true);
+	if (ret == -1)
+		throw std::runtime_error (
+			"Failed to bind socket to `" + host + ":"
+			+ std::to_string(port) + "`. " + strerror(errno) + "."
+		);
 	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
+	log.ok();
+
 	listen(lstn->socket_fd, MAXQUEUE);
-	
 	
 	if (lstn->socket_fd > fd_max)
 		fd_max = lstn->socket_fd;

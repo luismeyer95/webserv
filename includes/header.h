@@ -6,7 +6,7 @@
 /*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/07/05 11:45:46 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/09/09 22:42:05 by lumeyer          ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,4 +39,6 @@
 #include <vector>
 #include "Containers.hpp"
 
-sig_atomic_t& sigflag();
+#define BOLDRED "\e[1;31m"
+#define BOLDGREEN "\e[1;32m"
+#define RESET "\e[0m"

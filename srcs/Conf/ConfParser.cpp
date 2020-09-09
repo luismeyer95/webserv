@@ -6,16 +6,26 @@ ConfParser::ConfParser(const std::string& conf_path)
 	directive_key_lookup(directiveKeyLookup())
 {
 	// (void)token_index;
+	tokens.reserve(128);
 
 	std::ifstream in(conf_path);
 	if (in.is_open())
 	{
 		tokenizeConf(in);
 		in.close();
-		main = context(ContextKey::main, {});
+		try {
+			main = context(1, ContextKey::main, {});
+			link(nullptr, main);
+			main.validate();
+		} catch (const ConfError& e) {
+			throw std::runtime_error (
+				conf_path + ": line " + std::to_string(e.line())
+				+ ": " + e.err()
+			);
+		}
 	}
 	else
-		throw std::runtime_error("ConfParser: Could not open configuration file");
+		throw std::runtime_error("could not open configuration file");
 }
 
 bool ConfParser::isWhitespace(char c)
@@ -31,39 +41,53 @@ bool ConfParser::isDelimiter(char c)
 void ConfParser::tokenizeConf(std::ifstream& in)
 {
 	std::stringstream stream;
-	std::string temp;
-	while(getline(in, temp, '\n'))
-	{
-		temp = temp.substr(0, temp.find('#'));
-		stream << temp << '\n';
-	}
-	conf_file = stream.str();
+	std::string line;
 
-	std::string buf;
-	buf.reserve(128);
-	for (auto& c : conf_file)
-	{	
-		// whitespace or delim
-		if (isWhitespace(c) || isDelimiter(c))
-		{
-			if (!buf.empty())
-				tokens.push_back(buf);
-			if (isDelimiter(c))
-				tokens.push_back(std::string(1, c));
-			buf.clear();
+	int line_nb = 1;
+	while (getline(in, line, '\n'))
+	{
+		line = line.substr(0, line.find('#'));
+		stream << line << '\n';
+
+		std::string buf;
+		buf.reserve(128);
+		for (auto& c : line)
+		{	
+			// whitespace or delim
+			if (isWhitespace(c) || isDelimiter(c))
+			{
+				if (!buf.empty())
+				{
+					tokens.push_back(buf);
+					token_line_nb.push_back(line_nb);
+				}
+				if (isDelimiter(c))
+				{
+					tokens.push_back(std::string(1, c));
+					token_line_nb.push_back(line_nb);
+				}
+				buf.clear();
+			}
+			else
+				buf.push_back(c);
 		}
-		else
-			buf.push_back(c);
+		if (!buf.empty())
+		{
+			tokens.push_back(buf);
+			token_line_nb.push_back(line_nb);
+		}
+		
+		line_nb++;
 	}
-	if (!buf.empty())
-		tokens.push_back(buf);
-	// for (auto& tk : tokens)
-	// 	std::cout << tk << std::endl;
+	// for (size_t i = 0; i < tokens.size(); ++i)
+	// 	std::cout << tokens[i] << " (line " << token_line_nb[i] << ")" << std::endl;
 }
 
-ConfBlockDirective ConfParser::context(ContextKey key, const std::vector<std::string>& prefixes)
+ConfBlockDirective ConfParser::context (
+	int line_nb, ContextKey key, const std::vector<std::string>& prefixes
+)
 {
-	ConfBlockDirective block(key, prefixes);
+	ConfBlockDirective block(line_nb, key, prefixes);
 
 	while (more() && peek() != "}")
 	{
@@ -72,26 +96,36 @@ ConfBlockDirective ConfParser::context(ContextKey key, const std::vector<std::st
 		else if (directive_key_lookup.count(peek()))
 			block.directives.push_back(buildDirective());
 		else
-			throw std::runtime_error("ConfParser: Unexpected token `" + peek() + "`");
+			throw ConfError(line(), "unexpected token `" + peek() + "`");
 	}
 	if (key != ContextKey::main)
 	{
 		if (peek() != "}")
 		{
-			throw std::runtime_error (
-				"ConfParser: Missing closing curly brace on `"
+			throw ConfError (
+				line_nb,
+				"missing closing curly brace on `"
 				+ contextKeyToString(key) + "` block directive"
 			);
 		}
 		next();
 	}
-	else
-		block.validate();
 	return block;
 }
 
+void ConfParser::link(ConfBlockDirective *parent, ConfBlockDirective& block)
+{
+	block.parent = parent;
+	for (auto& dir : block.directives)
+		dir.parent = &block;
+	for (auto& b : block.blocks)
+		link(&block, b);
+}
+
+
 ConfBlockDirective ConfParser::buildBlock()
 {
+	int line_nb = line();
 	std::string strkey = next();
 	ContextKey nested_block_key = context_key_lookup[strkey];
 
@@ -99,17 +133,22 @@ ConfBlockDirective ConfParser::buildBlock()
 	switch (nested_block_key)
 	{
 		case ContextKey::location:
+		{
 			nested_prefixes = locationPrefixes();
+			break;
+		}
 		default: break;
 	}
 
-	if (next() != "{")
-		throw std::runtime_error (
-			"ConfParser: Missing opening curly brace for `"
+	if (peek() != "{")
+		throw ConfError (
+			line_nb,
+			"missing opening curly brace for `"
 			+ strkey + "` block directive"
 		);
+	next();
 		
-	return context(nested_block_key, nested_prefixes);
+	return context(line_nb, nested_block_key, nested_prefixes);
 }
 
 std::vector<std::string> ConfParser::locationPrefixes()
@@ -121,9 +160,11 @@ std::vector<std::string> ConfParser::locationPrefixes()
 		try {
 			Regex rgx(peek());
 		} catch (const std::runtime_error& e) {
-			std::string errstr = "ConfBlockDirective: Location block has invalid regex expression\n";
-			errstr += e.what();
-			throw std::runtime_error(errstr);
+			throw ConfError (
+				line(),
+				"`location` block regex expression is invalid. "
+				+ std::string(e.what())
+			);
 		}
 		prefixes.push_back(next());
 	}
@@ -137,8 +178,9 @@ std::vector<std::string> ConfParser::locationPrefixes()
 		bool valid_uri = Regex("^/|(/[-_a-zA-Z\\d]+(\\.[-_a-zA-Z\\d]+)?)+/?$").match(peek()).first;
 		if (!valid_uri)
 		{
-			throw std::runtime_error (
-				"ConfParser: Invalid URI in `location` block prefix"
+			throw ConfError (
+				line(),
+				"invalid URI in `location` block prefix"
 			);
 		}
 		prefixes.push_back(next());
@@ -149,27 +191,26 @@ std::vector<std::string> ConfParser::locationPrefixes()
 
 ConfDirective ConfParser::buildDirective()
 {
+	int line_nb = line();
 	std::string strkey = next();
 	DirectiveKey directive_key = directive_key_lookup[strkey];
+
 	std::vector<std::string> values;
 	while (more() && peek() != ";")
 		values.push_back(next());
 	// if (more())
-		eat("^;$");
+	eat("^;$");
 
-	return ConfDirective(directive_key, values);
+	return ConfDirective(line_nb, directive_key, values);
 }
 
 std::string ConfParser::eat(const std::string& pattern)
 {
 	if (!more())
-		throw std::runtime_error("ConfParser: Unexpected end of config file");
-	auto res = Regex(pattern).match(tokens[token_index]);
+		throw ConfError(token_line_nb.back(), "unexpected end of config file");
+	auto res = Regex(pattern).match(peek());
 	if (!res.first)
-	{
-		std::string err = "ConfParser: Unexpected token `" + tokens[token_index] + '`'; 
-		throw std::runtime_error(err);
-	}
+		throw ConfError(line(), "unexpected token `" + peek() + '`');
 	else
 	{
 		token_index++;
@@ -200,6 +241,15 @@ std::string ConfParser::next()
 bool ConfParser::more()
 {
 	return token_index < tokens.size();
+}
+
+int ConfParser::line()
+{
+	if (token_line_nb.empty())
+		return 1;
+	if (!more())
+		return token_line_nb.back();
+	return token_line_nb[token_index];
 }
 
 const ConfBlockDirective& ConfParser::mainContext() const

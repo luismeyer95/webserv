@@ -30,22 +30,32 @@ std::string directiveKeyToString(DirectiveKey key)
 	}
 }
 
-ConfDirective::ConfDirective(DirectiveKey key, const std::vector<std::string>& values)
-	: key(key), values(values) {}
+ConfDirective::ConfDirective (
+	int line_nb, DirectiveKey key,
+	const std::vector<std::string>& values
+) : line_nb(line_nb), parent(nullptr), key(key), values(values) {}
+
+ConfError ConfDirective::missingVal()
+{
+	return ConfError (
+		line_nb,
+		"missing value for `"
+		+ directiveKeyToString(key) + "` directive"
+	);
+}
 
 void ConfDirective::validate()
 {
 	using D = DirectiveKey;
 	switch (key)
 	{
-		case D::listen: {
+		case D::listen:
+		{
 			if (values.empty())
-				throw std::runtime_error (
-					"ConfDirective: Empty value for `" + directiveKeyToString(key)
-					+ "` directive is not accepted"
-				);
-			std::runtime_error oor (
-				"ConfDirective: Out of range port number for `"
+				throw missingVal();
+			ConfError oor (
+				line_nb,
+				"out of range port number for `"
 				+ directiveKeyToString(key) + "` directive"
 			);
 			int port;
@@ -58,27 +68,48 @@ void ConfDirective::validate()
 				throw oor;
 			break;
 		}
-		case D::server_name: {
+
+		case D::server_name:
+		{
 			// . . .
 			break;
 		}
-		case D::root: {
+
+		case D::root:
+		{
+			if (values.empty())
+				throw missingVal();
+			bool valid_uri = Regex("^/|(/[-_a-zA-Z\\d]+(\\.[-_a-zA-Z\\d]+)?)+/?$").match(values[0]).first;
+			if (!valid_uri)
+			{
+				throw ConfError (
+					line_nb,
+					"invalid URI in `root` directive"
+				);
+			}
+			break;
+		}
+
+		case D::error_page:
+		{
 			// . . .
 			break;
 		}
-		case D::error_page: {
+
+		case D::internal:
+		{
 			// . . .
 			break;
 		}
-		case D::internal: {
+
+		case D::index:
+		{
 			// . . .
 			break;
 		}
-		case D::index: {
-			// . . .
-			break;
-		}
-		case D::autoindex: {
+
+		case D::autoindex:
+		{
 			// . . .
 			break;
 		}

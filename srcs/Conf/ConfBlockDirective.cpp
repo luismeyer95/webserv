@@ -22,10 +22,13 @@ std::string contextKeyToString(ContextKey key)
 	}
 }
 
-ConfBlockDirective::ConfBlockDirective() {}
+ConfBlockDirective::ConfBlockDirective()
+	: parent(nullptr) {}
 
-ConfBlockDirective::ConfBlockDirective(ContextKey key, const std::vector<std::string>& prefixes)
-	: key(key), prefixes(prefixes) {}
+ConfBlockDirective::ConfBlockDirective (
+	int line_number, ContextKey key,
+	const std::vector<std::string>& prefixes
+) : line_nb(line_number), parent(nullptr), key(key), prefixes(prefixes) {}
 
 void ConfBlockDirective::validate()
 {
@@ -58,13 +61,22 @@ void ConfBlockDirective::validateMain()
 		}
 	);
 	if (it == blocks.end())
-		throw std::runtime_error("ConfParser: Main context has no server blocks");
+		throw ConfError(line_nb, "main context has no server blocks");
+	for (auto& dir : directives)
+		dir.validate();
 	for (auto& nested : blocks)
 		nested.validate();
 }
 
 void ConfBlockDirective::validateServer()
 {
+	// ensure at least one nested block is present
+	if (blocks.empty())
+		throw ConfError (
+			line_nb,
+			"server blocks require at least one `location` block directive"
+		);
+	// ensure no nested blocks other than location blocks are present
 	auto it = std::find_if ( 
 		blocks.begin(), blocks.end(),
 		[] (const ConfBlockDirective& b) {
@@ -72,15 +84,42 @@ void ConfBlockDirective::validateServer()
 		}
 	);
 	if (it != blocks.end())
-		throw std::runtime_error(
-			"ConfParser: Block directives inside server blocks "
-			"should be of type `location`"
+		throw ConfError(
+			line_nb,
+			"only `location` block directives are allowed inside server blocks"
 		);
+	
+	// validate directives and nested blocks
+	for (auto& dir : directives)
+		dir.validate();
 	for (auto& nested : blocks)
 		nested.validate();
 }
 
 void ConfBlockDirective::validateLocation()
 {
-	
+	// ensure it has a root directive
+	ConfBlockDirective *b = this;
+	while (b)
+	{
+		auto it = std::find_if (
+			b->directives.begin(), b->directives.end(),
+			[] (const ConfDirective& d) {
+				return d.key == DirectiveKey::root;
+			}
+		);
+		if (it != b->directives.end())
+		{
+			if (b != this)
+				directives.push_back(*it);
+			for (auto& dir : directives)
+				dir.validate();
+			return;
+		}
+		b = b->parent;
+	}
+	throw ConfError (
+		line_nb,
+		"`location` block requires a root directive"
+	);
 }

@@ -13,6 +13,7 @@ class ConfParser
 		std::string					conf_file;
 
 		std::vector<std::string>	tokens;
+		std::vector<int>			token_line_nb;
 		size_t						token_index;
 
 		std::map<std::string, ContextKey>	context_key_lookup;
@@ -22,9 +23,14 @@ class ConfParser
 		bool isDelimiter(char c);
 		void tokenizeConf(std::ifstream& in);
 
-		ConfBlockDirective			context(ContextKey key, const std::vector<std::string>& prefixes);
+		ConfBlockDirective			context (
+			int line_nb, ContextKey key, const std::vector<std::string>& prefixes
+		);
+
+		void						link(ConfBlockDirective *parent, ConfBlockDirective& block);
 
 		ConfBlockDirective			buildBlock();
+		
 		std::vector<std::string>	locationPrefixes();
 
 		ConfDirective				buildDirective();
@@ -34,6 +40,6 @@ class ConfParser
 		std::string					peek();
 		std::string					next();
 		bool						more();
-
+		int							line();
 
 };
