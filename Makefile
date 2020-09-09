@@ -21,7 +21,10 @@ SRCS	=	main.cpp \
 			Regex/NFA.cpp \
 			Regex/NFAState.cpp \
 			Regex/PatternValidation.cpp \
-			Regex/Regex.cpp
+			Regex/Regex.cpp \
+			Conf/ConfParser.cpp \
+			Conf/ConfBlockDirective.cpp \
+			Conf/ConfDirective.cpp \
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -31,7 +34,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				ByteBuffer.hpp \
 				Containers.hpp \
 				Regex.hpp \
-				ConfParser.hpp \
+				Conf.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)

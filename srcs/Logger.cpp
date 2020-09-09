@@ -90,7 +90,7 @@ std::stringstream&	Logger::err()
 // Asserts that the expression expr is true.
 // - expr == true: nothing happens
 // - expr == false: the buffered error stream's content is output to the log stream
-//			 and the error stream is cleared. if fatal == true, the program exits
+//			 and the error stream is cleared. if fatal == true, function throws
 bool				Logger::assert(bool expr, bool fatal)
 {
 	if (!expr)
@@ -103,7 +103,7 @@ bool				Logger::assert(bool expr, bool fatal)
 			o << std::setw(0);
 		}
 		if (fatal)
-			exit(1);
+			throw std::runtime_error("");
 	}
 	_errstr.str(std::string());
 	return expr;

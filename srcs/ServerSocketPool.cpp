@@ -31,43 +31,58 @@ ft::deque<Socket*>&		ServerSocketPool::getSocketList()
 	return socket_list;
 }
 
-void	ServerSocketPool::addListener(unsigned short port)
+void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 {
 	Logger& log = Logger::getInstance();
 
-	log.err() << "Requested listening port already in use";
-	if (!log.assert(portIsUnused(port), false))
-		return;
-		
+	// SPECIFYING HOST:
+	// make sure ipv4 string has no leading zeros
+	// s_addr = inet_addr("1.2.3.4"), or htonl(INADDR_LOOPBACK) for "localhost"
+	// returns INADDR_NONE if the input string is invalid
+	uint32_t addrbin;
+	if (host == "localhost")
+		addrbin = htonl(INADDR_LOOPBACK);
+	else
+		addrbin = inet_addr(host.c_str());
+	log.err() << "Invalid IP address `" << host.c_str() << "`";
+	log.assert(addrbin != INADDR_NONE, true);
+	log.out() << "`" << host << "` is a valid address\n";
+
+
+	int sock = 0;
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	log.err() << "Failed to create server socket. " << strerror(errno);
+	log.assert(sock != -1, true);
+	log.out() << "Virtual host socket created for `" << host << ":" << port << "`\n";
+
 	Listener* lstn = new Listener();
-
+	lstn->socket_fd = sock;
 	lstn->port = port;
-
-	lstn->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	log.err() << "Failed to create server socket";
-	log.assert(lstn->socket_fd != -1, true);
+	socket_list.push_back(static_cast<Socket*>(lstn));
 
 	lstn->address.sin_family = AF_INET;
 	lstn->address.sin_port = htons(port);
-	lstn->address.sin_addr.s_addr = INADDR_ANY;
-
-	log.err() << "Failed to bind socket to server address";
-	log.assert(bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address)) != -1, true);
+	lstn->address.sin_addr.s_addr = addrbin;
+	
+	// when binding, check for EADDRINUSE and EADDRNOTAVAIL
+	int ret = bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address));
+	log.err() << "Failed to bind socket to `" << host << ":" << port << "`. " << strerror(errno) << ".";
+	log.assert(ret != -1, true);
+	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
 	listen(lstn->socket_fd, MAXQUEUE);
 	
-	socket_list.push_back(static_cast<Socket*>(lstn));
 	
 	if (lstn->socket_fd > fd_max)
 		fd_max = lstn->socket_fd;
 }
 
-bool	ServerSocketPool::portIsUnused(unsigned short port)
-{
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
-		if ((*it)->socket_fd == port)
-			return false;
-	return true;
-}
+// bool	ServerSocketPool::portIsUnused(unsigned short port)
+// {
+// 	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+// 		if ((*it)->socket_fd == port)
+// 			return false;
+// 	return true;
+// }
 
 
 void	ServerSocketPool::runServer(
@@ -130,10 +145,14 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	struct sockaddr store;
 	socklen_t len;
 
+	// PAS AUTORISE ......
+	std::memset(&store, 0, sizeof(struct sockaddr));
+	std::memset(&len, 0, sizeof(socklen_t));
+
 	comm->socket_fd = accept(lstn->socket_fd, &store, &len);
 	struct sockaddr_in *s = (struct sockaddr_in*)&store;
-	inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
-	log.out() << "connection ip = " << ipstr << std::endl;
+	// inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+	// log.out() << "connection ip = " << ipstr << std::endl;
 
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);
 	comm->req_buffer = "";
