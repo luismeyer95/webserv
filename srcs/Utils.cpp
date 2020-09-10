@@ -135,10 +135,11 @@ std::vector<std::string> header_finder(const std::vector<std::string> lines, con
     return (out);
 }
 
-bool check_str_len(const std::string &str, int min, int max)
+bool check_str_len(const std::string &str, unsigned int min, unsigned int max)
 {
 	if (str.length() < min || str.length() > max)
 		return (0);
+	return (1);
 }
 
 bool is_http_date(std::string str)
