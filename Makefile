@@ -21,7 +21,6 @@ SRCS	=	main.cpp \
 			Regex/NFAState.cpp \
 			Regex/PatternValidation.cpp \
 			Regex/Regex.cpp \
-			Parser.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
