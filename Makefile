@@ -20,7 +20,8 @@ SRCS	=	main.cpp \
 			Regex/NFA.cpp \
 			Regex/NFAState.cpp \
 			Regex/PatternValidation.cpp \
-			Regex/Regex.cpp
+			Regex/Regex.cpp \
+			Parser.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
