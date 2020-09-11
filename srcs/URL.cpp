@@ -11,6 +11,9 @@ void Tokenizer::reset()
 	head = 0;
 }
 
+// finds in str the first occurence of any of the strings in strs
+// returns a pair containing the start index of the found string + its index
+// if no match was found, returns std::string::npos for pos
 std::pair<size_t, size_t>	Tokenizer::find_first_of_str
 	(const std::string& str, const std::list<std::string>& strs)
 {
@@ -31,6 +34,20 @@ std::pair<size_t, size_t>	Tokenizer::find_first_of_str
 	return {pos, len};
 }
 
+
+// this function retrieves tokens inside str according to the rules
+// given during construction.
+// - delim_set: this set of strings defines the order of appearance of delimiters.
+//				get_token() should be called delim_set.size() + 1 times to retrieve
+//				all the tokens.
+// - skip_set:	this set MUST be a subset of delim_set. it informs the object which of
+//				the delimiters should be excluded from the tokens.
+// every call walks the delim_set, returns the next token in str and advances the string.
+// the next token spans from the beginning of str to the first character of the first string 
+// found amongst the string delimiters in delim_set. usually the front of the delim_set is
+// the expected delimiter and popped at the end of the call, but if one of the following one
+// is found, next calls will pop front and return empty string until that delimiter is at
+// the front to reflect the empty tokens.
 std::string Tokenizer::get_token(std::string& str)
 {
 	if (delim_set.empty())
@@ -85,9 +102,18 @@ URL::URL() {}
 URL::URL(const std::string& encoded_url)
 	: _encoded_url(encoded_url)
 {
-	Tokenizer tk({"://", ":", "/", "?", "#"}, {"://", ":", "?", "#"});
 
-	_scheme = tk.get_token(_encoded_url);
+	// scheme processed separately, since the tokenizer
+	// object assumes the presence of a token implies the presence
+	// of the previous delimiter. (having "://" isn't required for a host token)
+	size_t scheme_delim = _encoded_url.find("://");
+	if (scheme_delim != std::string::npos)
+	{
+		_scheme = _encoded_url.substr(0, scheme_delim);
+		_encoded_url = _encoded_url.substr(scheme_delim + 3);
+	}
+
+	Tokenizer tk({":", "/", "?", "#"}, {":", "?", "#"});
 	_host = tk.get_token(_encoded_url);
 	_port = tk.get_token(_encoded_url);
 	_path = tk.get_token(_encoded_url);
@@ -119,6 +145,8 @@ std::string& URL::get(URL::Component comp)
 	}
 }
 
+// Percent encodes the given string. Percent encoding is only applied on non-ASCII characters
+// and the characters given in reserved_set.
 std::string URL::encode(const std::vector<char>& reserved_set, const std::string& str)
 {
 	std::stringstream ss;
@@ -140,6 +168,7 @@ std::string URL::encode(const std::vector<char>& reserved_set, const std::string
 	return ss.str();
 }
 
+// Returns percent-decoded str.
 std::string URL::decode(const std::string& str)
 {
 	std::stringstream ss;
@@ -160,6 +189,30 @@ std::string URL::decode(const std::string& str)
 	return ss.str();
 }
 
+// REGEX FOR COMPONENTS
+
+// unreserved : ^[a-zA-Z\d-._~]$
+// subdelims : ^[!$&'()*+,;=]$
+// gen-delims : ^[:/?#\[\]@]$
+
+// scheme : ^[a-zA-Z]([a-zA-Z]|\d|\+|-|\.)*$
+// "://"
+// authority
+	// host : 
+		// ipv4 : ^(([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){3}([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$
+			// 0 ... 255 : ^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$
+			// a.a.a.a	 : ^(a\.){3}a$
+		// reg-name : ^([a-zA-Z\d-._~!$&'()*+,;=]|%[a-fA-F\d]{2})*$
+	// port ^\d*$
+// path : 
+	// segment : ^([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})*$
+	// segment-nz : ^([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})+$
+	// segment-nz-nc : ^([a-zA-Z\d-._~!$&'()*+,;=@]|%[a-fA-F\d]{2})+$
+
+	// path-abempty : ^(\/([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})*)*$
+// query = fragment : ^(([a-zA-Z\d-._~!$&'()*+,;=:@/?]|%[a-fA-F\d]{2})*)*$
+
+// Verifies the syntaxic validity of a specific URL component.
 void URL::validate(URL::Component comp)
 {
 	using C = URL::Component;
@@ -243,31 +296,6 @@ bool		URL::check(const std::string& rgx, const std::string& str, bool thrw, cons
 		throw std::runtime_error(error);
 	return res.first;
 }
-
-// REGEX FOR COMPONENTS
-
-// unreserved : ^[a-zA-Z\d-._~]$
-// subdelims : ^[!$&'()*+,;=]$
-// gen-delims : ^[:/?#\[\]@]$
-
-// scheme : ^[a-zA-Z]([a-zA-Z]|\d|\+|-|\.)*$
-// "://"
-// authority
-	// host : 
-		// ipv4 : ^(([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){3}([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$
-			// 0 ... 255 : ^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$
-			// a.a.a.a	 : ^(a\.){3}a$
-		// reg-name : ^([a-zA-Z\d-._~!$&'()*+,;=]|%[a-fA-F\d]{2})*$
-	// port ^\d*$
-// path : 
-	// segment : ^([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})*$
-	// segment-nz : ^([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})+$
-	// segment-nz-nc : ^([a-zA-Z\d-._~!$&'()*+,;=@]|%[a-fA-F\d]{2})+$
-
-	// path-abempty : ^(\/([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})*)*$
-// query = fragment : ^(([a-zA-Z\d-._~!$&'()*+,;=:@/?]|%[a-fA-F\d]{2})*)*$
-	
-
 
 void URL::printComponents()
 {

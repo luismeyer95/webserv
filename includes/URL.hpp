@@ -19,8 +19,7 @@ class Tokenizer
 		Tokenizer
 			(const std::list<std::string>& delim_set, const std::list<std::string>& skip_set);
 
-		std::string get_token
-			(std::string& str);
+		std::string get_token(std::string& str);
 		
 		void reset();
 };
