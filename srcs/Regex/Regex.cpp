@@ -278,14 +278,20 @@ std::vector<char> escapedset(char c)
 {
 	std::vector<char> set;
 	set.reserve(10);
-	if (c == 'd')
-		for (int i = 0; i < 10; ++i)
-			set.push_back(i + '0');
-	else
+	switch (c)
 	{
-		for (int i = 0; i < 5; ++i)
-			set.push_back(i + 9);
-		set.push_back(32);
+		case 'd': {
+			for (int i = 0; i < 10; ++i)
+				set.push_back(i + '0');
+		}
+		case 's': {
+			for (int i = 0; i < 5; ++i)
+				set.push_back(i + 9);
+			set.push_back(32);
+		}
+		default: {
+			set.push_back(c);
+		}
 	}
 	return set;
 }
@@ -295,15 +301,9 @@ void Regex::subsetof(std::vector<char>& set)
 	if (peek() == '\\')
 	{
 		next();
-		if (peek() == 'd' || peek() == 's')
-		{
-			std::vector<char> ret = escapedset(next());
-			set.insert(set.begin(), ret.begin(), ret.end());
-			return;
-		}
-		else
-			throw std::runtime_error("Regex: Invalid escaped charset in class");
-
+		std::vector<char> ret = escapedset(next());
+		set.insert(set.begin(), ret.begin(), ret.end());
+		return;
 	}
 	char start = next();
 	set.push_back(start);

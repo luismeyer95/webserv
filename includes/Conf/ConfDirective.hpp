@@ -53,6 +53,6 @@ struct ConfDirective
 		void						validate();
 
 	private:
-		ConfError					missingVal();
+		ConfError					dirExcept(const std::string& err);
 
 };

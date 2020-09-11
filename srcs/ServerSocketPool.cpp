@@ -53,6 +53,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1)
 		throw std::runtime_error("Failed to create server socket. " + std::string(strerror(errno)));
+	
 
 	Listener* lstn = new Listener();
 	lstn->socket_fd = sock;
@@ -71,22 +72,12 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 			+ std::to_string(port) + "`. " + strerror(errno) + "."
 		);
 	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
-	log.ok();
 
 	listen(lstn->socket_fd, MAXQUEUE);
 	
 	if (lstn->socket_fd > fd_max)
 		fd_max = lstn->socket_fd;
 }
-
-// bool	ServerSocketPool::portIsUnused(unsigned short port)
-// {
-// 	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
-// 		if ((*it)->socket_fd == port)
-// 			return false;
-// 	return true;
-// }
-
 
 void	ServerSocketPool::runServer(
 	void (*connection_handler)(HTTPExchange&) ,

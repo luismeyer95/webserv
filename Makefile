@@ -25,6 +25,7 @@ SRCS	=	main.cpp \
 			Conf/ConfParser.cpp \
 			Conf/ConfBlockDirective.cpp \
 			Conf/ConfDirective.cpp \
+			URL.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -35,6 +36,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Containers.hpp \
 				Regex.hpp \
 				Conf.hpp \
+				URL.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)

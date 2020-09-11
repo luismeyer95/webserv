@@ -35,14 +35,15 @@ ConfDirective::ConfDirective (
 	const std::vector<std::string>& values
 ) : line_nb(line_nb), parent(nullptr), key(key), values(values) {}
 
-ConfError ConfDirective::missingVal()
+ConfError ConfDirective::dirExcept(const std::string& err)
 {
 	return ConfError (
 		line_nb,
-		"missing value for `"
-		+ directiveKeyToString(key) + "` directive"
+		err + " (`" + directiveKeyToString(key)
+		+ "` directive"
 	);
 }
+
 
 void ConfDirective::validate()
 {
@@ -52,12 +53,8 @@ void ConfDirective::validate()
 		case D::listen:
 		{
 			if (values.empty())
-				throw missingVal();
-			ConfError oor (
-				line_nb,
-				"out of range port number for `"
-				+ directiveKeyToString(key) + "` directive"
-			);
+				throw dirExcept("missing value(s)");
+			ConfError oor = dirExcept("out of range port number");
 			int port;
 			try {
 				port = std::stoi(values[0]);
@@ -71,14 +68,34 @@ void ConfDirective::validate()
 
 		case D::server_name:
 		{
-			// . . .
+			// if (values.empty())
+			// 	throw dirExcept("missing value(s)");
+			// auto it = values.begin();
+			// for (;it != values.end(); ++it)
+			// {
+			// 	if (*it == "~" || *it == "~*")
+			// 	{
+			// 		++it;
+			// 		if (it == values.end())
+			// 			throw dirExcept("missing regex pattern after tilde specifier");
+			// 		try {
+			// 			Regex(*it);
+			// 		}
+			// 		catch (const std::runtime_error& e) {
+			// 			throw dirExcept("invalid regex pattern");
+			// 		}
+			// 	}
+			// 	try {
+			// 		Regex("");
+			// 	}				
+			// }
 			break;
 		}
 
 		case D::root:
 		{
 			if (values.empty())
-				throw missingVal();
+				throw dirExcept("missing value(s)");
 			bool valid_uri = Regex("^/|(/[-_a-zA-Z\\d]+(\\.[-_a-zA-Z\\d]+)?)+/?$").match(values[0]).first;
 			if (!valid_uri)
 			{

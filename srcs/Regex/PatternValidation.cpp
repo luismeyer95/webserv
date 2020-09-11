@@ -126,13 +126,8 @@ void PatternValidation::subsetof()
 	if (peek() == '\\')
 	{
 		next();
-		if (peek() == 'd' || peek() == 's')
-		{
-			next();
-			return;
-		}
-		else
-			throw std::runtime_error("Regex: Invalid escaped charset in class");
+		next();
+		return;
 
 	}
 	char start = next();

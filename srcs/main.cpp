@@ -7,6 +7,7 @@
 
 #include <Regex.hpp>
 #include <Conf.hpp>
+#include <URL.hpp>
 
 void	handle_connection(HTTPExchange& comm)
 {
@@ -43,6 +44,7 @@ void	handle_request(HTTPExchange& comm)
 
 int main(int ac, char **av)
 {
+
 	if (ac != 2)
 	{
 		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;
@@ -53,23 +55,43 @@ int main(int ac, char **av)
 	Logger& log = Logger::getInstance();
 	std::vector<std::string> args(av, av + ac);
 
-	log.out() << "Initializing server..." << std::endl;
-	log.out() << "Loading configuration file" << std::endl;
 
 	try {
+
+		log.out() << "Initializing server..." << std::endl;
+		log.out() << "Loading configuration file" << std::endl;
+
 		ConfParser conf(args[1]);
-		log.ok();
-	} catch (const std::runtime_error& e) {
-		log.out() << "[" BOLDRED "ERROR" RESET "]: " << e.what() << std::endl;
-		return (0);
-	}
+		log.hl(BOLDGREEN "SUCCESS");
 
-	log.out() << "Setting up virtual hosts" << std::endl;
-	
-	try {
+
+		log.out() << "Setting up virtual hosts" << std::endl;
+		// TEMPORARY
+		// WILL LOAD CONF VHOSTs HOST:PORT LATER
 		pool.addListener("localhost", 80);
+
+		log.hl(BOLDGREEN "SUCCESS");
+
 	} catch (const std::runtime_error& e) {
+		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
 		return (1);
 	}
+
+	// log.success("SERVER IS RUNNING...");
+	log.hl(BOLDGREEN "SERVER IS RUNNING...");
 	pool.runServer(handle_connection, handle_request);
 }
+
+// int main(int ac, char **av)
+// {
+// 	URL url(av[1]);
+
+// 	url.printDecoded();
+// 	return 0;
+
+// 	(void)ac;
+// 	auto res = Regex(av[1]).match(av[2]);
+// 	std::cout << "Match: " << res.first << std::endl;
+// 	if (res.first)
+// 		std::cout << "String: " << res.second << std::endl;
+// }

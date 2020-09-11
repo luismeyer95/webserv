@@ -6,7 +6,7 @@
 /*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/09/09 22:42:05 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/09/10 11:54:02 by lumeyer          ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,3 @@
 #include <queue>
 #include <vector>
 #include "Containers.hpp"
-
-#define BOLDRED "\e[1;31m"
-#define BOLDGREEN "\e[1;32m"
-#define RESET "\e[0m"
