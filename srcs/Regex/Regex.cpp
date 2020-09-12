@@ -1,5 +1,7 @@
 #include <Regex/Regex.hpp>
 
+Regex::Regex() {}
+
 Regex::Regex(const std::string& pattern)
 	: pattern(pattern), index(0),
 	anchor_start(false), anchor_end(false), automaton()
@@ -7,11 +9,29 @@ Regex::Regex(const std::string& pattern)
 	PatternValidation check(pattern);
 	
 	alphabet.reserve(127);
-	for (auto i = 0; i < 127; ++i)
-		alphabet.push_back((char)i);
+	for (char i = 0; i < 127; ++i)
+		alphabet.push_back(i);
 
 	automaton = axiom();
 }
+
+// Regex::Regex(const Regex& o)
+// {
+// 	*this = o;
+// }
+
+// Regex& Regex::operator=(const Regex& o)
+// {
+// 	NFA::deleteAutomaton(automaton);
+// 	automaton = NFA::copyAutomaton(o.automaton);
+// 	pattern = o.pattern;
+// 	index = o.index;
+// 	anchor_start = o.anchor_start;
+// 	anchor_end = o.anchor_end;
+// 	alphabet = o.alphabet;
+
+// 	return *this;
+// }
 
 Regex::~Regex()
 {
@@ -38,7 +58,7 @@ std::pair<bool, std::string> Regex::matchIn(
 
 }
 
-std::pair<bool, std::string> Regex::match(const std::string& str)
+std::pair<bool, std::string> Regex::match(const std::string& str) const
 {
 	std::vector<NFAState*> current_states;
 	std::vector<NFAState*> visited;
@@ -105,7 +125,7 @@ std::pair<bool, std::string> Regex::match(const std::string& str)
 void	Regex::setNextStates(
 	NFAState *state,
 	std::vector<NFAState*>& next_states,
-	std::vector<NFAState*>& visited)
+	std::vector<NFAState*>& visited) const
 {
 	if (state->epsilon_transitions.size())
 	{
@@ -258,9 +278,10 @@ NFA Regex::setof(bool include, std::vector<char>& set)
 	subsetof(set);
 	if (peek() != ']')
 		return setof(include, set);
-	
+
 	if (!include)
 	{
+		std::sort(set.begin(), set.end());
 		std::vector<char> nonset;
 		nonset.reserve(127);
 		std::set_difference (
@@ -283,14 +304,17 @@ std::vector<char> escapedset(char c)
 		case 'd': {
 			for (int i = 0; i < 10; ++i)
 				set.push_back(i + '0');
+			break;
 		}
 		case 's': {
 			for (int i = 0; i < 5; ++i)
 				set.push_back(i + 9);
 			set.push_back(32);
+			break;
 		}
 		default: {
 			set.push_back(c);
+			break;
 		}
 	}
 	return set;
@@ -302,7 +326,7 @@ void Regex::subsetof(std::vector<char>& set)
 	{
 		next();
 		std::vector<char> ret = escapedset(next());
-		set.insert(set.begin(), ret.begin(), ret.end());
+		set.insert(set.end(), ret.begin(), ret.end());
 		return;
 	}
 	char start = next();
@@ -315,7 +339,7 @@ void Regex::subsetof(std::vector<char>& set)
 			throw std::runtime_error("Regex: Class is missing end bracket");
 		if (end < start)
 			throw std::runtime_error("Regex: Invalid ASCII range in class");
-		for (char c = start; c <= end; c++)
+		for (char c = start + 1; c <= end; c++)
 			set.push_back(c);
 	}
 }

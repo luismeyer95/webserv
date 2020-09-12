@@ -18,10 +18,13 @@ class Regex
 
 	public:
 		NFA			automaton;
+		Regex();
 		Regex(const std::string& pattern);
+		// Regex& operator=(const Regex& o);
+		// Regex(const Regex& o);
 		~Regex();
 
-		std::pair<bool, std::string> match(const std::string& str);
+		std::pair<bool, std::string> match(const std::string& str) const;
 		std::pair<bool, std::string> matchIn(
 			const std::string& str,
 			const std::string& before,
@@ -30,7 +33,7 @@ class Regex
 		void	setNextStates(
 			NFAState *state,
 			std::vector<NFAState*>& next_states,
-			std::vector<NFAState*>& visited);
+			std::vector<NFAState*>& visited) const;
 
 		NFA axiom();
 		NFA expr();

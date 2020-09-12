@@ -99,6 +99,51 @@ std::string Tokenizer::get_token(std::string& str)
 
 URL::URL() {}
 
+URL::URL(const URL& o)
+{
+	*this = o;
+}
+
+URL& URL::operator=(const URL& o)
+{
+	_encoded_url = o._encoded_url;
+	_scheme = o._scheme;
+	_host = o._host;
+	_hosttype = o._hosttype;
+	_port = o._port;
+	_path = o._path;
+	_query = o._query;
+	_fragment = o._fragment;
+	
+	return *this;
+}
+
+URL::URL (
+	const std::string& scheme,
+	const std::string& host,
+	const std::string& port,
+	const std::string& path,
+	const std::string& query,
+	const std::string& fragment
+)
+{
+	using C = URL::Component;
+	std::string complete_url;
+
+	if (!scheme.empty())
+		complete_url += scheme + "://";
+	complete_url += URL::encode(C::Host, host);
+	if (!port.empty())
+		complete_url += ":" + port;
+	complete_url += URL::encode(C::Path, path);
+	if (!query.empty())
+		complete_url += "?" + URL::encode(C::Query, query);
+	if (!fragment.empty())
+		complete_url += "#" + URL::encode(C::Fragment, fragment);
+
+	*this = URL(complete_url);
+}
+
 URL::URL(const std::string& encoded_url)
 	: _encoded_url(encoded_url)
 {
@@ -122,13 +167,7 @@ URL::URL(const std::string& encoded_url)
 
 	_encoded_url = encoded_url;
 
-	using C = URL::Component;
-	validate(C::Scheme);
-	validate(C::Host);
-	validate(C::Port);
-	validate(C::Path);
-	validate(C::Query);
-	validate(C::Fragment);
+	validateAllComponents();
 }
 
 std::string& URL::get(URL::Component comp)
@@ -145,17 +184,20 @@ std::string& URL::get(URL::Component comp)
 	}
 }
 
-// Percent encodes the given string. Percent encoding is only applied on non-ASCII characters
-// and the characters given in reserved_set.
-std::string URL::encode(const std::vector<char>& reserved_set, const std::string& str)
+std::string URL::getFullURL()
+{
+	return _encoded_url;
+}
+
+// Percent encodes the given string from UTF-8. Percent encoding is only applied on non-ASCII characters
+// and the characters matching the regex
+std::string URL::encode(const Regex& rgx, const std::string& str)
 {
 	std::stringstream ss;
 
 	for (auto& c : str)
 	{
-		bool found = std::find ( 
-			reserved_set.begin(), reserved_set.end(), c
-		) != reserved_set.end();
+		bool found = rgx.match(std::string(1, c)).first;
 		if (c & 0b10000000 || found)
 		{
 			unsigned char uc = c;
@@ -168,7 +210,55 @@ std::string URL::encode(const std::vector<char>& reserved_set, const std::string
 	return ss.str();
 }
 
-// Returns percent-decoded str.
+// Percent encodes the given string from UTF-8. Percent encoding is only applied on non-ASCII characters.
+std::string URL::encode(const std::string& str)
+{
+	std::stringstream ss;
+
+	for (auto& c : str)
+	{
+		if (c & 0b10000000)
+		{
+			unsigned char uc = c;
+			ss << "%" << std::hex << static_cast<int>(uc);
+			ss << std::dec;
+		}
+		else
+			ss << c;
+	}
+	return ss.str();
+}
+
+std::string URL::encode(URL::Component comp_charset, const std::string& str)
+{
+	using C = URL::Component;
+	switch (comp_charset)
+	{
+		case C::Scheme: {
+			return str;
+		}
+		case C::Host: {
+			return encode(Regex("^[^a-zA-Z\\d-._~!$&'()*+,;=]$"), str);
+		}
+		case C::Port: {
+			return str;
+		}
+		case C::Path: {
+			// added forward slash, that way no need to split into segments to percent encode
+			// i'm assuming forward slash cannot be used whatsoever in file names
+			return encode(Regex("^[^a-zA-Z\\d-._~!$&'()*+,;=:@/]$"), str);
+		}
+		case C::Query: {
+			return encode(Regex("^[^a-zA-Z\\d-._~!$&'()*+,;=:@/?]$"), str);
+		}
+		case C::Fragment: {
+			return encode(Regex("^[^a-zA-Z\\d-._~!$&'()*+,;=:@/?]$"), str);
+
+		}
+	}
+}
+
+// Performs percent-encoded to UTF-8 conversion and returns the result
 std::string URL::decode(const std::string& str)
 {
 	std::stringstream ss;
@@ -211,6 +301,18 @@ std::string URL::decode(const std::string& str)
 
 	// path-abempty : ^(\/([a-zA-Z\d-._~!$&'()*+,;=:@]|%[a-fA-F\d]{2})*)*$
 // query = fragment : ^(([a-zA-Z\d-._~!$&'()*+,;=:@/?]|%[a-fA-F\d]{2})*)*$
+
+
+void				URL::validateAllComponents()
+{
+	using C = URL::Component;
+	validate(C::Scheme);
+	validate(C::Host);
+	validate(C::Port);
+	validate(C::Path);
+	validate(C::Query);
+	validate(C::Fragment);
+}
 
 // Verifies the syntaxic validity of a specific URL component.
 void URL::validate(URL::Component comp)
@@ -297,7 +399,14 @@ bool		URL::check(const std::string& rgx, const std::string& str, bool thrw, cons
 	return res.first;
 }
 
-void URL::printComponents()
+// bool	URL::operator==(const URL& o)
+// {
+// 	auto d = URL::decode;
+// 	return	d(_scheme) == d(o._scheme)
+// 			&& d()
+// }
+
+void	URL::printComponents()
 {
 	std::cout << "Scheme: " << _scheme << std::endl;
 	std::cout << "Host: " << _host << " (" << _hosttype << ")" << std::endl;
@@ -307,13 +416,13 @@ void URL::printComponents()
 	std::cout << "Fragment: " << _fragment << std::endl;
 }
 
-void URL::printDecoded()
+void	URL::printDecoded()
 {
-	auto f = URL::decode;
-	std::cout << "Scheme: " << f(_scheme) << std::endl;
-	std::cout << "Host: " << f(_host) << " (" << _hosttype << ")" << std::endl;
-	std::cout << "Port: " << f(_port) << std::endl;
-	std::cout << "Path: " << f(_path) << std::endl;
-	std::cout << "Query: " << f(_query) << std::endl;
-	std::cout << "Fragment: " << f(_fragment) << std::endl;
+	auto d = URL::decode;
+	std::cout << "Scheme: " << d(_scheme) << std::endl;
+	std::cout << "Host: " << d(_host) << " (" << _hosttype << ")" << std::endl;
+	std::cout << "Port: " << d(_port) << std::endl;
+	std::cout << "Path: " << d(_path) << std::endl;
+	std::cout << "Query: " << d(_query) << std::endl;
+	std::cout << "Fragment: " << d(_fragment) << std::endl;
 }

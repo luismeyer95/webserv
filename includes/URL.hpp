@@ -20,8 +20,7 @@ class Tokenizer
 			(const std::list<std::string>& delim_set, const std::list<std::string>& skip_set);
 
 		std::string get_token(std::string& str);
-		
-		void reset();
+		void		reset();
 };
 
 class URL
@@ -48,13 +47,34 @@ class URL
 		};
 
 		URL();
+		URL(const URL& o);
+		URL& operator=(const URL& o);
+		URL (
+			const std::string& scheme,
+			const std::string& host,
+			const std::string& port,
+			const std::string& path,
+			const std::string& query,
+			const std::string& fragment
+		);
+
 		URL(const std::string& encoded_url);
 
 		std::string&		get(URL::Component comp);
-		static std::string	encode(const std::vector<char>& reserved_set, const std::string& str);
+		std::string			getFullURL();
+
+		// from UTF-8 to percent-encoding
+		static std::string	encode(URL::Component comp, const std::string& str);
+		static std::string	encode(const Regex& rgx, const std::string& str);
+		static std::string	encode(const std::string& str);
+
 		static std::string	decode(const std::string& str);
+
 		void				validate(URL::Component comp);
+		void				validateAllComponents();
 
 		void				printComponents();
 		void				printDecoded();
+
+		// bool				operator==(const URL& o);
 };

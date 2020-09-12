@@ -6,6 +6,14 @@ non réservé, et convertissent tous les autres caractères en octets selon le c
 encoder ensuite ces valeurs en pourcent. Cette suggestion a été introduite en janvier 2005 avec
 la publication de la RFC 39862. Les modèles d'URI introduits avant cette date ne sont pas concernés. 
 
+URI producing applications should percent-encode data octets that
+correspond to characters in the reserved set unless these characters
+are specifically allowed by the URI scheme to represent data in that
+component.  If a reserved character is found in a URI component and
+no delimiting role is known for that character, then it must be
+interpreted as representing the data octet corresponding to that
+character's encoding in US-ASCII.
+
 reserved    = gen-delims / sub-delims
 gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
 sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
@@ -22,6 +30,10 @@ hier-part   = "//" authority path-abempty
 	\_/   \______________/\_________/ \_________/ \__/
 	|           |            |            |        |
 scheme     authority       path        query   fragment
+
+authority percent-encode set	DEL:/?#[]@% "{}|\^[]`DEL
+path percent-encode set			DEL/?#[]% "{}|\^[]`DEL
+query percent-encode set		DEL#[]% "{}|\^[]`DEL
 
 
 // SCHEME

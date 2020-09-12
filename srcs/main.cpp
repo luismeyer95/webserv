@@ -84,14 +84,30 @@ int main(int ac, char **av)
 
 // int main(int ac, char **av)
 // {
-// 	URL url(av[1]);
+// 	// // Creating a URL object from its non-encoded component parts
+// 	// URL url (
+// 	// 	/* scheme   */ "http",
+// 	// 	/* host	    */ "dev.webserv.net",
+// 	// 	/* port     */ "80",
+// 	// 	/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
+// 	// 	/* query    */ "q=5",
+// 	// 	/* fragment */ "top"
+// 	// );
+// 	// std::cout << url.getFullURL() << std::endl;
 
-// 	url.printDecoded();
+// 	// // Creating a URL object from an already encoded URL
+// 	// // This URL is equivalent to the previous one
+// 	// URL url_bis (
+// 	// 	"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
+// 	// );
+
+// 	URL url(av[1]);
+// 	url.printComponents();
 // 	return 0;
 
-// 	(void)ac;
-// 	auto res = Regex(av[1]).match(av[2]);
-// 	std::cout << "Match: " << res.first << std::endl;
-// 	if (res.first)
-// 		std::cout << "String: " << res.second << std::endl;
+// 	// (void)ac;
+// 	// auto res = Regex(av[1]).match(av[2]);
+// 	// std::cout << "Match: " << res.first << std::endl;
+// 	// if (res.first)
+// 	// 	std::cout << "String: " << res.second << std::endl;
 // }

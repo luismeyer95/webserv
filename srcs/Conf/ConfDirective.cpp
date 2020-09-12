@@ -40,7 +40,7 @@ ConfError ConfDirective::dirExcept(const std::string& err)
 	return ConfError (
 		line_nb,
 		err + " (`" + directiveKeyToString(key)
-		+ "` directive"
+		+ "` directive)"
 	);
 }
 
@@ -68,27 +68,32 @@ void ConfDirective::validate()
 
 		case D::server_name:
 		{
-			// if (values.empty())
-			// 	throw dirExcept("missing value(s)");
-			// auto it = values.begin();
-			// for (;it != values.end(); ++it)
-			// {
-			// 	if (*it == "~" || *it == "~*")
-			// 	{
-			// 		++it;
-			// 		if (it == values.end())
-			// 			throw dirExcept("missing regex pattern after tilde specifier");
-			// 		try {
-			// 			Regex(*it);
-			// 		}
-			// 		catch (const std::runtime_error& e) {
-			// 			throw dirExcept("invalid regex pattern");
-			// 		}
-			// 	}
-			// 	try {
-			// 		Regex("");
-			// 	}				
-			// }
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			auto it = values.begin();
+			for (;it != values.end(); ++it)
+			{
+				if (*it == "~" || *it == "~*")
+				{
+					++it;
+					if (it == values.end())
+						throw dirExcept("missing regex pattern after tilde specifier");
+					try {
+						Regex rgx(*it);
+					}
+					catch (const std::runtime_error& e) {
+						throw dirExcept("invalid regex pattern");
+					}
+				}
+				else
+				{
+					// need to assert validity of the syntax
+					// try {
+					// 	URL name;
+					// 	name.get(URL::Component::Host) = 
+					// }
+				}		
+			}
 			break;
 		}
 
@@ -101,7 +106,7 @@ void ConfDirective::validate()
 			{
 				throw ConfError (
 					line_nb,
-					"invalid URI in `root` directive"
+					"invalid path syntax"
 				);
 			}
 			break;

@@ -2,6 +2,7 @@
 
 #include <header.h>
 #include <Regex.hpp>
+#include <URL.hpp>
 
 
 class ConfError : public std::exception
