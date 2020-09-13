@@ -70,7 +70,7 @@ std::pair<bool, std::string> Regex::match(const std::string& str)
 
 	// if no start anchor set, try to match again for next char until
 	// end of string
-	if (!anchor_start && !str.empty())
+	if (!found && !anchor_start && !str.empty())
 	{
 		std::pair<bool, std::string> next_match = match(&str[0] + 1);
 		return {
