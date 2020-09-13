@@ -6,6 +6,8 @@
 #include <ByteBuffer.hpp>
 
 #include <Regex.hpp>
+#include <Conf.hpp>
+#include <URL.hpp>
 
 void	handle_connection(HTTPExchange& comm)
 {
@@ -55,41 +57,69 @@ void	handle_request(HTTPExchange& comm)
 int main(int ac, char **av)
 {
 
-	std::vector<std::string> args(av, av + ac);
-
 	if (ac != 2)
 	{
-		std::cout << "usage: " << args[0] << " <port>" << std::endl;
+		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;
 		return (0);
 	}
 
 	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();
-	
-	pool.addListener(std::stoi(args[1]));
+	std::vector<std::string> args(av, av + ac);
+
+
+	try {
+
+		log.out() << "Initializing server..." << std::endl;
+		log.out() << "Loading configuration file" << std::endl;
+
+		ConfParser conf(args[1]);
+		log.hl(BOLDGREEN "SUCCESS");
+
+
+		log.out() << "Setting up virtual hosts" << std::endl;
+		// TEMPORARY
+		// WILL LOAD CONF VHOSTs HOST:PORT LATER
+		pool.addListener("localhost", 80);
+
+		log.hl(BOLDGREEN "SUCCESS");
+
+	} catch (const std::runtime_error& e) {
+		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
+		return (1);
+	}
+
+	// log.success("SERVER IS RUNNING...");
+	log.hl(BOLDGREEN "SERVER IS RUNNING...");
 	pool.runServer(handle_connection, handle_request);
 }
 
-/* MAIN POUR TESTER LES REGEXS */
-
 // int main(int ac, char **av)
 // {
-// 	if (ac != 3)
-// 	{
-// 		std::cout << "usage: " << av[0] << " <pattern> <string_to_match>" << std::endl;
-// 		return(1);
-// 	}
+// 	// // Creating a URL object from its non-encoded component parts
+// 	// URL url (
+// 	// 	/* scheme   */ "http",
+// 	// 	/* host	    */ "dev.webserv.net",
+// 	// 	/* port     */ "80",
+// 	// 	/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
+// 	// 	/* query    */ "q=5",
+// 	// 	/* fragment */ "top"
+// 	// );
+// 	// std::cout << url.getFullURL() << std::endl;
 
-// 	try {
-// 		Regex rgx(av[1]);
-// 		std::pair<bool, std::string> p = rgx.match(av[2]);
-// 		std::cout << "Match: " << (p.first ? "yes" : "no") << std::endl;
-// 		if (p.first)
-// 			std::cout << "String matched: \"" << p.second << "\"" << std::endl;
-// 	} 
-// 	catch (const std::runtime_error& e) {
-// 		std::cout << e.what() << std::endl;
-// 	}
+// 	// // Creating a URL object from an already encoded URL
+// 	// // This URL is equivalent to the previous one
+// 	// URL url_bis (
+// 	// 	"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
+// 	// );
 
+// 	URL url(av[1]);
+// 	url.printComponents();
 // 	return 0;
+
+// 	// (void)ac;
+// 	// auto res = Regex(av[1]).match(av[2]);
+// 	// std::cout << "Match: " << res.first << std::endl;
+// 	// if (res.first)
+// 	// 	std::cout << "String: " << res.second << std::endl;
 // }

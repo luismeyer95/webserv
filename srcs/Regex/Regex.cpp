@@ -1,5 +1,7 @@
 #include <Regex/Regex.hpp>
 
+Regex::Regex() {}
+
 Regex::Regex(const std::string& pattern)
 	: pattern(pattern), index(0),
 	anchor_start(false), anchor_end(false), automaton()
@@ -7,18 +9,56 @@ Regex::Regex(const std::string& pattern)
 	PatternValidation check(pattern);
 	
 	alphabet.reserve(127);
-	for (auto i = 0; i < 127; ++i)
-		alphabet.push_back((char)i);
+	for (char i = 0; i < 127; ++i)
+		alphabet.push_back(i);
 
 	automaton = axiom();
 }
+
+// Regex::Regex(const Regex& o)
+// {
+// 	*this = o;
+// }
+
+// Regex& Regex::operator=(const Regex& o)
+// {
+// 	NFA::deleteAutomaton(automaton);
+// 	automaton = NFA::copyAutomaton(o.automaton);
+// 	pattern = o.pattern;
+// 	index = o.index;
+// 	anchor_start = o.anchor_start;
+// 	anchor_end = o.anchor_end;
+// 	alphabet = o.alphabet;
+
+// 	return *this;
+// }
 
 Regex::~Regex()
 {
 	NFA::deleteAutomaton(automaton);
 }
 
-std::pair<bool, std::string> Regex::match(const std::string& str)
+std::pair<bool, std::string> Regex::matchIn(
+	const std::string& str,
+	const std::string& before,
+	const std::string& after
+)
+{
+	if (before.back() == '$' || pattern.front() == '^' || pattern.back() == '$' || after.front() == '^')
+		throw std::runtime_error("Regex: Bad arguments to matchIn()");
+
+	auto bf_res = Regex(before + pattern + after).match(str);
+	if (!bf_res.first)
+		return {false, str};
+	
+	auto main_res = Regex(pattern + after).match(bf_res.second);
+	std::string after_anchored = after.back() == '$' ? after : after + "$";
+	std::string ret = main_res.second.substr(0, main_res.second.size() - Regex(after_anchored).match(main_res.second).second.size());
+	return {true, ret};
+
+}
+
+std::pair<bool, std::string> Regex::match(const std::string& str) const
 {
 	std::vector<NFAState*> current_states;
 	std::vector<NFAState*> visited;
@@ -70,7 +110,7 @@ std::pair<bool, std::string> Regex::match(const std::string& str)
 
 	// if no start anchor set, try to match again for next char until
 	// end of string
-	if (!anchor_start && !str.empty())
+	if (!found && !anchor_start && !str.empty())
 	{
 		std::pair<bool, std::string> next_match = match(&str[0] + 1);
 		return {
@@ -85,7 +125,7 @@ std::pair<bool, std::string> Regex::match(const std::string& str)
 void	Regex::setNextStates(
 	NFAState *state,
 	std::vector<NFAState*>& next_states,
-	std::vector<NFAState*>& visited)
+	std::vector<NFAState*>& visited) const
 {
 	if (state->epsilon_transitions.size())
 	{
@@ -238,9 +278,10 @@ NFA Regex::setof(bool include, std::vector<char>& set)
 	subsetof(set);
 	if (peek() != ']')
 		return setof(include, set);
-	
+
 	if (!include)
 	{
+		std::sort(set.begin(), set.end());
 		std::vector<char> nonset;
 		nonset.reserve(127);
 		std::set_difference (
@@ -254,8 +295,40 @@ NFA Regex::setof(bool include, std::vector<char>& set)
 	return NFA::fromSymbolSet(set);
 }
 
+std::vector<char> escapedset(char c)
+{
+	std::vector<char> set;
+	set.reserve(10);
+	switch (c)
+	{
+		case 'd': {
+			for (int i = 0; i < 10; ++i)
+				set.push_back(i + '0');
+			break;
+		}
+		case 's': {
+			for (int i = 0; i < 5; ++i)
+				set.push_back(i + 9);
+			set.push_back(32);
+			break;
+		}
+		default: {
+			set.push_back(c);
+			break;
+		}
+	}
+	return set;
+}
+
 void Regex::subsetof(std::vector<char>& set)
 {
+	if (peek() == '\\')
+	{
+		next();
+		std::vector<char> ret = escapedset(next());
+		set.insert(set.end(), ret.begin(), ret.end());
+		return;
+	}
 	char start = next();
 	set.push_back(start);
 	if (peek() == '-')
@@ -266,10 +339,11 @@ void Regex::subsetof(std::vector<char>& set)
 			throw std::runtime_error("Regex: Class is missing end bracket");
 		if (end < start)
 			throw std::runtime_error("Regex: Invalid ASCII range in class");
-		for (char c = start; c <= end; c++)
+		for (char c = start + 1; c <= end; c++)
 			set.push_back(c);
 	}
 }
+
 
 NFA Regex::charset()
 {
@@ -277,6 +351,11 @@ NFA Regex::charset()
 	{
 		eat('\\');
 		// any char
+		if (peek() == 'd' || peek() == 's')
+		{
+			std::vector<char> set = escapedset(next());
+			return NFA::fromSymbolSet(set);
+		}
 		return NFA::fromSymbol(next());
 	}
 	else

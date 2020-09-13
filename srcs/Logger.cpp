@@ -7,7 +7,7 @@ Logger&	Logger::getInstance()
 }
 
 Logger::Logger()
-	: _log(true), _logpath(""), _file(), _errstr()
+	: _log(true), _logpath(""), _file()
 {}
 
 Logger::~Logger()
@@ -67,6 +67,13 @@ void		Logger::out(const std::string& str)
 	}
 }
 
+// Outputs a special entry header and optional text to follow it.
+// RESET is output after each string to allow for color coding.
+void	Logger::hl(const std::string& header, const std::string& str)
+{
+	out() << "[" << header << RESET "]" << (str.empty()?"":": ") << str << RESET << std::endl;
+}
+
 std::string				Logger::getTime()
 {
 	struct timeval tv;
@@ -79,34 +86,6 @@ std::string				Logger::getTime()
 	info = localtime(&t);
 	strftime(buffer, sizeof(buffer), "%D %Ih%Mm%Ss %p", info);
 	return std::string(buffer);
-}
-
-// Returns the error buffer stream
-std::stringstream&	Logger::err()
-{
-	return _errstr;
-}
-
-// Asserts that the expression expr is true.
-// - expr == true: nothing happens
-// - expr == false: the buffered error stream's content is output to the log stream
-//			 and the error stream is cleared. if fatal == true, the program exits
-bool				Logger::assert(bool expr, bool fatal)
-{
-	if (!expr)
-	{
-		if (_log)
-		{
-			std::string time = getTime();
-			std::ostream& o = _file.is_open() ? _file : std::cerr;
-			o << std::setw(25) << std::left << time << "[ERROR]: " <<_errstr.str() << std::endl;
-			o << std::setw(0);
-		}
-		if (fatal)
-			exit(1);
-	}
-	_errstr.str(std::string());
-	return expr;
 }
 
 void				Logger::toggleLog()

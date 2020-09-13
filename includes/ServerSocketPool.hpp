@@ -113,9 +113,9 @@ class ServerSocketPool
 		typedef ft::deque<Socket*>::iterator iterator;
 		~ServerSocketPool();
 
-		void	addListener(unsigned short port);
+		void	addListener(const std::string& host, unsigned short port);
 		ClientSocket*	acceptConnection(Listener* lstn);
-		bool	portIsUnused(unsigned short port);
+		// bool	portIsUnused(unsigned short port);
 
 		void	initFdset();
 

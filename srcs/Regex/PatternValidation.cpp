@@ -123,6 +123,13 @@ void PatternValidation::setof()
 
 void PatternValidation::subsetof()
 {
+	if (peek() == '\\')
+	{
+		next();
+		next();
+		return;
+
+	}
 	char start = next();
 	if (peek() == '-')
 	{
