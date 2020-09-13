@@ -22,10 +22,13 @@ SRCS	=	main.cpp \
 			Regex/NFAState.cpp \
 			Regex/PatternValidation.cpp \
 			Regex/Regex.cpp \
+<<<<<<< HEAD
 			Conf/ConfParser.cpp \
 			Conf/ConfBlockDirective.cpp \
 			Conf/ConfDirective.cpp \
 			URL.cpp
+=======
+>>>>>>> request
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
