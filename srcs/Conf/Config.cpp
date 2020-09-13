@@ -1,7 +1,7 @@
-#include <Conf/ConfParser.hpp>
+#include <Conf/Config.hpp>
 
-ConfParser::ConfParser(const std::string& conf_path)
-	: conf_path(conf_path), conf_file(), token_index(0),
+Config::Config(const std::string& conf_path)
+	: vhost_binding(nullptr), conf_path(conf_path), conf_file(), token_index(0),
 	context_key_lookup(contextKeyLookup()),
 	directive_key_lookup(directiveKeyLookup())
 {
@@ -17,6 +17,8 @@ ConfParser::ConfParser(const std::string& conf_path)
 			main = context(1, ContextKey::main, {});
 			link(nullptr, main);
 			main.validate();
+			vhost_binding = &main;
+			// setVirtualHostMap();
 		} catch (const ConfError& e) {
 			throw std::runtime_error (
 				conf_path + ": line " + std::to_string(e.line())
@@ -28,17 +30,17 @@ ConfParser::ConfParser(const std::string& conf_path)
 		throw std::runtime_error("could not open configuration file");
 }
 
-bool ConfParser::isWhitespace(char c)
+bool Config::isWhitespace(char c)
 {
 	return (c >= 9 && c <= 13) || c == 32;
 }
 
-bool ConfParser::isDelimiter(char c)
+bool Config::isDelimiter(char c)
 {
 	return c == ';' || c == '{' || c == '}';
 }
 
-void ConfParser::tokenizeConf(std::ifstream& in)
+void Config::tokenizeConf(std::ifstream& in)
 {
 	std::stringstream stream;
 	std::string line;
@@ -83,7 +85,7 @@ void ConfParser::tokenizeConf(std::ifstream& in)
 	// 	std::cout << tokens[i] << " (line " << token_line_nb[i] << ")" << std::endl;
 }
 
-ConfBlockDirective ConfParser::context (
+ConfBlockDirective Config::context (
 	int line_nb, ContextKey key, const std::vector<std::string>& prefixes
 )
 {
@@ -113,7 +115,7 @@ ConfBlockDirective ConfParser::context (
 	return block;
 }
 
-void ConfParser::link(ConfBlockDirective *parent, ConfBlockDirective& block)
+void Config::link(ConfBlockDirective *parent, ConfBlockDirective& block)
 {
 	block.parent = parent;
 	for (auto& dir : block.directives)
@@ -123,7 +125,7 @@ void ConfParser::link(ConfBlockDirective *parent, ConfBlockDirective& block)
 }
 
 
-ConfBlockDirective ConfParser::buildBlock()
+ConfBlockDirective Config::buildBlock()
 {
 	int line_nb = line();
 	std::string strkey = next();
@@ -151,7 +153,7 @@ ConfBlockDirective ConfParser::buildBlock()
 	return context(line_nb, nested_block_key, nested_prefixes);
 }
 
-std::vector<std::string> ConfParser::locationPrefixes()
+std::vector<std::string> Config::locationPrefixes()
 {
 	std::vector<std::string> prefixes;
 	if (peek() == "~" || peek() == "~*")
@@ -189,7 +191,7 @@ std::vector<std::string> ConfParser::locationPrefixes()
 	return prefixes;
 }
 
-ConfDirective ConfParser::buildDirective()
+ConfDirective Config::buildDirective()
 {
 	int line_nb = line();
 	std::string strkey = next();
@@ -204,7 +206,7 @@ ConfDirective ConfParser::buildDirective()
 	return ConfDirective(line_nb, directive_key, values);
 }
 
-std::string ConfParser::eat(const std::string& pattern)
+std::string Config::eat(const std::string& pattern)
 {
 	if (!more())
 		throw ConfError(token_line_nb.back(), "unexpected end of config file");
@@ -218,7 +220,7 @@ std::string ConfParser::eat(const std::string& pattern)
 	}				
 }
 
-bool ConfParser::peek(const std::string& pattern)
+bool Config::peek(const std::string& pattern)
 {
 	if (!more())
 		return false;
@@ -226,24 +228,24 @@ bool ConfParser::peek(const std::string& pattern)
 	return res.first;
 }
 
-std::string ConfParser::peek()
+std::string Config::peek()
 {
 	if (!more())
 		return "";
 	return tokens[token_index];
 }
 
-std::string ConfParser::next()
+std::string Config::next()
 {
 	return tokens[token_index++];
 }
 
-bool ConfParser::more()
+bool Config::more()
 {
 	return token_index < tokens.size();
 }
 
-int ConfParser::line()
+int Config::line()
 {
 	if (token_line_nb.empty())
 		return 1;
@@ -252,7 +254,131 @@ int ConfParser::line()
 	return token_line_nb[token_index];
 }
 
-const ConfBlockDirective& ConfParser::mainContext() const
+ConfBlockDirective& Config::mainContext()
 {
 	return main;
+}
+
+ConfBlockDirective&		Config::getBlock(ConfBlockDirective& b, ContextKey key)
+{
+	auto it = std::find_if (
+		b.blocks.begin(),
+		b.blocks.end(),
+		[&] (ConfBlockDirective blk) { return blk.key == key; }
+	);
+	if (it == b.blocks.end())
+		throw std::runtime_error("Config: could not locate requested element in configuration structure");
+	return *it;
+}
+
+ConfDirective&			Config::getDirective(ConfBlockDirective& b, DirectiveKey key)
+{
+	auto it = std::find_if (
+		b.directives.begin(),
+		b.directives.end(),
+		[&] (ConfDirective dir) { return dir.key == key; }
+	);
+	if (it == b.directives.end())
+		throw std::runtime_error("Config: could not locate requested element in configuration structure");
+	return *it;
+}
+
+void	Config::bindVHostRoute(const std::string& request_uri)
+{
+	ConfBlockDirective* most_specific_prefix_loc = nullptr;
+	for (auto& block : vhost_binding->blocks)
+	{
+		if (block.key == ContextKey::location)
+		{
+			std::vector<std::string>& prefixes = block.prefixes;
+			if (prefixes.at(0) != "~")
+			{
+				auto res = Regex("^" + prefixes.at(0)).match(request_uri);
+				if (res.first && (!most_specific_prefix_loc ||
+					prefixes.at(0).size() > most_specific_prefix_loc->prefixes.at(0).size()))
+					most_specific_prefix_loc = &block;
+			}
+		}
+	}
+	for (auto& block : vhost_binding->blocks)
+	{
+		if (block.key == ContextKey::location)
+		{
+			std::vector<std::string>& prefixes = block.prefixes;
+			if (prefixes.at(0) == "~")
+			{
+				auto res = Regex(prefixes.at(1)).match(request_uri);
+				if (res.first)
+				{
+					vhost_binding = &block;
+					return;
+				}
+			}
+		}
+	}
+	if (most_specific_prefix_loc)
+		vhost_binding = most_specific_prefix_loc;
+	else
+		throw ErrorCodeException(404, "Not Found");
+}
+
+void	Config::bindVirtualHost (
+	const std::string& request_uri,
+	const std::string& request_ip_host,
+	const std::string& request_servname,
+	unsigned short request_port
+)
+{
+	ConfBlockDirective* default_server = nullptr;
+	for (auto& block : mainContext().blocks)
+	{
+		if (block.key == ContextKey::server)
+		{
+			std::string host_port = Config::getDirective(block, DirectiveKey::listen).values.at(0);
+			auto tokens = tokenizer(host_port, ':');
+			std::string host = tokens.at(0);
+			if (host == "localhost")
+				host = "127.0.0.1";
+			unsigned short port = std::stoi(tokens.at(1));
+			if (request_ip_host == host && request_port == port)
+			{
+				if (!default_server)
+					default_server = &block;
+				std::vector<std::string> servnames;
+				try {
+					servnames = Config::getDirective(block, DirectiveKey::server_name).values;
+					for (auto& name : servnames)
+					{
+						if (name == request_servname)
+						{
+							vhost_binding = &block;
+							bindVHostRoute(request_uri);
+							return;
+						}
+					}
+				} catch (const std ::runtime_error& e) {}				
+			}
+		}
+	}
+	if (default_server)
+	{
+		vhost_binding = default_server;
+		bindVHostRoute(request_uri);
+	}
+	else
+		throw ErrorCodeException(404, "Not Found");
+}
+
+std::string	Config::root()
+{
+	ConfBlockDirective* tmp = vhost_binding;
+	while (tmp)
+	{
+		try {
+			std::string root_path = getDirective(*tmp, DirectiveKey::root).values.at(0);
+			return root_path;
+		} catch (const std::runtime_error& e) {}
+		tmp = tmp->parent;
+	}
+	return "null";
 }

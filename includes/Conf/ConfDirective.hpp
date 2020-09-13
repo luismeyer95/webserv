@@ -1,6 +1,7 @@
 #pragma once
 
 #include <header.h>
+#include <Utils.hpp>
 #include <Regex.hpp>
 #include <URL.hpp>
 

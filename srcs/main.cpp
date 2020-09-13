@@ -9,13 +9,16 @@
 #include <Conf.hpp>
 #include <URL.hpp>
 
-void	handle_connection(HTTPExchange& comm)
+void	handle_connection(HTTPExchange& comm, Config& vhost)
 {
 	(void)comm;
+	(void)vhost;
 }
 
-void	handle_request(HTTPExchange& comm)
+void	handle_request(HTTPExchange& comm, Config& vhost)
 {
+	(void)vhost;
+
 	Logger& log = Logger::getInstance();
 	// Extracting the resource's path
 	std::string msg(comm.request);
@@ -51,24 +54,20 @@ int main(int ac, char **av)
 		return (0);
 	}
 
-	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();
 	std::vector<std::string> args(av, av + ac);
 
-
+	ServerSocketPool pool;
 	try {
 
 		log.out() << "Initializing server..." << std::endl;
 		log.out() << "Loading configuration file" << std::endl;
 
-		ConfParser conf(args[1]);
+		std::shared_ptr<Config> conf = std::make_shared<Config>(args[1]);
 		log.hl(BOLDGREEN "SUCCESS");
 
-
 		log.out() << "Setting up virtual hosts" << std::endl;
-		// TEMPORARY
-		// WILL LOAD CONF VHOSTs HOST:PORT LATER
-		pool.addListener("localhost", 80);
+		pool.setConfig(conf);
 
 		log.hl(BOLDGREEN "SUCCESS");
 
@@ -77,7 +76,6 @@ int main(int ac, char **av)
 		return (1);
 	}
 
-	// log.success("SERVER IS RUNNING...");
 	log.hl(BOLDGREEN "SERVER IS RUNNING...");
 	pool.runServer(handle_connection, handle_request);
 }

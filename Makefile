@@ -22,10 +22,11 @@ SRCS	=	main.cpp \
 			Regex/NFAState.cpp \
 			Regex/PatternValidation.cpp \
 			Regex/Regex.cpp \
-			Conf/ConfParser.cpp \
+			Conf/Config.cpp \
 			Conf/ConfBlockDirective.cpp \
 			Conf/ConfDirective.cpp \
-			URL.cpp
+			URL.cpp \
+			ErrorCodeException.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -37,6 +38,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Regex.hpp \
 				Conf.hpp \
 				URL.hpp \
+				ErrorCodeException.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)

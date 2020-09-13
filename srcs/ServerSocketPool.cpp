@@ -3,32 +3,39 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-ServerSocketPool::ServerSocketPool() : fd_max(-1) {}
-
-ServerSocketPool&	ServerSocketPool::getInstance()
+ServerSocketPool::ServerSocketPool()
+	: fd_max(-1)
 {
-	static ServerSocketPool pool;
-	return pool;
+	
 }
 
-ServerSocketPool::~ServerSocketPool()
+void	ServerSocketPool::setConfig(std::shared_ptr<Config> conf)
 {
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	this->conf = conf;
+
+	ConfBlockDirective& main = conf->mainContext();
+
+	typedef std::pair<std::string, unsigned short> hp_pair;
+	std::set<hp_pair> added_hostports;
+
+	for (auto& b : main.blocks)
 	{
-		if (*it)
+		if (b.key == ContextKey::server)
 		{
-			close((*it)->socket_fd);
-			FD_CLR((*it)->socket_fd, &master_read);
-			FD_CLR((*it)->socket_fd, &master_write);
-			delete *it;
-			*it = nullptr;
+			std::string host_port = Config::getDirective(b, DirectiveKey::listen).values.at(0);
+			auto tokens = tokenizer(host_port, ':');
+			std::string host = tokens.at(0);
+			if (host == "localhost")
+				host = "127.0.0.1";
+			unsigned short port = std::stoi(tokens.at(1));
+
+			if (!added_hostports.count(hp_pair(host,port)))
+			{
+				addListener(host, port);
+				added_hostports.insert(hp_pair(host,port));
+			}
 		}
 	}
-}
-
-ft::deque<Socket*>&		ServerSocketPool::getSocketList()
-{
-	return socket_list;
 }
 
 void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
@@ -39,11 +46,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	// make sure ipv4 string has no leading zeros
 	// s_addr = inet_addr("1.2.3.4"), or htonl(INADDR_LOOPBACK) for "localhost"
 	// returns INADDR_NONE if the input string is invalid
-	uint32_t addrbin;
-	if (host == "localhost")
-		addrbin = htonl(INADDR_LOOPBACK);
-	else
-		addrbin = inet_addr(host.c_str());
+	uint32_t addrbin = inet_addr(host.c_str());
 	log.out() << "Verifying IP `" << host << "`" << std::endl;
 	if (addrbin == INADDR_NONE)
 		throw std::runtime_error("invalid IP address `" + host + "`");
@@ -57,6 +60,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 
 	Listener* lstn = new Listener();
 	lstn->socket_fd = sock;
+	lstn->address_str = host;
 	lstn->port = port;
 	socket_list.push_back(static_cast<Socket*>(lstn));
 
@@ -79,9 +83,29 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 		fd_max = lstn->socket_fd;
 }
 
+ServerSocketPool::~ServerSocketPool()
+{
+	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	{
+		if (*it)
+		{
+			close((*it)->socket_fd);
+			FD_CLR((*it)->socket_fd, &master_read);
+			FD_CLR((*it)->socket_fd, &master_write);
+			delete *it;
+			*it = nullptr;
+		}
+	}
+}
+
+ft::deque<Socket*>&		ServerSocketPool::getSocketList()
+{
+	return socket_list;
+}
+
 void	ServerSocketPool::runServer(
-	void (*connection_handler)(HTTPExchange&) ,
-	void (*request_handler)(HTTPExchange&)
+	void (*connection_handler)(HTTPExchange&, Config& conf),
+	void (*request_handler)(HTTPExchange&, Config& conf)
 )
 {
 	this->connection_handler = connection_handler;
@@ -228,7 +252,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 				log.out(msg);
 				// TO UPDATE LATER (when implementing payload in requests)
 				while (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
-					request_handler(cli->newExchange());
+					request_handler(cli->newExchange(), *conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -300,7 +324,7 @@ void	ServerSocketPool::pollWrite(Socket* s)
 				FD_CLR(cli->socket_fd, &master_write);
 			}
 			else if (!cli->getExchange().end)
-				request_handler(cli->getExchange());
+				request_handler(cli->getExchange(), *conf);
 			break;
 		}
 	}
