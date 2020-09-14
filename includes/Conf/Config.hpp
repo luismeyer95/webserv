@@ -2,40 +2,24 @@
 
 #include "ConfBlockDirective.hpp"
 #include <Regex.hpp>
-#include <ErrorCodeException.hpp>
+#include <ErrorCode.hpp>
+
+class RequestRouter;
 
 class Config
 {
+	friend class RequestRouter;
 	public:
 		Config(const std::string& conf_path);
-		ConfBlockDirective&			mainContext();
+		// ConfBlockDirective&			mainContext();
 
-		void	bindVirtualHost (
-			const std::string& request_uri,
-			const std::string& request_ip_host,
-			const std::string& request_servname,
-			unsigned short request_port
-		);
-
-		std::string	root();
-
-		// static std::vector<std::string> getDirectiveValues(ConfBlockDirective& b, DirectiveKey key);
-		static ConfBlockDirective&		getBlock(ConfBlockDirective& b, ContextKey key);
-		static ConfDirective&			getDirective(ConfBlockDirective& b, DirectiveKey key);
-
-
+		
 
 	private:
 		// MANAGER
-		// maps server_names to server blocks
-		// std::map<std::string, ConfBlockDirective>	vhost_map;
-		ConfBlockDirective*							vhost_binding;
-		void	bindVHostRoute(const std::string& request_uri);
-
-		// void										setVirtualHostMap();
-
+		
 		// PARSER
-		ConfBlockDirective			main;
+		std::shared_ptr<ConfBlockDirective>		main;
 		std::string					conf_path;
 		std::string					conf_file;
 

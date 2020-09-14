@@ -1,11 +1,10 @@
 #include <Conf/Config.hpp>
 
 Config::Config(const std::string& conf_path)
-	: vhost_binding(nullptr), conf_path(conf_path), conf_file(), token_index(0),
+	: conf_path(conf_path), conf_file(), token_index(0),
 	context_key_lookup(contextKeyLookup()),
 	directive_key_lookup(directiveKeyLookup())
 {
-	// (void)token_index;
 	tokens.reserve(128);
 
 	std::ifstream in(conf_path);
@@ -14,11 +13,9 @@ Config::Config(const std::string& conf_path)
 		tokenizeConf(in);
 		in.close();
 		try {
-			main = context(1, ContextKey::main, {});
-			link(nullptr, main);
-			main.validate();
-			vhost_binding = &main;
-			// setVirtualHostMap();
+			main = std::make_shared<ConfBlockDirective>(context(1, ContextKey::main, {}));
+			link(nullptr, *main);
+			main->validate();
 		} catch (const ConfError& e) {
 			throw std::runtime_error (
 				conf_path + ": line " + std::to_string(e.line())
@@ -50,7 +47,6 @@ void Config::tokenizeConf(std::ifstream& in)
 	{
 		line = line.substr(0, line.find('#'));
 		stream << line << '\n';
-
 		std::string buf;
 		buf.reserve(128);
 		for (auto& c : line)
@@ -78,11 +74,8 @@ void Config::tokenizeConf(std::ifstream& in)
 			tokens.push_back(buf);
 			token_line_nb.push_back(line_nb);
 		}
-		
 		line_nb++;
 	}
-	// for (size_t i = 0; i < tokens.size(); ++i)
-	// 	std::cout << tokens[i] << " (line " << token_line_nb[i] << ")" << std::endl;
 }
 
 ConfBlockDirective Config::context (
@@ -252,133 +245,4 @@ int Config::line()
 	if (!more())
 		return token_line_nb.back();
 	return token_line_nb[token_index];
-}
-
-ConfBlockDirective& Config::mainContext()
-{
-	return main;
-}
-
-ConfBlockDirective&		Config::getBlock(ConfBlockDirective& b, ContextKey key)
-{
-	auto it = std::find_if (
-		b.blocks.begin(),
-		b.blocks.end(),
-		[&] (ConfBlockDirective blk) { return blk.key == key; }
-	);
-	if (it == b.blocks.end())
-		throw std::runtime_error("Config: could not locate requested element in configuration structure");
-	return *it;
-}
-
-ConfDirective&			Config::getDirective(ConfBlockDirective& b, DirectiveKey key)
-{
-	auto it = std::find_if (
-		b.directives.begin(),
-		b.directives.end(),
-		[&] (ConfDirective dir) { return dir.key == key; }
-	);
-	if (it == b.directives.end())
-		throw std::runtime_error("Config: could not locate requested element in configuration structure");
-	return *it;
-}
-
-void	Config::bindVHostRoute(const std::string& request_uri)
-{
-	ConfBlockDirective* most_specific_prefix_loc = nullptr;
-	for (auto& block : vhost_binding->blocks)
-	{
-		if (block.key == ContextKey::location)
-		{
-			std::vector<std::string>& prefixes = block.prefixes;
-			if (prefixes.at(0) != "~")
-			{
-				auto res = Regex("^" + prefixes.at(0)).match(request_uri);
-				if (res.first && (!most_specific_prefix_loc ||
-					prefixes.at(0).size() > most_specific_prefix_loc->prefixes.at(0).size()))
-					most_specific_prefix_loc = &block;
-			}
-		}
-	}
-	for (auto& block : vhost_binding->blocks)
-	{
-		if (block.key == ContextKey::location)
-		{
-			std::vector<std::string>& prefixes = block.prefixes;
-			if (prefixes.at(0) == "~")
-			{
-				auto res = Regex(prefixes.at(1)).match(request_uri);
-				if (res.first)
-				{
-					vhost_binding = &block;
-					return;
-				}
-			}
-		}
-	}
-	if (most_specific_prefix_loc)
-		vhost_binding = most_specific_prefix_loc;
-	else
-		throw ErrorCodeException(404, "Not Found");
-}
-
-void	Config::bindVirtualHost (
-	const std::string& request_uri,
-	const std::string& request_ip_host,
-	const std::string& request_servname,
-	unsigned short request_port
-)
-{
-	ConfBlockDirective* default_server = nullptr;
-	for (auto& block : mainContext().blocks)
-	{
-		if (block.key == ContextKey::server)
-		{
-			std::string host_port = Config::getDirective(block, DirectiveKey::listen).values.at(0);
-			auto tokens = tokenizer(host_port, ':');
-			std::string host = tokens.at(0);
-			if (host == "localhost")
-				host = "127.0.0.1";
-			unsigned short port = std::stoi(tokens.at(1));
-			if (request_ip_host == host && request_port == port)
-			{
-				if (!default_server)
-					default_server = &block;
-				std::vector<std::string> servnames;
-				try {
-					servnames = Config::getDirective(block, DirectiveKey::server_name).values;
-					for (auto& name : servnames)
-					{
-						if (name == request_servname)
-						{
-							vhost_binding = &block;
-							bindVHostRoute(request_uri);
-							return;
-						}
-					}
-				} catch (const std ::runtime_error& e) {}				
-			}
-		}
-	}
-	if (default_server)
-	{
-		vhost_binding = default_server;
-		bindVHostRoute(request_uri);
-	}
-	else
-		throw ErrorCodeException(404, "Not Found");
-}
-
-std::string	Config::root()
-{
-	ConfBlockDirective* tmp = vhost_binding;
-	while (tmp)
-	{
-		try {
-			std::string root_path = getDirective(*tmp, DirectiveKey::root).values.at(0);
-			return root_path;
-		} catch (const std::runtime_error& e) {}
-		tmp = tmp->parent;
-	}
-	return "null";
 }

@@ -9,11 +9,11 @@ ServerSocketPool::ServerSocketPool()
 	
 }
 
-void	ServerSocketPool::setConfig(std::shared_ptr<Config> conf)
+void	ServerSocketPool::setConfig(RequestRouter conf)
 {
 	this->conf = conf;
 
-	ConfBlockDirective& main = conf->mainContext();
+	ConfBlockDirective& main = *conf.main;
 
 	typedef std::pair<std::string, unsigned short> hp_pair;
 	std::set<hp_pair> added_hostports;
@@ -22,7 +22,7 @@ void	ServerSocketPool::setConfig(std::shared_ptr<Config> conf)
 	{
 		if (b.key == ContextKey::server)
 		{
-			std::string host_port = Config::getDirective(b, DirectiveKey::listen).values.at(0);
+			std::string host_port = RequestRouter::getDirective(b, DirectiveKey::listen).values.at(0);
 			auto tokens = tokenizer(host_port, ':');
 			std::string host = tokens.at(0);
 			if (host == "localhost")
@@ -42,10 +42,6 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 {
 	Logger& log = Logger::getInstance();
 
-	// SPECIFYING HOST:
-	// make sure ipv4 string has no leading zeros
-	// s_addr = inet_addr("1.2.3.4"), or htonl(INADDR_LOOPBACK) for "localhost"
-	// returns INADDR_NONE if the input string is invalid
 	uint32_t addrbin = inet_addr(host.c_str());
 	log.out() << "Verifying IP `" << host << "`" << std::endl;
 	if (addrbin == INADDR_NONE)
@@ -68,7 +64,6 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	lstn->address.sin_port = htons(port);
 	lstn->address.sin_addr.s_addr = addrbin;
 	
-	// when binding, check for EADDRINUSE and EADDRNOTAVAIL
 	int ret = bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address));
 	if (ret == -1)
 		throw std::runtime_error (
@@ -104,8 +99,8 @@ ft::deque<Socket*>&		ServerSocketPool::getSocketList()
 }
 
 void	ServerSocketPool::runServer(
-	void (*connection_handler)(HTTPExchange&, Config& conf),
-	void (*request_handler)(HTTPExchange&, Config& conf)
+	void (*connection_handler)(HTTPExchange&, RequestRouter& conf),
+	void (*request_handler)(HTTPExchange&, RequestRouter& conf)
 )
 {
 	this->connection_handler = connection_handler;
@@ -163,7 +158,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	struct sockaddr store;
 	socklen_t len;
 
-	// PAS AUTORISE ......
 	std::memset(&store, 0, sizeof(struct sockaddr));
 	std::memset(&len, 0, sizeof(socklen_t));
 
@@ -252,7 +246,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 				log.out(msg);
 				// TO UPDATE LATER (when implementing payload in requests)
 				while (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
-					request_handler(cli->newExchange(), *conf);
+					request_handler(cli->newExchange(), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -324,7 +318,7 @@ void	ServerSocketPool::pollWrite(Socket* s)
 				FD_CLR(cli->socket_fd, &master_write);
 			}
 			else if (!cli->getExchange().end)
-				request_handler(cli->getExchange(), *conf);
+				request_handler(cli->getExchange(), conf);
 			break;
 		}
 	}

@@ -5,6 +5,7 @@
 #include "RequestParser.hpp"
 #include "ByteBuffer.hpp"
 #include "Conf/Config.hpp"
+#include "RequestRouter.hpp"
 #include <map>
 #include <list>
 #include <vector>
@@ -108,21 +109,20 @@ struct ClientSocket : Socket
 class ServerSocketPool
 {
 	private:
-
 		enum class IOSTATE {
 			ONCE = 1,
 			READY = 2
 		};
 
-		std::shared_ptr<Config>	conf;
+		RequestRouter	conf;
 
 		int		fd_max;
 		fd_set	master_read;
 		fd_set	master_write;
 		ft::deque<Socket*> socket_list;
 
-		void (*connection_handler)(HTTPExchange&, Config&);
-		void (*request_handler)(HTTPExchange&, Config&);
+		void (*connection_handler)(HTTPExchange&, RequestRouter&);
+		void (*request_handler)(HTTPExchange&, RequestRouter&);
 
 		std::runtime_error constructorExcept(const std::string& err)
 		{
@@ -139,7 +139,7 @@ class ServerSocketPool
 		ServerSocketPool();
 		~ServerSocketPool();
 
-		void	setConfig(std::shared_ptr<Config> conf);
+		void	setConfig(RequestRouter conf_handler);
 
 		void	addListener(const std::string& host, unsigned short port);
 		ClientSocket*	acceptConnection(Listener* lstn);
@@ -155,8 +155,8 @@ class ServerSocketPool
 		size_t	sendResponse(ClientSocket* cli, int& retflags);
 
 		void	runServer(
-			void (*connection_handler)(HTTPExchange&, Config&) ,
-			void (*request_handler)(HTTPExchange&, Config&)
+			void (*connection_handler)(HTTPExchange&, RequestRouter&) ,
+			void (*request_handler)(HTTPExchange&, RequestRouter&)
 		);
 		void	pollRead(Socket* s);
 		void	pollWrite(Socket* s);

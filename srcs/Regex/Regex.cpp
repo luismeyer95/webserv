@@ -38,6 +38,22 @@ Regex::~Regex()
 	NFA::deleteAutomaton(automaton);
 }
 
+std::string Regex::escapeSymbols(const std::string& str)
+{
+	std::string ret;
+	std::string symbolset("^$[]{}()*+?.\\|-");
+
+	ret.reserve(str.capacity());
+	for (auto& c : str)
+	{
+		if (symbolset.find(c) != std::string::npos)
+			ret += "\\";
+		ret += c;
+	}
+	return ret;
+}
+
+
 std::pair<bool, std::string> Regex::matchIn(
 	const std::string& str,
 	const std::string& before,
