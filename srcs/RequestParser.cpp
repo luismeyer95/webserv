@@ -34,7 +34,7 @@ int RequestParser::parser(const std::string header)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
-    _resource = tokenizer(temp[0], ' ')[1];
+    _resource = tokenizer(temp[0], ' ')[1];//URL (url)
     _protocol = tokenizer(temp[0], ' ')[2];
 
     accept_charset_parser(temp);
