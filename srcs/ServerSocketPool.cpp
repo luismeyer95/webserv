@@ -3,12 +3,79 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-ServerSocketPool::ServerSocketPool() : fd_max(-1) {}
-
-ServerSocketPool&	ServerSocketPool::getInstance()
+ServerSocketPool::ServerSocketPool()
+	: fd_max(-1)
 {
-	static ServerSocketPool pool;
-	return pool;
+	
+}
+
+void	ServerSocketPool::setConfig(RequestRouter conf)
+{
+	this->conf = conf;
+
+	ConfBlockDirective& main = *conf.main;
+
+	typedef std::pair<std::string, unsigned short> hp_pair;
+	std::set<hp_pair> added_hostports;
+
+	for (auto& b : main.blocks)
+	{
+		if (b.key == ContextKey::server)
+		{
+			std::string host_port = RequestRouter::getDirective(b, DirectiveKey::listen).values.at(0);
+			auto tokens = tokenizer(host_port, ':');
+			std::string host = tokens.at(0);
+			if (host == "localhost")
+				host = "127.0.0.1";
+			unsigned short port = std::stoi(tokens.at(1));
+
+			if (!added_hostports.count(hp_pair(host,port)))
+			{
+				addListener(host, port);
+				added_hostports.insert(hp_pair(host,port));
+			}
+		}
+	}
+}
+
+void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
+{
+	Logger& log = Logger::getInstance();
+
+	uint32_t addrbin = inet_addr(host.c_str());
+	log.out() << "Verifying IP `" << host << "`" << std::endl;
+	if (addrbin == INADDR_NONE)
+		throw std::runtime_error("invalid IP address `" + host + "`");
+
+	int sock = 0;
+	log.out() << "Creating virtual host socket for `" << host << ":" << port << "`\n";
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == -1)
+		throw std::runtime_error("Failed to create server socket. " + std::string(strerror(errno)));
+	
+
+	Listener* lstn = new Listener();
+	lstn->socket_fd = sock;
+	lstn->address_str = host;
+	lstn->port = port;
+	socket_list.push_back(static_cast<Socket*>(lstn));
+
+	lstn->address.sin_family = AF_INET;
+	lstn->address.sin_port = htons(port);
+	lstn->address.sin_addr.s_addr = addrbin;
+	
+	int ret = bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address));
+	if (ret == -1)
+		throw std::runtime_error (
+			"Failed to bind socket to `" + host + ":"
+			+ std::to_string(port) + "`. " + strerror(errno) + "."
+		);
+	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
+
+	listen(lstn->socket_fd, MAXQUEUE);
+	
+	if (lstn->socket_fd > fd_max)
+		fd_max = lstn->socket_fd;
 }
 
 ServerSocketPool::~ServerSocketPool()
@@ -31,57 +98,9 @@ ft::deque<Socket*>&		ServerSocketPool::getSocketList()
 	return socket_list;
 }
 
-void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
-{
-	Logger& log = Logger::getInstance();
-
-	// SPECIFYING HOST:
-	// make sure ipv4 string has no leading zeros
-	// s_addr = inet_addr("1.2.3.4"), or htonl(INADDR_LOOPBACK) for "localhost"
-	// returns INADDR_NONE if the input string is invalid
-	uint32_t addrbin;
-	if (host == "localhost")
-		addrbin = htonl(INADDR_LOOPBACK);
-	else
-		addrbin = inet_addr(host.c_str());
-	log.out() << "Verifying IP `" << host << "`" << std::endl;
-	if (addrbin == INADDR_NONE)
-		throw std::runtime_error("invalid IP address `" + host + "`");
-
-	int sock = 0;
-	log.out() << "Creating virtual host socket for `" << host << ":" << port << "`\n";
-	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == -1)
-		throw std::runtime_error("Failed to create server socket. " + std::string(strerror(errno)));
-	
-
-	Listener* lstn = new Listener();
-	lstn->socket_fd = sock;
-	lstn->port = port;
-	socket_list.push_back(static_cast<Socket*>(lstn));
-
-	lstn->address.sin_family = AF_INET;
-	lstn->address.sin_port = htons(port);
-	lstn->address.sin_addr.s_addr = addrbin;
-	
-	// when binding, check for EADDRINUSE and EADDRNOTAVAIL
-	int ret = bind(lstn->socket_fd, (struct sockaddr*)&lstn->address, sizeof(lstn->address));
-	if (ret == -1)
-		throw std::runtime_error (
-			"Failed to bind socket to `" + host + ":"
-			+ std::to_string(port) + "`. " + strerror(errno) + "."
-		);
-	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
-
-	listen(lstn->socket_fd, MAXQUEUE);
-	
-	if (lstn->socket_fd > fd_max)
-		fd_max = lstn->socket_fd;
-}
-
 void	ServerSocketPool::runServer(
-	void (*connection_handler)(HTTPExchange&) ,
-	void (*request_handler)(HTTPExchange&)
+	void (*connection_handler)(HTTPExchange&, RequestRouter& conf),
+	void (*request_handler)(HTTPExchange&, RequestRouter& conf)
 )
 {
 	this->connection_handler = connection_handler;
@@ -139,7 +158,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	struct sockaddr store;
 	socklen_t len;
 
-	// PAS AUTORISE ......
 	std::memset(&store, 0, sizeof(struct sockaddr));
 	std::memset(&len, 0, sizeof(socklen_t));
 
@@ -228,7 +246,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 				log.out(msg);
 				// TO UPDATE LATER (when implementing payload in requests)
 				while (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
-					request_handler(cli->newExchange());
+					request_handler(cli->newExchange(), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -300,7 +318,7 @@ void	ServerSocketPool::pollWrite(Socket* s)
 				FD_CLR(cli->socket_fd, &master_write);
 			}
 			else if (!cli->getExchange().end)
-				request_handler(cli->getExchange());
+				request_handler(cli->getExchange(), conf);
 			break;
 		}
 	}

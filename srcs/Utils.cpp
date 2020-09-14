@@ -40,6 +40,14 @@ std::vector<BYTE> readbin(const std::string& filename)
     return fileData;
 }
 
+std::string make_html_error_page(int error_code, const std::string& error_string)
+{
+	std::string page = "<div><div style=\"text-align: center;\"><h1>Error "
+					+ std::to_string(error_code) + "</h1><p>"
+					+ error_string + "</p></div></div>";
+	return page;
+}
+
 void	http_print(const std::string& s)
 {
 	for (size_t i = 0; i < s.size(); ++i)

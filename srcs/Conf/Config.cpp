@@ -1,11 +1,10 @@
-#include <Conf/ConfParser.hpp>
+#include <Conf/Config.hpp>
 
-ConfParser::ConfParser(const std::string& conf_path)
+Config::Config(const std::string& conf_path)
 	: conf_path(conf_path), conf_file(), token_index(0),
 	context_key_lookup(contextKeyLookup()),
 	directive_key_lookup(directiveKeyLookup())
 {
-	// (void)token_index;
 	tokens.reserve(128);
 
 	std::ifstream in(conf_path);
@@ -14,9 +13,9 @@ ConfParser::ConfParser(const std::string& conf_path)
 		tokenizeConf(in);
 		in.close();
 		try {
-			main = context(1, ContextKey::main, {});
-			link(nullptr, main);
-			main.validate();
+			main = std::make_shared<ConfBlockDirective>(context(1, ContextKey::main, {}));
+			link(nullptr, *main);
+			main->validate();
 		} catch (const ConfError& e) {
 			throw std::runtime_error (
 				conf_path + ": line " + std::to_string(e.line())
@@ -28,17 +27,17 @@ ConfParser::ConfParser(const std::string& conf_path)
 		throw std::runtime_error("could not open configuration file");
 }
 
-bool ConfParser::isWhitespace(char c)
+bool Config::isWhitespace(char c)
 {
 	return (c >= 9 && c <= 13) || c == 32;
 }
 
-bool ConfParser::isDelimiter(char c)
+bool Config::isDelimiter(char c)
 {
 	return c == ';' || c == '{' || c == '}';
 }
 
-void ConfParser::tokenizeConf(std::ifstream& in)
+void Config::tokenizeConf(std::ifstream& in)
 {
 	std::stringstream stream;
 	std::string line;
@@ -48,7 +47,6 @@ void ConfParser::tokenizeConf(std::ifstream& in)
 	{
 		line = line.substr(0, line.find('#'));
 		stream << line << '\n';
-
 		std::string buf;
 		buf.reserve(128);
 		for (auto& c : line)
@@ -76,14 +74,11 @@ void ConfParser::tokenizeConf(std::ifstream& in)
 			tokens.push_back(buf);
 			token_line_nb.push_back(line_nb);
 		}
-		
 		line_nb++;
 	}
-	// for (size_t i = 0; i < tokens.size(); ++i)
-	// 	std::cout << tokens[i] << " (line " << token_line_nb[i] << ")" << std::endl;
 }
 
-ConfBlockDirective ConfParser::context (
+ConfBlockDirective Config::context (
 	int line_nb, ContextKey key, const std::vector<std::string>& prefixes
 )
 {
@@ -113,7 +108,7 @@ ConfBlockDirective ConfParser::context (
 	return block;
 }
 
-void ConfParser::link(ConfBlockDirective *parent, ConfBlockDirective& block)
+void Config::link(ConfBlockDirective *parent, ConfBlockDirective& block)
 {
 	block.parent = parent;
 	for (auto& dir : block.directives)
@@ -123,7 +118,7 @@ void ConfParser::link(ConfBlockDirective *parent, ConfBlockDirective& block)
 }
 
 
-ConfBlockDirective ConfParser::buildBlock()
+ConfBlockDirective Config::buildBlock()
 {
 	int line_nb = line();
 	std::string strkey = next();
@@ -151,7 +146,7 @@ ConfBlockDirective ConfParser::buildBlock()
 	return context(line_nb, nested_block_key, nested_prefixes);
 }
 
-std::vector<std::string> ConfParser::locationPrefixes()
+std::vector<std::string> Config::locationPrefixes()
 {
 	std::vector<std::string> prefixes;
 	if (peek() == "~" || peek() == "~*")
@@ -189,7 +184,7 @@ std::vector<std::string> ConfParser::locationPrefixes()
 	return prefixes;
 }
 
-ConfDirective ConfParser::buildDirective()
+ConfDirective Config::buildDirective()
 {
 	int line_nb = line();
 	std::string strkey = next();
@@ -204,7 +199,7 @@ ConfDirective ConfParser::buildDirective()
 	return ConfDirective(line_nb, directive_key, values);
 }
 
-std::string ConfParser::eat(const std::string& pattern)
+std::string Config::eat(const std::string& pattern)
 {
 	if (!more())
 		throw ConfError(token_line_nb.back(), "unexpected end of config file");
@@ -218,7 +213,7 @@ std::string ConfParser::eat(const std::string& pattern)
 	}				
 }
 
-bool ConfParser::peek(const std::string& pattern)
+bool Config::peek(const std::string& pattern)
 {
 	if (!more())
 		return false;
@@ -226,33 +221,28 @@ bool ConfParser::peek(const std::string& pattern)
 	return res.first;
 }
 
-std::string ConfParser::peek()
+std::string Config::peek()
 {
 	if (!more())
 		return "";
 	return tokens[token_index];
 }
 
-std::string ConfParser::next()
+std::string Config::next()
 {
 	return tokens[token_index++];
 }
 
-bool ConfParser::more()
+bool Config::more()
 {
 	return token_index < tokens.size();
 }
 
-int ConfParser::line()
+int Config::line()
 {
 	if (token_line_nb.empty())
 		return 1;
 	if (!more())
 		return token_line_nb.back();
 	return token_line_nb[token_index];
-}
-
-const ConfBlockDirective& ConfParser::mainContext() const
-{
-	return main;
 }

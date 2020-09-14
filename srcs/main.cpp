@@ -9,13 +9,16 @@
 #include <Conf.hpp>
 #include <URL.hpp>
 
-void	handle_connection(HTTPExchange& comm)
+void	handle_connection(HTTPExchange& comm, RequestRouter& router)
 {
 	(void)comm;
+	(void)router;
 }
 
-void	handle_request(HTTPExchange& comm)
+void	handle_request(HTTPExchange& comm, RequestRouter& router)
 {
+	(void)router;
+
 	Logger& log = Logger::getInstance();
 	// Extracting header in 
 	std::string msg(comm.request);
@@ -63,24 +66,22 @@ int main(int ac, char **av)
 		return (0);
 	}
 
-	ServerSocketPool& pool = ServerSocketPool::getInstance();
 	Logger& log = Logger::getInstance();
 	std::vector<std::string> args(av, av + ac);
 
-
+	ServerSocketPool pool;
 	try {
 
 		log.out() << "Initializing server..." << std::endl;
 		log.out() << "Loading configuration file" << std::endl;
 
-		ConfParser conf(args[1]);
+		Config conf(args[1]);
 		log.hl(BOLDGREEN "SUCCESS");
 
-
 		log.out() << "Setting up virtual hosts" << std::endl;
-		// TEMPORARY
-		// WILL LOAD CONF VHOSTs HOST:PORT LATER
-		pool.addListener("localhost", 80);
+		RequestRouter router(conf);
+
+		pool.setConfig(router);
 
 		log.hl(BOLDGREEN "SUCCESS");
 
@@ -89,37 +90,59 @@ int main(int ac, char **av)
 		return (1);
 	}
 
-	// log.success("SERVER IS RUNNING...");
 	log.hl(BOLDGREEN "SERVER IS RUNNING...");
 	pool.runServer(handle_connection, handle_request);
 }
 
 // int main(int ac, char **av)
 // {
-// 	// // Creating a URL object from its non-encoded component parts
-// 	// URL url (
-// 	// 	/* scheme   */ "http",
-// 	// 	/* host	    */ "dev.webserv.net",
-// 	// 	/* port     */ "80",
-// 	// 	/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
-// 	// 	/* query    */ "q=5",
-// 	// 	/* fragment */ "top"
-// 	// );
-// 	// std::cout << url.getFullURL() << std::endl;
+// 	if (ac != 5)
+// 		return 1;
 
-// 	// // Creating a URL object from an already encoded URL
-// 	// // This URL is equivalent to the previous one
-// 	// URL url_bis (
-// 	// 	"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
-// 	// );
+// 	Config conf("./webserv.conf");
 
-// 	URL url(av[1]);
-// 	url.printComponents();
+// 	RequestRouter router(conf);
+// 	router.bindRequest (
+// 		av[1], 				// request uri
+// 		av[2],				// request server_name
+// 		av[3],				// ip
+// 		std::stoi(av[4])	// port
+// 	);
+// 	auto strs = router.getBoundRequestDirectiveValues(DirectiveKey::root);
+// 	for (auto& s : strs)
+// 		std::cout << s << std::endl;
+// }
+
+
+// int main(int ac, char **av)
+// {
+// 	// Creating a URL object from its non-encoded component parts
+// 	URL url (
+// 		/* scheme   */ "http",
+// 		/* host	    */ "dev.webserv.net",
+// 		/* port     */ "80",
+// 		/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
+// 		/* query    */ "q=5",
+// 		/* fragment */ "top"
+// 	);
+// 	std::cout << url.getFullURL() << std::endl;
+
+// 	// Creating a URL object from an already encoded URL
+// 	// This URL is equivalent to the previous one
+// 	URL url_bis (
+// 		"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
+// 	);
+
 // 	return 0;
+// }
 
-// 	// (void)ac;
-// 	// auto res = Regex(av[1]).match(av[2]);
-// 	// std::cout << "Match: " << res.first << std::endl;
-// 	// if (res.first)
-// 	// 	std::cout << "String: " << res.second << std::endl;
+
+// int main(int ac, char **av)
+// {
+	// if (ac != 2)
+	// 	return (1);
+	// auto res = Regex(av[1]).match(av[2]);
+	// std::cout << "Match: " << res.first << std::endl;
+	// if (res.first)
+	// 	std::cout << "String: " << res.second << std::endl;
 // }

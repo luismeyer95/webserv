@@ -74,7 +74,7 @@ void ConfBlockDirective::validateServer()
 	if (blocks.empty())
 		throw ConfError (
 			line_nb,
-			"server blocks require at least one `location` block directive"
+			"`server` blocks require at least one `location` block directive"
 		);
 	// ensure no nested blocks other than location blocks are present
 	auto it = std::find_if ( 

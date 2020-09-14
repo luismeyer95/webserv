@@ -1,14 +1,25 @@
 #pragma once
 
 #include "ConfBlockDirective.hpp"
+#include <Regex.hpp>
+#include <ErrorCode.hpp>
 
-class ConfParser
+class RequestRouter;
+
+class Config
 {
+	friend class RequestRouter;
 	public:
-		ConfParser(const std::string& conf_path);
-		const ConfBlockDirective&	mainContext() const;
+		Config(const std::string& conf_path);
+		// ConfBlockDirective&			mainContext();
+
+		
+
 	private:
-		ConfBlockDirective			main;
+		// MANAGER
+		
+		// PARSER
+		std::shared_ptr<ConfBlockDirective>		main;
 		std::string					conf_path;
 		std::string					conf_file;
 

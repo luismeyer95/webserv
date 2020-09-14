@@ -2,4 +2,4 @@
 
 #include "Conf/ConfDirective.hpp"
 #include "Conf/ConfBlockDirective.hpp"
-#include "Conf/ConfParser.hpp"
+#include "Conf/Config.hpp"
