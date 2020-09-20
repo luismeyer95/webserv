@@ -45,65 +45,65 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	comm.bufferResponse(doc, true);
 }
 
-// int main(int ac, char **av)
-// {
-
-// 	if (ac != 2)
-// 	{
-// 		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;
-// 		return (0);
-// 	}
-
-// 	Logger& log = Logger::getInstance();
-// 	std::vector<std::string> args(av, av + ac);
-
-// 	ServerSocketPool pool;
-// 	try {
-
-// 		log.out() << "Initializing server..." << std::endl;
-// 		log.out() << "Loading configuration file" << std::endl;
-
-// 		Config conf(args[1]);
-// 		log.hl(BOLDGREEN "SUCCESS");
-
-// 		log.out() << "Setting up virtual hosts" << std::endl;
-// 		RequestRouter router(conf);
-
-// 		pool.setConfig(router);
-
-// 		log.hl(BOLDGREEN "SUCCESS");
-
-// 	} catch (const std::runtime_error& e) {
-// 		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
-// 		return (1);
-// 	}
-
-// 	log.hl(BOLDGREEN "SERVER IS RUNNING...");
-// 	pool.runServer(handle_connection, handle_request);
-// }
-
 int main(int ac, char **av)
 {
-	if (ac != 5)
-		return 1;
 
-	Config conf("./webserv.conf");
+	if (ac != 2)
+	{
+		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;
+		return (0);
+	}
 
-	RequestRouter router(conf);
-	FileRequest fr = router.requestFile (
-		av[1], 				// request uri
-		av[2],				// request server_name
-		av[3],				// ip
-		std::stoi(av[4])	// port
-	);
+	Logger& log = Logger::getInstance();
+	std::vector<std::string> args(av, av + ac);
 
-	std::cout << "code: " << fr.http_code << std::endl;
-	std::cout << "msg: " << fr.http_string << std::endl;
-	std::cout << "path: " << fr.file_path << std::endl;
-	std::cout << "last modified: " << fr.last_modified << std::endl;
-	std::cout << "content: " << fr.file_content.str() << std::endl;
+	ServerSocketPool pool;
+	try {
 
+		log.out() << "Initializing server..." << std::endl;
+		log.out() << "Loading configuration file" << std::endl;
+
+		Config conf(args[1]);
+		log.hl(BOLDGREEN "SUCCESS");
+
+		log.out() << "Setting up virtual hosts" << std::endl;
+		RequestRouter router(conf);
+
+		pool.setConfig(router);
+
+		log.hl(BOLDGREEN "SUCCESS");
+
+	} catch (const std::runtime_error& e) {
+		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
+		return (1);
+	}
+
+	log.hl(BOLDGREEN "SERVER IS RUNNING...");
+	pool.runServer(handle_connection, handle_request);
 }
+
+// int main(int ac, char **av)
+// {
+// 	if (ac != 5)
+// 		return 1;
+
+// 	Config conf("./webserv.conf");
+
+// 	RequestRouter router(conf);
+// 	FileRequest fr = router.requestFile (
+// 		av[1], 				// request uri
+// 		av[2],				// request server_name
+// 		av[3],				// ip
+// 		std::stoi(av[4])	// port
+// 	);
+
+// 	std::cout << "code: " << fr.http_code << std::endl;
+// 	std::cout << "msg: " << fr.http_string << std::endl;
+// 	std::cout << "path: " << fr.file_path << std::endl;
+// 	std::cout << "last modified: " << fr.last_modified << std::endl;
+// 	std::cout << "content: " << fr.file_content.str() << std::endl;
+
+// }
 
 
 // int main(int ac, char **av)
