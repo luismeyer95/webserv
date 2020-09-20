@@ -98,28 +98,34 @@ void ConfBlockDirective::validateServer()
 
 void ConfBlockDirective::validateLocation()
 {
-	// ensure it has a root directive
+	// ensure it has a root/alias directive
 	ConfBlockDirective *b = this;
 	while (b)
 	{
-		auto it = std::find_if (
+		auto count = std::count_if (
 			b->directives.begin(), b->directives.end(),
 			[] (const ConfDirective& d) {
-				return d.key == DirectiveKey::root;
+				return d.key == DirectiveKey::root
+				|| d.key == DirectiveKey::alias;
 			}
 		);
-		if (it != b->directives.end())
+		if (count == 1)
 		{
-			if (b != this)
-				directives.push_back(*it);
 			for (auto& dir : directives)
 				dir.validate();
 			return;
+		}
+		else if (count > 1)
+		{
+			throw ConfError (
+				line_nb,
+				"alias/root directive conflict for `location` block"
+			);
 		}
 		b = b->parent;
 	}
 	throw ConfError (
 		line_nb,
-		"`location` block requires a root directive"
+		"`location` block requires either an alias or a root directive"
 	);
 }

@@ -102,47 +102,71 @@ int main(int ac, char **av)
 // 	Config conf("./webserv.conf");
 
 // 	RequestRouter router(conf);
-// 	router.bindRequest (
+// 	FileRequest fr = router.requestFile (
 // 		av[1], 				// request uri
 // 		av[2],				// request server_name
 // 		av[3],				// ip
 // 		std::stoi(av[4])	// port
 // 	);
-// 	auto strs = router.getBoundRequestDirectiveValues(DirectiveKey::root);
-// 	for (auto& s : strs)
-// 		std::cout << s << std::endl;
+
+// 	std::cout << "code: " << fr.http_code << std::endl;
+// 	std::cout << "msg: " << fr.http_string << std::endl;
+// 	std::cout << "path: " << fr.file_path << std::endl;
+// 	std::cout << "last modified: " << fr.last_modified << std::endl;
+// 	std::cout << "content: " << fr.file_content.str() << std::endl;
+
 // }
 
 
 // int main(int ac, char **av)
 // {
-// 	// Creating a URL object from its non-encoded component parts
-// 	URL url (
-// 		/* scheme   */ "http",
-// 		/* host	    */ "dev.webserv.net",
-// 		/* port     */ "80",
-// 		/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
-// 		/* query    */ "q=5",
-// 		/* fragment */ "top"
-// 	);
-// 	std::cout << url.getFullURL() << std::endl;
+// 	// // Creating a URL object from its non-encoded component parts
+// 	// URL url (
+// 	// 	/* scheme   */ "http",
+// 	// 	/* host	    */ "dev.webserv.net",
+// 	// 	/* port     */ "80",
+// 	// 	/* path	    */ "/path/Écologie: quels sont les enjeux?.html",
+// 	// 	/* query    */ "q=5",
+// 	// 	/* fragment */ "top"
+// 	// );
+// 	// std::cout << url.getFullURL() << std::endl;
 
-// 	// Creating a URL object from an already encoded URL
-// 	// This URL is equivalent to the previous one
-// 	URL url_bis (
-// 		"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
-// 	);
+// 	// // Creating a URL object from an already encoded URL
+// 	// // This URL is equivalent to the previous one
+// 	// URL url_bis (
+// 	// 	"http://dev.webserv.net:80/path/%c3%89cologie:%20quels%20sont%20les%20enjeux%3f.html?q=5#top"
+// 	// );
 
+// 	(void)ac;
+// 	URL url(av[1]);
+// 	// std::cout << URL::decode(url.get(URL::Component::Path)) << std::endl;
+// 	url.printComponents();
 // 	return 0;
 // }
 
 
 // int main(int ac, char **av)
 // {
-	// if (ac != 2)
-	// 	return (1);
-	// auto res = Regex(av[1]).match(av[2]);
-	// std::cout << "Match: " << res.first << std::endl;
-	// if (res.first)
-	// 	std::cout << "String: " << res.second << std::endl;
+// 	// if (ac != 3)
+// 	// 	return (1);
+// 	// auto res = Regex(av[1]).matchAll(av[2]);
+// 	// std::cout << "Match: " << res.first << std::endl;
+// 	// if (res.first)
+// 	// {
+// 	// 	int i = 0;
+// 	// 	for (auto& s : res.second)
+// 	// 		std::cout << "[" << i++ << "]: " << s << std::endl;
+// 	// }
+// 	(void)ac;
+// 	(void)av;
+// 	std::cout << URL::removeDotSegments(av[1]) << std::endl;
+
+// 	// if (ac != 3)
+// 	// 	return (1);
+// 	// auto res = Regex(av[1]).match(av[2]);
+// 	// std::cout << "Match: " << res.first << std::endl;
+// 	// if (res.first)
+// 	// {
+// 	// 	std::cout << "String: " << res.second << std::endl;
+// 	// }
 // }

@@ -3,7 +3,7 @@
 Regex::Regex() {}
 
 Regex::Regex(const std::string& pattern)
-	: pattern(pattern), index(0),
+	: pattern(pattern), index(0), capture_index(0),
 	anchor_start(false), anchor_end(false), automaton()
 {
 	PatternValidation check(pattern);
@@ -14,24 +14,6 @@ Regex::Regex(const std::string& pattern)
 
 	automaton = axiom();
 }
-
-// Regex::Regex(const Regex& o)
-// {
-// 	*this = o;
-// }
-
-// Regex& Regex::operator=(const Regex& o)
-// {
-// 	NFA::deleteAutomaton(automaton);
-// 	automaton = NFA::copyAutomaton(o.automaton);
-// 	pattern = o.pattern;
-// 	index = o.index;
-// 	anchor_start = o.anchor_start;
-// 	anchor_end = o.anchor_end;
-// 	alphabet = o.alphabet;
-
-// 	return *this;
-// }
 
 Regex::~Regex()
 {
@@ -53,27 +35,6 @@ std::string Regex::escapeSymbols(const std::string& str)
 	return ret;
 }
 
-
-std::pair<bool, std::string> Regex::matchIn(
-	const std::string& str,
-	const std::string& before,
-	const std::string& after
-)
-{
-	if (before.back() == '$' || pattern.front() == '^' || pattern.back() == '$' || after.front() == '^')
-		throw std::runtime_error("Regex: Bad arguments to matchIn()");
-
-	auto bf_res = Regex(before + pattern + after).match(str);
-	if (!bf_res.first)
-		return {false, str};
-	
-	auto main_res = Regex(pattern + after).match(bf_res.second);
-	std::string after_anchored = after.back() == '$' ? after : after + "$";
-	std::string ret = main_res.second.substr(0, main_res.second.size() - Regex(after_anchored).match(main_res.second).second.size());
-	return {true, ret};
-
-}
-
 std::pair<bool, std::string> Regex::match(const std::string& str) const
 {
 	std::vector<NFAState*> current_states;
@@ -87,29 +48,19 @@ std::pair<bool, std::string> Regex::match(const std::string& str) const
 	{
 		next_states.clear();
 		for (auto& state : current_states)
-		{
-			NFAState *next = state->transit(c);
-			if (next)
-			{
-				setNextStates(next, next_states, visited);
-				visited.clear();
-			}
-		}
+			state->transit(c, next_states);
 		current_states = next_states;
 
 		if (!anchor_end)
 		{
 			// if end of string is not anchored, return true
 			// as soon as an accepting state is found
-
 			auto it = std::find_if (
-				current_states.begin(),
-				current_states.end(),
+				current_states.begin(), current_states.end(),
 				[] (NFAState *st) { return st->is_end; }
 			);
 			if (it != current_states.end())
 			{
-				// dirty way of getting the length of the matched string
 				size_t len = (&c - &str[0]) + 1;
 				return {true, str.substr(0, len)};
 			}
@@ -117,25 +68,82 @@ std::pair<bool, std::string> Regex::match(const std::string& str) const
 	}
 
 	auto it = std::find_if (
-		current_states.begin(),
-		current_states.end(),
+		current_states.begin(), current_states.end(),
+		[] (NFAState *st) { return st->is_end; }
+	);
+
+	// if no start anchor set, try to match again for next char until
+	// end of string
+	bool found = it != current_states.end();
+	if (!found && !anchor_start && !str.empty())
+	{
+		std::pair<bool, std::string> next_match = match(&str[0] + 1);
+		return {found || next_match.first, next_match.second };
+	}
+
+	return {found, str};
+}
+
+std::pair<bool, std::vector<std::string> > Regex::matchAll(const std::string& str) const
+{
+	std::vector<char>			path;
+	std::vector<std::set<int>>	path_tags;
+
+	std::vector< std::vector<NFATransition> > all_trans;
+	all_trans.reserve(str.size());
+	
+	std::vector<NFAState*> current_states;
+	std::vector<NFAState*> visited;
+	setNextStates(automaton.start, current_states, visited);
+	// visited.clear();
+
+	std::vector<NFAState*> next_states;
+	for (auto& c : str)
+	{
+		std::vector<NFATransition> trans_symbol;
+		next_states.clear();
+		for (auto& state : current_states)
+		{
+			std::vector<NFATransition> trans = state->transit(c, next_states);
+			std::move(trans.begin(), trans.end(), std::back_inserter(trans_symbol));
+		}
+		all_trans.push_back(std::move(trans_symbol));
+		current_states = next_states;
+
+		if (!anchor_end)
+		{
+			auto it = std::find_if (
+				current_states.begin(),
+				current_states.end(),
+				[] (NFAState *st) { return st->is_end; }
+			);
+			if (it != current_states.end())
+			{
+				constructPath(all_trans, path, path_tags);
+				return {true, buildAllCaptures(path, path_tags)};
+			}
+		}
+	}
+
+	auto it = std::find_if (
+		current_states.begin(), current_states.end(),
 		[] (NFAState *st) { return st->is_end; }
 	);
 
 	bool found = it != current_states.end();
-
-	// if no start anchor set, try to match again for next char until
-	// end of string
 	if (!found && !anchor_start && !str.empty())
 	{
-		std::pair<bool, std::string> next_match = match(&str[0] + 1);
-		return {
-			found || next_match.first,
-			next_match.second
-		};
+		auto next_match = matchAll(&str[0] + 1);
+		return { found || next_match.first, next_match.second };
 	}
 
-	return {found, str};
+	std::vector<std::string> caps;
+	if (found)
+	{
+		constructPath(all_trans, path, path_tags);
+		caps = buildAllCaptures(path, path_tags);
+	}
+	return {found, caps};
 }
 
 void	Regex::setNextStates(
@@ -162,6 +170,57 @@ void	Regex::setNextStates(
 		next_states.push_back(state);
 }
 
+void Regex::constructPath (
+	const std::vector< std::vector<NFATransition> > & all_trans,
+	std::vector<char>& path, std::vector<std::set<int>>& path_tags
+) const
+{
+	NFAState* last = automaton.end;
+
+	for (auto rit = all_trans.rbegin(); rit != all_trans.rend(); ++rit)
+	{
+		auto& vec = *rit;
+		auto trans = std::find_if(vec.begin(), vec.end(),
+		[&] (const NFATransition& trans) {
+			return trans.transition_state == last;
+		});
+		path_tags.push_back(trans->capture_tags);
+		path.push_back(trans->symbol);
+
+		last = trans->start_state;
+	}
+}
+
+std::string Regex::buildCapture (
+	const std::vector<char>& path, const std::vector<std::set<int>>& tags, int capture
+) const
+{
+	std::string cap;
+
+	cap.reserve(path.size());
+
+	auto path_it = path.rbegin();
+	auto tags_it = tags.rbegin();
+	for (; path_it != path.rend(); ++path_it, ++tags_it)
+	{
+		if (tags_it->count(capture))
+			cap.append(1, *path_it);
+	}
+
+	return cap;
+}
+
+std::vector<std::string> Regex::buildAllCaptures (
+	const std::vector<char>& path, const std::vector<std::set<int>>& tags
+) const
+{
+	std::vector<std::string> captures;
+	captures.reserve(capture_index);
+	for (int i = 0; i < capture_index; ++i)
+		captures.push_back(buildCapture(path, tags, i));
+	return captures;
+}
+
 NFA Regex::axiom()
 {
 	if (peek() == '^')
@@ -169,7 +228,7 @@ NFA Regex::axiom()
 		next();
 		anchor_start = true;
 	}
-	NFA exp = expr();
+	NFA exp = expr(capture_index++);
 	if (peek() == '$')
 	{
 		next();
@@ -178,18 +237,25 @@ NFA Regex::axiom()
 	return exp;
 }
 
-NFA Regex::expr()
+NFA Regex::expr(int capture)
 {
 	NFA trm = term();
 
 	if (peek() == '|')
 	{
 		eat('|');
-		NFA exp = expr();
-		return NFA::unify(trm, exp);
+		NFA exp = expr(-1);
+		if (capture == -1)
+			return NFA::unify(trm, exp);
+		else
+			return NFA::capture(NFA::unify(trm, exp), capture);
 	}
 
-	return trm;
+	// return trm;
+	if (capture == -1)
+		return trm;
+	else
+		return NFA::capture(trm, capture);
 }
 
 NFA Regex::term()
@@ -262,7 +328,15 @@ NFA Regex::atom()
 	if (peek() == '(')
 	{
 		eat('(');
-		NFA exp = expr();
+		NFA exp;
+		if (peek() == '?')
+		{
+			eat('?');
+			eat(':');
+			exp = expr(-1);
+		}
+		else 
+			exp = expr(capture_index++);
 		eat(')');
 		return exp;
 	}

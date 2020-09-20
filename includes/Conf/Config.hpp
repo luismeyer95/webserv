@@ -11,14 +11,7 @@ class Config
 	friend class RequestRouter;
 	public:
 		Config(const std::string& conf_path);
-		// ConfBlockDirective&			mainContext();
-
-		
-
 	private:
-		// MANAGER
-		
-		// PARSER
 		std::shared_ptr<ConfBlockDirective>		main;
 		std::string					conf_path;
 		std::string					conf_file;

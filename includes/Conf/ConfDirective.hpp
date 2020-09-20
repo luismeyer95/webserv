@@ -29,7 +29,7 @@ class ConfError : public std::exception
 
 enum class DirectiveKey
 {
-	listen, server_name, root, error_page,
+	listen, server_name, root, alias, error_page,
 	internal, index, autoindex
 };
 

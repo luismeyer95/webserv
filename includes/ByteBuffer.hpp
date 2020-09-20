@@ -14,6 +14,7 @@ class ByteBuffer
 		~ByteBuffer();
 		ByteBuffer(const ByteBuffer& o);
 		ByteBuffer&	operator=(const ByteBuffer& o);
+		ByteBuffer&	operator=(const std::string& o);
 
 		size_t			size() const;
 		const BYTE*		get() const;

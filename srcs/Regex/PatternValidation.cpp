@@ -93,6 +93,11 @@ void PatternValidation::atom()
 	if (peek() == '(')
 	{
 		eat('(');
+		if (peek() == '?')
+		{
+			eat('?');
+			eat(':');
+		}
 		expr();
 		eat(')');
 	}

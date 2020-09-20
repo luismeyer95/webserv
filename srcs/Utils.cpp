@@ -67,6 +67,13 @@ void	dec_print(const char *s)
 	for (size_t i = 0; s[i]; ++i)
 		std::cout << (int)s[i] << " ";
 	std::cout << std::endl;
+}
+
+
+std::string		get_gmt_time(time_t date)
+{
+	struct tm *info;
+	char buffer[128];
 
 }
 
@@ -162,4 +169,8 @@ bool is_http_date(std::string str)
 	if (tmp.size() != 3 || tmp[0].length() != 2 || !is_number(tmp[0]) ||tmp[1].length() != 2 || !is_number(tmp[1]) ||tmp[2].length() != 2 || !is_number(tmp[2]))
 		return (0);
 	return (1);
+	info = gmtime(&date);
+	// Wed, 21 Oct 2015 07:28:00 GMT
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S %Z", info);
+	return std::string(buffer);
 }
