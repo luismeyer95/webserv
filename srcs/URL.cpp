@@ -170,6 +170,59 @@ URL::URL(const std::string& encoded_url)
 	validateAllComponents();
 }
 
+// Removes empty segments and resolves dot segments.
+// Relative segments referring to a path outside the path hierarchy are removed.
+// Ex: "/../../" --> "/", or "/ab/../cd/./" --> "/cd"
+std::string	URL::removeDotSegments(std::string input_path)
+{
+	std::string output_path;
+
+	for (auto it = input_path.begin(); it != std::prev(input_path.end());)
+	{
+		if (*it == '/' && *std::next(it) == '/')
+			it = input_path.erase(it);
+		else
+			++it;
+	}
+	while (!input_path.empty())
+	{
+		if (input_path.find("../") == 0)
+			input_path.erase(0, 3);
+		else if (input_path.find("./") == 0)
+			input_path.erase(0, 2);
+		else if (input_path.find("/./") == 0)
+			input_path.erase(0, 3);
+		else if (input_path == "/." || input_path == "/")
+			input_path.clear();
+		else if (input_path.find("/../") == 0 || input_path == "/..")
+		{
+			if (input_path == "/..")
+				input_path = "/";
+			else
+				input_path.replace(0, 4, "/");
+			auto last = output_path.rfind('/');
+			if (last != std::string::npos)
+				output_path.erase(last, output_path.size() - last);
+			else
+				output_path.clear();
+		}
+		else if (input_path == ".." || input_path == ".")
+			input_path.clear();
+		else
+		{
+			size_t len = 0;
+			if (input_path[0] == '/')
+				++len;
+			while (input_path[len] && input_path[len] != '/')
+				++len;
+			output_path.append(input_path.substr(0, len));
+			input_path.erase(0, len);
+		}
+	}
+
+	return output_path;
+}
+
 std::string& URL::get(URL::Component comp)
 {
 	using C = URL::Component;

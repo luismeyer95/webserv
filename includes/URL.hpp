@@ -70,6 +70,9 @@ class URL
 
 		static std::string	decode(const std::string& str);
 
+		static std::string	removeDotSegments(std::string input_url);
+
+
 		void				validate(URL::Component comp);
 		void				validateAllComponents();
 
