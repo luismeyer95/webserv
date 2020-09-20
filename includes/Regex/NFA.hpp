@@ -36,5 +36,6 @@ class NFA
 		static NFA quantify(int min, int max, NFA a);
 		static NFA plus(NFA a);
 		static NFA questionmark(NFA a);
+		static NFA capture(NFA nfa, int capture);
 		
 };

@@ -11,13 +11,15 @@ class Regex
 		std::string			pattern;
 		size_t				index;
 
+		int					capture_index;
+
 		bool				anchor_start;
 		bool				anchor_end;
 
 		std::vector<char>	alphabet;
 
 		NFA 				axiom();
-		NFA					expr();
+		NFA					expr(int capture);
 		NFA					term();
 		NFA					factor();
 		NFA					modifier(NFA atm);
@@ -51,11 +53,18 @@ class Regex
 		static std::string			escapeSymbols(const std::string& str);
 
 		std::pair<bool, std::string> match(const std::string& str) const;
-		std::pair<bool, std::string> matchIn(
-			const std::string& str,
-			const std::string& before,
-			const std::string& after
-		);
+		std::pair<bool, std::vector<std::string> > matchAll(const std::string& str) const;
 
+		void constructPath (
+			const std::vector< std::vector<NFATransition> > & all_trans,
+			std::vector<char>& path, std::vector<std::set<int>>& path_tags
+		) const ;
 
+		std::string buildCapture (
+			const std::vector<char>& path, const std::vector<std::set<int>>& tags, int capture
+		) const;
+
+		std::vector<std::string> buildAllCaptures (
+			const std::vector<char>& path, const std::vector<std::set<int>>& tags
+		) const;
 };

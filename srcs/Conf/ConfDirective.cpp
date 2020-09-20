@@ -1,3 +1,4 @@
+#include <Conf/ConfBlockDirective.hpp>
 #include <Conf/ConfDirective.hpp>
 
 std::map<std::string, DirectiveKey> directiveKeyLookup()
@@ -8,6 +9,7 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"listen", D::listen},
 		{"server_name", D::server_name},
 		{"root", D::root},
+		{"alias", D::alias},
 		{"error_page", D::error_page},
 		{"internal", D::internal},
 		{"index", D::index},
@@ -23,6 +25,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::listen: return "listen";
 		case D::server_name: return "server_name";
 		case D::root: return "root";
+		case D::alias: return "alias";
 		case D::error_page: return "error_page";
 		case D::internal: return "internal";
 		case D::index: return "index";
@@ -113,24 +116,74 @@ void ConfDirective::validate()
 			break;
 		}
 
+		case D::alias:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+
+			auto res = Regex("^(.*[^\\\\])?(\\$\\d+)([^\\d].*)?$").match(values.at(0));
+			if (res.first)
+			{
+				ConfBlockDirective& block = *parent;
+				if (!(block.key == ContextKey::location && block.prefixes.at(0) == "~"))
+					throw dirExcept (
+						"`alias` directives containing capture variables"
+						" are only valid inside regex-prefixed `location` block directives"
+					);
+			}
+
+			break;
+		}
+
 		case D::error_page:
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
 			
-		}
-
-		case D::internal:
-		{
-			// . . .
+			auto it = values.begin();
+			for (; it != values.end(); ++it)
+			{
+				auto res = Regex("^\\d{3}$").match(*it);
+				if (!res.first)
+					break;
+			}
+			if (it == values.end())
+				throw dirExcept("missing value(s)");
+			auto res = Regex("^/.*xxx[^/]*").match(*it);
+			if (!res.first)
+				throw dirExcept("partial uri must start with a `/` and "
+					"contain a `xxx` substring for error code substitution");
+			std::string uri = "." + *it;
+			size_t xxx = uri.find("xxx");
+			uri.erase(xxx, 3);
+			for (auto itb = values.begin(); itb != it; ++itb)
+			{
+				struct stat buffer;
+				std::string path = uri;
+				path.insert(xxx, *itb);
+				if (stat(path.c_str(), &buffer) != 0)
+					throw dirExcept("path `" + path + "` doesn't exist");
+				else if (!(buffer.st_mode & S_IFREG))
+					throw dirExcept("path should point to a file");
+			}
 			break;
 		}
 
 		case D::index:
 		{
-			// . . .
+			// if (values.empty())
+			// 	throw dirExcept("missing value(s)");
+			// for (auto& s : values)
+			// {
+			// 	struct stat buffer;
+			// 	if (stat(s.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
+			// 		return;
+			// }
+			// throw dirExcept("index must contain one or more paths to existing files");
 			break;
 		}
+
+		case D::internal: break;
 
 		case D::autoindex:
 		{

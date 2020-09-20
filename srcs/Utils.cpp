@@ -67,5 +67,16 @@ void	dec_print(const char *s)
 	for (size_t i = 0; s[i]; ++i)
 		std::cout << (int)s[i] << " ";
 	std::cout << std::endl;
+}
 
+
+std::string		get_gmt_time(time_t date)
+{
+	struct tm *info;
+	char buffer[128];
+
+	info = gmtime(&date);
+	// Wed, 21 Oct 2015 07:28:00 GMT
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S %Z", info);
+	return std::string(buffer);
 }

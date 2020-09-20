@@ -193,7 +193,6 @@ ConfDirective Config::buildDirective()
 	std::vector<std::string> values;
 	while (more() && peek() != ";")
 		values.push_back(next());
-	// if (more())
 	eat("^;$");
 
 	return ConfDirective(line_nb, directive_key, values);

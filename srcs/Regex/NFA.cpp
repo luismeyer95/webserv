@@ -186,3 +186,25 @@ NFA NFA::questionmark(NFA a)
 
 	return nfa;
 }
+
+void	capture_state(NFAState *state, int capture)
+{
+	if (!state->epsilon_transitions.empty())
+	{
+		for (auto& s : state->epsilon_transitions)
+			capture_state(s, capture);
+	}
+	else
+	{
+		if (state->is_end || state->capture_tags.count(capture))
+			return;
+		state->addCaptureTag(capture);
+		capture_state(state->transition.begin()->second, capture);
+	}
+}
+
+NFA NFA::capture(NFA nfa, int capture)
+{
+	capture_state(nfa.start, capture);
+	return nfa;
+}
