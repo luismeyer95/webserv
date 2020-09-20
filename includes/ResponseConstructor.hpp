@@ -16,7 +16,6 @@ class ResponseConstructor {
 	private:
 		std::string                 _header;
 
-		std::string					_method;
 		std::string					_code;
 
 		std::vector<std::string>	_allow;
@@ -32,6 +31,9 @@ class ResponseConstructor {
         std::string                 _transfer_encoding;
         std::string                 _www_authenticate;
 
+		void date();
+		void retry_after();
+		void www_authenticate();
 
 	public:
 		ResponseConstructor();

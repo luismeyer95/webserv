@@ -38,6 +38,7 @@ class RequestParser {
 	private:
 		std::vector<std::string> _headers;
 		//host already found, error if twice for some 
+		int							_error;
 
 		std::string					_method;
 		std::string					_resource;

@@ -1,9 +1,12 @@
 #include <Utils.hpp>
 #include <RequestParser.hpp>
 #include <Regex.hpp>
+#include <URL.hpp>
 
 RequestParser::RequestParser()
-    : _method(""), _resource(""), _protocol("") //penser à setup
+    : _method(""), _resource(""), _protocol(""),
+        _content_length(0), _content_location(""),
+        _date(""), _host(""), _referer(""), _error(0)
     
 {
     _headers.push_back("Accept-Charset");
@@ -34,7 +37,8 @@ int RequestParser::parser(const std::string header)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
-    _resource = tokenizer(temp[0], ' ')[1];//URL (url)
+    URL url(tokenizer(temp[0], ' ')[1]);
+    _resource = URL::decode(url.get(URL::Component::Path));
     _protocol = tokenizer(temp[0], ' ')[2];
 
     accept_charset_parser(temp);
@@ -303,6 +307,8 @@ void RequestParser::host_parser(std::vector<std::string> &head)
 {
     std::vector<std::string> line;
     
+    if (_host != "")
+        ;//error
     line = header_finder(head, "Host");
     if (line.max_size() == 0)
         return;
@@ -322,8 +328,11 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     if (line.size() == 2)
-        //check URL syntax
-        _referer = line[1];
+    {
+        URL url(tokenizer(line[1], ' ')[1]);
+        _referer = URL::decode(url.get(URL::Component::Path));//catch exception
+        //_referer = line[1];
+    }
 }
 
 void RequestParser::user_agent_parser(std::vector<std::string> &head)
