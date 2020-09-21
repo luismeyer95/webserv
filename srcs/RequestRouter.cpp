@@ -101,6 +101,7 @@ void	RequestRouter::bindServer (
 )
 {
 	ConfBlockDirective* default_server = nullptr;
+
 	for (auto& block : main->blocks)
 	{
 		if (block.key == ContextKey::server)
@@ -134,33 +135,35 @@ void	RequestRouter::bindServer (
 		route_binding = default_server;
 }
 
-void	RequestRouter::fetchErrorPage(FileRequest& file_req)
+void	RequestRouter::fetchErrorPage(FileRequest& file_req, int code, const std::string& msg)
 {
-	file_req.http_code = 404;
-	file_req.http_string = "Not Found";
+	file_req.http_code = code;
+	file_req.http_string = msg;
 	std::vector<std::string> vals = getBoundRequestDirectiveValues(DirectiveKey::error_page);
 	if (vals.empty())
 	{
-		std::string tmp = make_html_error_page(404, "Not Found");
+		std::string tmp = make_html_error_page(code, msg);
 		file_req.file_content.append((BYTE*)tmp.data(), tmp.length());
 	}
 	else
 	{
 		for (auto& s : vals)
-			if (s == "404")
+			if (s == std::to_string(code))
 			{
 				std::string uri = "." + *vals.rbegin();
 				size_t xxx = uri.find("xxx");
-				uri.replace(xxx, 3, "404");
+				uri.replace(xxx, 3, std::to_string(code));
 				try {
 					file_req.file_content.appendFile(uri);
 					return;
 				} catch (const std::runtime_error& e) {
-					std::string tmp = make_html_error_page(404, "Not Found");
-					file_req.file_content.append((BYTE*)tmp.data(), tmp.length());
+					std::string errpage = make_html_error_page(code, msg);
+					file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
 					return;
 				}
 			}
+		std::string errpage = make_html_error_page(code, msg);
+		file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
 	}
 }
 
@@ -169,17 +172,17 @@ std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfB
 	std::string alias = getDirective(block, DirectiveKey::alias).values.at(0);
 
 	std::string loc_regex;
-	if (block.prefixes.at(0) == "~")
-		loc_regex = block.prefixes.at(1);
+	if (route_binding->prefixes.at(0) == "~")
+		loc_regex = route_binding->prefixes.at(1);
 	else
-		loc_regex = block.prefixes.at(0);
+		loc_regex = route_binding->prefixes.at(0);
 
 	auto res = Regex(loc_regex).matchAll(request_uri);
 	std::string matched = res.second.at(0);
 	size_t pos = request_uri.find(matched);
 	size_t len = matched.size();
 
-	if (block.prefixes.at(0) == "~")
+	if (route_binding->prefixes.at(0) == "~")
 	{
 		Regex capture_rgx("^(?:.*[^\\\\])?(\\$\\d+)(?:[^\\d].*)?$");
 		auto cap = capture_rgx.matchAll(alias);
@@ -198,10 +201,9 @@ std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfB
 				alias.erase(cpos, clen);
 			}
 			cap = capture_rgx.matchAll(alias);
-			// if (cap.first)
-			// 	capvar = cap.second.at(1);
 		}
-		auto end = std::remove_if(alias.begin(), alias.end(), [] (char c) { return c == '\\'; });
+		auto end = std::remove_if
+			(alias.begin(), alias.end(), [] (char c) { return c == '\\'; });
 		alias.resize(std::distance(alias.begin(), end));
 	}
 	std::string res_uri = request_uri;
@@ -225,13 +227,13 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 			std::string path = "." + root + uri;
 			return path;
 		} catch (...) {}
-		// try {
+		try {
 			std::string alias = resolveAliasUri(request_uri, *tmp);
 			return alias;
-		// } catch (...) {}
+		} catch (...) {}
 		tmp = tmp->parent;
 	}
-	// mandatory, will never reach there normally
+	// should never reach here
 	return "";	
 }
 
@@ -239,12 +241,11 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 {
 	std::string path = resolveUriToLocalPath(request_uri);
 	std::cout << path << std::endl;
-	// raise(SIGTRAP);
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
 	{
-		fetchErrorPage(file_req);
+		fetchErrorPage(file_req, 404, "Not Found");
 		return;
 	}
 	else if (!(buffer.st_mode & S_IFREG))
@@ -264,12 +265,12 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 					file_req.last_modified = get_gmt_time(buffer.st_mtime);
 					return;
 				} catch (const std::runtime_error& e) {
-					fetchErrorPage(file_req);
+					fetchErrorPage(file_req, 404, "Not Found");
 					return;
 				}
 			}
 		}
-		fetchErrorPage(file_req);
+		fetchErrorPage(file_req, 404, "Not Found");
 		return;
 	}
 
@@ -280,25 +281,54 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 		file_req.http_string = "OK";
 		file_req.last_modified = get_gmt_time(buffer.st_mtime);
 	} catch (const std::runtime_error& e) {
-		fetchErrorPage(file_req);
+		fetchErrorPage(file_req, 404, "Not Found");
 		return;
 	}
 }
 
+bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string& basic_auth)
+{
+	(void)file_req;
+	(void)basic_auth;
+
+	auto auth_basic_vals = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
+	if (auth_basic_vals.empty() || auth_basic_vals.at(0) == "off")
+		return true;
+	file_req.realm = auth_basic_vals.at(0);
+	if (basic_auth.empty())
+	{
+		fetchErrorPage(file_req, 401, "Unauthorized");
+		return false;
+	}
+	auto userpwds = getBoundRequestDirectiveValues(DirectiveKey::auth_basic_user_file);
+	for (auto& userpass : userpwds)
+	{
+		std::string pass = tokenizer(userpass, ':').at(1);
+		if (pass == basic_auth)
+			return true;
+	}
+	fetchErrorPage(file_req, 403, "Forbidden");
+	return false;
+}
+
 FileRequest	RequestRouter::requestFile (
-	const std::string& request_uri,
-	const std::string& request_servname,
-	const std::string& request_ip_host,
-	unsigned short request_port
+	const std::string&	request_uri,
+	const std::string&	request_servname,
+	const std::string&	request_ip_host,
+	unsigned short		request_port,
+	const std::string&	basic_auth
 )
 {
 	FileRequest file_req;
 	bindServer(request_servname, request_ip_host, request_port);
 	bool located = bindLocation(request_uri);
 	if (!located)
-		fetchErrorPage(file_req);
+		fetchErrorPage(file_req, 404, "Not Found");
 	else
-		fetchFile(file_req, request_uri);
+	{
+		if (checkAuthorization(file_req, basic_auth))
+			fetchFile(file_req, request_uri);
+	}
 	return file_req;
 }
 

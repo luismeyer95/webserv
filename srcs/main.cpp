@@ -84,22 +84,25 @@ int main(int ac, char **av)
 
 // int main(int ac, char **av)
 // {
-// 	if (ac != 5)
+// 	if (ac != 6)
 // 		return 1;
 
 // 	Config conf("./webserv.conf");
 
 // 	RequestRouter router(conf);
+
 // 	FileRequest fr = router.requestFile (
 // 		av[1], 				// request uri
 // 		av[2],				// request server_name
 // 		av[3],				// ip
-// 		std::stoi(av[4])	// port
+// 		std::stoi(av[4]),	// port
+// 		av[5]				// basic_auth
 // 	);
 
 // 	std::cout << "code: " << fr.http_code << std::endl;
 // 	std::cout << "msg: " << fr.http_string << std::endl;
 // 	std::cout << "path: " << fr.file_path << std::endl;
+// 	std::cout << "realm: " << fr.realm << std::endl;
 // 	std::cout << "last modified: " << fr.last_modified << std::endl;
 // 	std::cout << "content: " << fr.file_content.str() << std::endl;
 

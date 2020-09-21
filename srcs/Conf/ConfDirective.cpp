@@ -13,7 +13,9 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"error_page", D::error_page},
 		{"internal", D::internal},
 		{"index", D::index},
-		{"autoindex", D::autoindex}
+		{"autoindex", D::autoindex},
+		{"auth_basic", D::auth_basic},
+		{"auth_basic_user_file", D::auth_basic_user_file}
 	});
 }
 
@@ -30,6 +32,8 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::internal: return "internal";
 		case D::index: return "index";
 		case D::autoindex: return "autoindex";
+		case D::auth_basic: return "auth_basic";
+		case D::auth_basic_user_file: return "auth_basic_user_file";
 	}
 }
 
@@ -171,15 +175,8 @@ void ConfDirective::validate()
 
 		case D::index:
 		{
-			// if (values.empty())
-			// 	throw dirExcept("missing value(s)");
-			// for (auto& s : values)
-			// {
-			// 	struct stat buffer;
-			// 	if (stat(s.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
-			// 		return;
-			// }
-			// throw dirExcept("index must contain one or more paths to existing files");
+			if (values.empty())
+				throw dirExcept("missing value(s)");
 			break;
 		}
 
@@ -188,6 +185,75 @@ void ConfDirective::validate()
 		case D::autoindex:
 		{
 			// . . .
+			break;
+		}
+
+		case D::auth_basic:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			ConfBlockDirective* b = parent;
+			while (b)
+			{
+				size_t c = std::count_if(b->directives.begin(), b->directives.end(),
+				[] (const ConfDirective& dir) { 
+					return dir.key == DirectiveKey::auth_basic_user_file;
+				});
+				if (c == 1)
+					return;
+				else if (c > 1)
+					throw dirExcept("conflicting `auth_basic_user_file` directives");
+				b = b->parent;
+			}
+			throw dirExcept("missing an associated `auth_basic_user_file` directive");
+			break;
+		}
+
+		case D::auth_basic_user_file:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+
+			if (values.size() > 1)
+				throw dirExcept("excess values");
+			
+			struct stat buffer;
+			std::string path = "." + values.at(0);
+			if (stat(path.c_str(), &buffer) != 0)
+				throw dirExcept("path doesn't exist");
+			else if (!(buffer.st_mode & S_IFREG))
+				throw dirExcept("path should point to a file");
+
+			std::ifstream in(path);
+			std::vector<std::string> userpass;
+			if (in.is_open())
+			{
+				std::string line;
+				Regex base64("^[\\da-zA-Z\\+\\/=]+$");
+				while (getline(in, line, '\n'))
+				{
+					if (line.empty())
+						continue;
+					auto tokens = tokenizer(line, ':');
+					if (tokens.size() != 2 || tokens.at(0).empty() || tokens.at(1).empty())
+						throw dirExcept ("`" + path + "` "
+							"user-pass file entries require the following format: "
+							"<user> ':' base64(<user> ':' <password>)"
+						);
+					if (!base64.match(tokens.at(1)).first)
+						throw dirExcept ( "passwords in `" + path + "` "
+							"must be encoded in base64"
+						);
+					userpass.push_back(line);
+				}
+				in.close();
+				if (userpass.empty())
+					throw dirExcept("`" + path + "` user-pass file is empty");
+				values = std::move(userpass);
+			}
+			else
+				throw dirExcept("could not open file `" + path + "`");
+
 			break;
 		}
 	}

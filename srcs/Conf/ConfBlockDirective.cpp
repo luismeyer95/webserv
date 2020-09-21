@@ -79,15 +79,21 @@ void ConfBlockDirective::validateServer()
 	// ensure no nested blocks other than location blocks are present
 	auto it = std::find_if ( 
 		blocks.begin(), blocks.end(),
-		[] (const ConfBlockDirective& b) {
-			return b.key != ContextKey::location;
-		}
+		[] (const ConfBlockDirective& b) { return b.key != ContextKey::location; }
 	);
 	if (it != blocks.end())
 		throw ConfError(
 			line_nb,
 			"only `location` block directives are allowed inside server blocks"
 		);
+	
+	auto listen_count = std::count_if ( 
+		directives.begin(), directives.end(),
+		[] (const ConfDirective& b) { return b.key == DirectiveKey::listen; }
+	);
+
+	if (listen_count != 1)
+		throw ConfError(line_nb, "`server` blocks should contain a single `listen` directive");
 	
 	// validate directives and nested blocks
 	for (auto& dir : directives)
