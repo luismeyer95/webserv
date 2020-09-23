@@ -3,6 +3,7 @@
 #include "header.h"
 #include <string>
 #include <iostream>
+#include <Utils.hpp>
 
 struct ContentType {
 	std::string media_type;
