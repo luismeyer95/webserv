@@ -39,6 +39,7 @@ int RequestParser::parser(const std::string header)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
+    std::cout << tokenizer(temp[0], ' ')[1] << std::endl;
     URL url(tokenizer(temp[0], ' ')[1]);
     try
     {

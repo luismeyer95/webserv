@@ -78,5 +78,6 @@ class RequestParser {
 		std::string					getReferer() {return _referer;}
 		UserAgent					getUserAgent() {return _user_agent;}
 		int							getError() {return _error;}
+		std::string					getPayload() {return _payload;}
 
 };
