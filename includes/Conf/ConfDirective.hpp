@@ -30,7 +30,7 @@ class ConfError : public std::exception
 enum class DirectiveKey
 {
 	listen, server_name, root, alias, error_page,
-	internal, index, autoindex
+	internal, index, autoindex, auth_basic, auth_basic_user_file
 };
 
 std::map<std::string, DirectiveKey> directiveKeyLookup();

@@ -49,10 +49,11 @@ void Config::tokenizeConf(std::ifstream& in)
 		stream << line << '\n';
 		std::string buf;
 		buf.reserve(128);
+		bool open_quote = false;
 		for (auto& c : line)
 		{	
 			// whitespace or delim
-			if (isWhitespace(c) || isDelimiter(c))
+			if (!open_quote && (isWhitespace(c) || isDelimiter(c)))
 			{
 				if (!buf.empty())
 				{
@@ -66,6 +67,8 @@ void Config::tokenizeConf(std::ifstream& in)
 				}
 				buf.clear();
 			}
+			else if (c == '\"')
+				open_quote = !open_quote;
 			else
 				buf.push_back(c);
 		}
@@ -76,6 +79,10 @@ void Config::tokenizeConf(std::ifstream& in)
 		}
 		line_nb++;
 	}
+
+	// for (auto& s : tokens)
+	// 	std::cout << s << std::endl;
+	// exit(0);
 }
 
 ConfBlockDirective Config::context (
