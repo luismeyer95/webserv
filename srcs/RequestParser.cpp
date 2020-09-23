@@ -4,9 +4,10 @@
 #include <URL.hpp>
 
 RequestParser::RequestParser()
-    : _method(""), _resource(""), _protocol(""),
-        _content_length(0), _content_location(""),
-        _date(""), _host(""), _referer(""), _error(0)
+    : _error(0), _method(""), _resource(""), _protocol(""),
+       _authorization(""), _content_length(0), _content_location(""),
+        _date(""), _host_name(""), _host_ip(0), 
+        _referer("")
     
 {
     _headers.push_back("Accept-Charset");
@@ -31,15 +32,32 @@ RequestParser::~RequestParser()
 int RequestParser::parser(const std::string header)
 {
     std::vector<std::string> temp;
-    temp = tokenizer(header, '\n');
+    temp = tokenizer(header.substr(0, header.find("\r\n")), '\n');
+    
+    _payload = header.substr(header.find("\r\n"));
 
     if (tokenizer(temp[0], ' ').size() != 3)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
+    std::cout << tokenizer(temp[0], ' ')[1] << std::endl;
     URL url(tokenizer(temp[0], ' ')[1]);
-    _resource = URL::decode(url.get(URL::Component::Path));
+    try
+    {
+        _resource = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+    }
+    catch(const std::exception& e)
+    {
+        _error = 400;
+        return (1);
+    }
+    
     _protocol = tokenizer(temp[0], ' ')[2];
+    if (_protocol != "HTTP/1.1")
+    {
+        _error = 505;
+        return (1);
+    }
 
     accept_charset_parser(temp);
     accept_language_parser(temp);
@@ -179,44 +197,7 @@ void RequestParser::authorization_parser(std::vector<std::string> &head)
     if (line.size() != 2)
         return;
     if (trim(line[0]) == "Basic")
-    {
-        _authorization.method = line[0];
-        _authorization.basic = line[1];
-    }
-    else if (trim(line[0]) == "Digest")
-    {
-        _authorization.method = line[0];
-        line = tokenizer(line[1], ',');
-        for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
-        {
-            tmp = tokenizer(*it, '=');
-            if (tmp.size() != 2)
-                return;
-            if (tmp[0] == "realm" && _authorization.realm == "")
-                _authorization.realm = tmp[2];
-            else if (tmp[0] == "username" && _authorization.username == "")
-                _authorization.username = tmp[2];
-            else if (tmp[0] == "domain" && _authorization.domain == "")
-                _authorization.domain = tmp[2];
-            else if (tmp[0] == "nonce" && _authorization.nonce == "")
-                _authorization.nonce = tmp[2];
-            else if (tmp[0] == "opaque" && _authorization.opaque == "")
-                _authorization.opaque = tmp[2];
-            else if (tmp[0] == "algorithm" && _authorization.algorithm == "")
-                _authorization.algorithm = tmp[2];
-            else if (tmp[0] == "uri" && _authorization.uri == "")
-                _authorization.uri = tmp[2];
-            else if (tmp[0] == "qop" && _authorization.qop == "")
-                _authorization.response = tmp[2];
-            else if (tmp[0] == "nc" && _authorization.nc == "")
-                _authorization.nc = tmp[2];
-            else if (tmp[0] == "cnonce" && _authorization.cnonce == "")
-                _authorization.cnonce = tmp[2];
-            else
-                return;
-        }
-        //calcul ?
-    }
+        _authorization = line[1];
     else
         return;
 }
@@ -306,17 +287,45 @@ void RequestParser::date_parser(std::vector<std::string> &head)
 void RequestParser::host_parser(std::vector<std::string> &head)
 {
     std::vector<std::string> line;
-    
-    if (_host != "")
-        ;//error
+
+    int j = 0;
+    for (std::vector<std::string>::iterator it = head.begin(); it != head.end(); it++)
+    {
+        if (tokenizer(*it, ':')[0] == "Host")
+            j++;
+    }
+    if (j != 1)
+    {
+        _error = 400;
+        return;
+    }
+
     line = header_finder(head, "Host");
     if (line.max_size() == 0)
+    {
+        _error = 400;
         return;
+    }
     if (line.size() == 2)
     {
         if (tokenizer(line[1], ':').size() > 2)
-            ;//check domain name syntax + port + error 400 + if 2 Host header + if no header host
-        _host = line[1];
+        {
+            _error = 400;
+            return;
+        }
+        if (tokenizer(line[1], ':').size() == 2)
+        {
+            line = tokenizer(line[1], ':');
+            if (!is_number(line[1]))
+            {
+                _error = 400;
+                return;
+            }
+            _host_name = line[0];
+            _host_ip = (unsigned short)atoi(line[1].c_str());
+        }
+        else
+            _host_name = line[1];
     }
 }
 
@@ -330,8 +339,14 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     if (line.size() == 2)
     {
         URL url(tokenizer(line[1], ' ')[1]);
-        _referer = URL::decode(url.get(URL::Component::Path));//catch exception
-        //_referer = line[1];
+        try
+        {
+            _referer = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+        }
+        catch(const std::exception& e)
+        {
+            return;
+        }
     }
 }
 

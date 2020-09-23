@@ -174,3 +174,90 @@ bool is_http_date(std::string str)
 		return (0);
 	return (1);
 }
+
+std::string get_http_code(int i)
+{
+	std::string out = "-1 Bad Code";
+
+	if (i == 100)
+		out = "100 Continue";
+	else if (i == 101)
+		out = "101 Switching Protocols";
+	else if (i == 200)
+		out = "200 OK";
+	else if (i == 201)
+		out = "201 Created";
+	else if (i == 202)
+		out = "202 Accepted";
+	else if (i == 203)
+		out = "203 Non-Authoritative Information";
+	else if (i == 204)
+		out = "204 No Content";
+	else if (i == 205)
+		out = "205 Reset Content";
+	else if (i == 206)
+		out = "206 Partial Content";
+	else if (i == 300)
+		out = "300 Multiple Choices";
+	else if (i ==  301)
+		out = "301 Moved Permanently";
+	else if (i == 302)
+		out = "302 Found";
+	else if (i == 303)
+		out = "303 See Other";
+	else if (i == 304)
+		out = "304 Not Modified";
+	else if (i == 305)
+		out = "305 Use Proxy";
+	else if (i == 307)
+		out = "307 Temporary Redirect";
+	else if (i == 400)
+		out = "400 Bad Request";
+	else if (i == 401)
+		out = "401 Unauthorized";
+	else if (i == 402)
+		out = "402 Payment Required";
+	else if (i == 403)
+		out = "403 Forbidden";
+	else if (i == 404)
+		out = "404 Not Found";
+	else if (i == 405)
+		out = "405 Method Not Allowed";
+	else if (i == 406)
+		out = "406 Not Acceptable";
+	else if (i == 407)
+		out = "407 Proxy Authentication Required";
+	else if (i == 408)
+		out = "408 Request Time-out";
+	else if (i == 409)
+		out = "409 Conflict";
+	else if (i == 410)
+		out = "410 Gone";
+	else if (i == 411)
+		out = "411 Length Required";
+	else if (i == 412)
+		out = "412 Precondition Failed";
+	else if (i == 413)
+		out = "413 Request Entity Too Large";
+	else if (i == 414)
+		out = "414 Request-URI Too Large";
+	else if (i == 415)
+		out = "415 Unsupported Media Type";
+	else if (i == 416)
+		out = "416 Requested range not satisfiable";
+	else if (i == 417)
+		out = "417 Expectation Failed";
+	else if (i == 500)
+		out = "500 Internal Server Error";
+	else if (i == 501)
+		out = "501 Not Implemented";
+	else if (i == 502)
+		out = "502 Bad Gateway";
+	else if (i == 503)
+		out = "503 Service Unavailable";
+	else if (i == 504)
+		out = "504 Gateway Time-out";
+	else if (i == 505)
+		out = "505 HTTP Version not supported";
+	return (out);
+}

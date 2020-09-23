@@ -18,3 +18,4 @@ bool                        is_number(const std::string s);
 bool                        is_http_date(std::string str);
 std::string                 trim(const std::string &str);
 bool                        check_str_len(const std::string &str, int min, int max);
+std::string                 get_http_code(int i);

@@ -1,10 +1,10 @@
-#include <Utils.hpp>
 #include <ResponseConstructor.hpp>
-#include <Regex.hpp>
 
 ResponseConstructor::ResponseConstructor()
-    : _header("HTTP/1.1 "), _code(""), _server("Webserv/1.0 (Unix)")//penser à setup
-    
+    : _first_line("HTTP/1.1 "), _code(""), _server("Webserv/1.0 (Unix)"),
+        _content_length(""), _content_location(""),
+        _date(""), _last_modified(""), _location(""), _retry_after(""),
+        _www_authenticate("")//finish setup
 {
 
 }
@@ -16,7 +16,7 @@ ResponseConstructor::~ResponseConstructor()
 
 void ResponseConstructor::constructor(RequestParser req)
 {
-    _header.append(_code + "\r\n");//first line HTTP/1.1 + code
+    FileRequest file_request;
 
     if (req.getMethod() == "GET")
     {
@@ -50,16 +50,21 @@ void ResponseConstructor::constructor(RequestParser req)
     {
         
     }
+
+
+    if (req.getError() != 0)
+        _code = get_http_code(req.getError());
+    else
+        _code = get_http_code(file_request.http_code);
+
+        _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
 }
 
 void ResponseConstructor::date()
 {
-    char buf[1000];
-    time_t now = time(0);
-    struct tm tm = *gmtime(&now);
-    strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", &tm);
     _date = "Date: ";
-    _date.append(buf);
+    _date.append(get_gmt_time(time(0)));
+    _date.append("\r\n");
 }
 
 void ResponseConstructor::retry_after()
@@ -67,10 +72,19 @@ void ResponseConstructor::retry_after()
     //sent with 503, 429, 301
     _retry_after = "Retry-After: ";
     _retry_after.append("120");
+    _retry_after.append("\r\n");
 }
 
-void ResponseConstructor::www_authenticate()
+void ResponseConstructor::www_authenticate(FileRequest file_request)
 {
     _www_authenticate = "WWW-Authenticate: Basic ";
     _www_authenticate.append("realm=");//add realm="HERE"
+    _www_authenticate.append("\r\n");
+}
+
+void ResponseConstructor::last_modified(FileRequest file_request)
+{
+    _last_modified = "Last-Modified: ";
+    _last_modified.append(file_request.last_modified);
+    _last_modified.append("\r\n");
 }
