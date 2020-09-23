@@ -177,6 +177,8 @@ std::string	URL::removeDotSegments(std::string input_path)
 {
 	std::string output_path;
 
+	if (input_path.empty())
+		return input_path;
 	for (auto it = input_path.begin(); it != std::prev(input_path.end());)
 	{
 		if (*it == '/' && *std::next(it) == '/')
@@ -208,7 +210,7 @@ std::string	URL::removeDotSegments(std::string input_path)
 		}
 		else if (input_path == ".." || input_path == ".")
 			input_path.clear();
-		else
+		else if (!input_path.empty())
 		{
 			size_t len = 0;
 			if (input_path[0] == '/')
