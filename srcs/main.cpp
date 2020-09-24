@@ -160,16 +160,13 @@ int main(int ac, char **av)
 // 	// 	for (auto& s : res.second)
 // 	// 		std::cout << "[" << i++ << "]: " << s << std::endl;
 // 	// }
-// 	(void)ac;
-// 	(void)av;
-// 	std::cout << URL::removeDotSegments(av[1]) << std::endl;
 
-// 	// if (ac != 3)
-// 	// 	return (1);
-// 	// auto res = Regex(av[1]).match(av[2]);
-// 	// std::cout << "Match: " << res.first << std::endl;
-// 	// if (res.first)
-// 	// {
-// 	// 	std::cout << "String: " << res.second << std::endl;
-// 	// }
+// 	if (ac != 3)
+// 		return (1);
+// 	auto res = Regex(av[1]).match(av[2]);
+// 	std::cout << "Match: " << res.first << std::endl;
+// 	if (res.first)
+// 	{
+// 		std::cout << "String: " << res.second << std::endl;
+// 	}
 // }

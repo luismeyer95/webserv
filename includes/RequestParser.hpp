@@ -5,18 +5,18 @@
 #include <iostream>
 #include <Utils.hpp>
 
-struct ContentType {
-	std::string media_type;
-	std::string subtype;
-	std::string charset;
-	std::string boundary;
-};
+// struct ContentType {
+// 	std::string media_type;
+// 	std::string subtype;
+// 	std::string charset;
+// 	std::string boundary;
+// };
 
-struct UserAgent {
-	std::string product;
-	std::string version;
-	std::string comment;
-};
+// struct UserAgent {
+// 	std::string product;
+// 	std::string version;
+// 	std::string comment;
+// };
 
 struct ContentType {
 	std::string media_type;

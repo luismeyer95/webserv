@@ -64,11 +64,16 @@ void	ByteBuffer::appendFile(const std::string& filename)
 
 size_t	ByteBuffer::peekFileSize(const std::string& filename)
 {
+	// check if it is a valid file
+	struct stat buffer;
+	if (stat(filename.c_str(), &buffer) != 0 || !(buffer.st_mode & S_IFREG))
+		throw std::runtime_error("ByteBuffer::peekFileSize() : not a file");
+
 	// open the file:
 	std::streampos file_size;
 	std::ifstream file(filename.c_str(), std::ios::binary);
 	if (!file.is_open())
-		throw std::runtime_error("Error opening file in ByteBuffer::peekFileSize()");
+		throw std::runtime_error("ByteBuffer::peekFileSize() : error opening file");
 
 	// get its size:
 	file.seekg(0, std::ios::end);
