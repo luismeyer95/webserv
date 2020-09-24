@@ -32,15 +32,13 @@ RequestParser::~RequestParser()
 int RequestParser::parser(const std::string header)
 {
     std::vector<std::string> temp;
-    temp = tokenizer(header.substr(0, header.find("\r\n")), '\n');
+    temp = tokenizer(header.substr(0, header.find("\r\n\r\n")), '\n');
     
-    _payload = header.substr(header.find("\r\n"));
-
+    _payload = header.substr(header.find("\r\n\r\n"));
     if (tokenizer(temp[0], ' ').size() != 3)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
-    std::cout << tokenizer(temp[0], ' ')[1] << std::endl;
     URL url(tokenizer(temp[0], ' ')[1]);
     try
     {
@@ -51,8 +49,9 @@ int RequestParser::parser(const std::string header)
         _error = 400;
         return (1);
     }
-    
+
     _protocol = tokenizer(temp[0], ' ')[2];
+    _protocol = tokenizer(_protocol, '\r')[0];
     if (_protocol != "HTTP/1.1")
     {
         _error = 505;
@@ -71,7 +70,7 @@ int RequestParser::parser(const std::string header)
     host_parser(temp);
     referer_parser(temp);
     user_agent_parser(temp);
-    
+
     return (0);
 }
 
@@ -293,13 +292,13 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     {
         if (tokenizer(*it, ':')[0] == "Host")
             j++;
+        std::cout << "|" << *it << "|" << std::endl;
     }
     if (j != 1)
     {
         _error = 400;
         return;
     }
-
     line = header_finder(head, "Host");
     if (line.max_size() == 0)
     {
