@@ -240,7 +240,7 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_uri)
 {
 	std::string path = resolveUriToLocalPath(request_uri);
-	std::cout << path << std::endl;
+	// std::cout << path << std::endl;
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
@@ -254,7 +254,7 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 		for (auto ipath : index_paths)
 		{
 			ipath = path + "/" + ipath;
-			std::cout << ipath << std::endl;
+			// std::cout << ipath << std::endl;
 			if (stat(ipath.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
 			{
 				try {
@@ -288,8 +288,6 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 
 bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string& basic_auth)
 {
-	(void)file_req;
-	(void)basic_auth;
 
 	auto auth_basic_vals = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
 	if (auth_basic_vals.empty() || auth_basic_vals.at(0) == "off")

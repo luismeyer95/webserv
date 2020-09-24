@@ -178,7 +178,7 @@ std::string	URL::removeDotSegments(std::string input_path)
 	std::string output_path;
 
 	if (input_path.empty())
-		return input_path;
+		return "/";
 	for (auto it = input_path.begin(); it != std::prev(input_path.end());)
 	{
 		if (*it == '/' && *std::next(it) == '/')
@@ -188,40 +188,34 @@ std::string	URL::removeDotSegments(std::string input_path)
 	}
 	while (!input_path.empty())
 	{
-		if (input_path.find("../") == 0)
-			input_path.erase(0, 3);
+		if (input_path.find('/') == 0)
+			input_path.erase(0, 1);
 		else if (input_path.find("./") == 0)
 			input_path.erase(0, 2);
-		else if (input_path.find("/./") == 0)
-			input_path.erase(0, 3);
-		else if (input_path == "/." || input_path == "/")
+		else if (input_path == ".")
 			input_path.clear();
-		else if (input_path.find("/../") == 0 || input_path == "/..")
+		else if (input_path.find("../") == 0 || input_path == "..")
 		{
-			if (input_path == "/..")
-				input_path = "/";
+			if (input_path == "..")
+				input_path.clear();
 			else
-				input_path.replace(0, 4, "/");
+				input_path.erase(0, 3);
 			auto last = output_path.rfind('/');
 			if (last != std::string::npos)
 				output_path.erase(last, output_path.size() - last);
 			else
 				output_path.clear();
 		}
-		else if (input_path == ".." || input_path == ".")
-			input_path.clear();
-		else if (!input_path.empty())
+		else
 		{
-			size_t len = 0;
-			if (input_path[0] == '/')
-				++len;
-			while (input_path[len] && input_path[len] != '/')
-				++len;
-			output_path.append(input_path.substr(0, len));
+			size_t len = input_path.find('/');
+			std::string seg = input_path.substr(0, len);
+			output_path.append("/" + seg);
 			input_path.erase(0, len);
 		}
 	}
-
+	if (output_path.empty())
+		return "/";
 	return output_path;
 }
 

@@ -38,12 +38,12 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 		request, comm.listeningAddress(), comm.listeningPort()
 	);
 
-	std::cout << "REQUEST CALL" << std::endl;
-	std::cout << "request uri: " << request.getResource() << std::endl;
-	std::cout << "host name: " << request.getHost() << std::endl;
-	std::cout << "ip: " << comm.listeningAddress() << std::endl;
-	std::cout << "port: " << comm.listeningPort() << std::endl;
-	std::cout << "auth: " << request.getAuthorization() << std::endl;
+	// std::cout << "REQUEST CALL" << std::endl;
+	// std::cout << "request uri: " << request.getResource() << std::endl;
+	// std::cout << "host name: " << request.getHost() << std::endl;
+	// std::cout << "ip: " << comm.listeningAddress() << std::endl;
+	// std::cout << "port: " << comm.listeningPort() << std::endl;
+	// std::cout << "auth: " << request.getAuthorization() << std::endl;
 
 	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
@@ -139,9 +139,8 @@ int main(int ac, char **av)
 // 	// );
 
 // 	(void)ac;
-// 	URL url(av[1]);
-// 	// std::cout << URL::decode(url.get(URL::Component::Path)) << std::endl;
-// 	url.printComponents();
+// 	std::cout << URL::removeDotSegments(av[1]) << std::endl;
+// 	// url.printComponents();
 // 	return 0;
 // }
 
