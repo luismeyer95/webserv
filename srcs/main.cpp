@@ -34,24 +34,22 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 		return;
 	}
 
-	//response constructor
+	FileRequest file_request = router.requestFile (
+		request, comm.listeningAddress(), comm.listeningPort()
+	);
 
-	//GET
-	std::string resource(request.getResource());
-	if (resource.find("/..") != std::string::npos)
-		return;
-	
-	if (resource == "/")
-		resource = "./simple_site/index.html";
-	else
-		resource = "./simple_site" + resource;
-
+	std::cout << "REQUEST CALL" << std::endl;
+	std::cout << "request uri: " << request.getResource() << std::endl;
+	std::cout << "host name: " << request.getHost() << std::endl;
+	std::cout << "ip: " << comm.listeningAddress() << std::endl;
+	std::cout << "port: " << comm.listeningPort() << std::endl;
+	std::cout << "auth: " << request.getAuthorization() << std::endl;
 
 	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
-	doc << "HTTP/1.1 200 OK\r\n";
-	doc << "Content-Length: " << ByteBuffer::peekFileSize(resource) << "\r\n\r\n";
-	doc.appendFile(resource);
+	doc << "HTTP/1.1 " << file_request.http_code << " " << file_request.http_string << "\r\n";
+	doc << "Content-Length: " << file_request.file_content.size() << "\r\n\r\n";
+	doc.append(file_request.file_content);
 
 	// Load the response in the http exchange ticket and mark as ready
 	comm.bufferResponse(doc, true);

@@ -21,6 +21,7 @@ class ByteBuffer
 		std::string 	str();
 		void			advance(size_t num);
 
+		void			append(const ByteBuffer& bb);
 		void			append(const BYTE* buffer, size_t size);
 		void			append(const std::ostringstream& stream);
 

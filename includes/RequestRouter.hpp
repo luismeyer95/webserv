@@ -2,6 +2,7 @@
 
 #include <Conf/Config.hpp>
 #include <ByteBuffer.hpp>
+#include <RequestParser.hpp>
 
 class ServerSocketPool;
 
@@ -36,12 +37,18 @@ class RequestRouter
 		RequestRouter(const Config& conf);
 		RequestRouter& operator=(const Config& conf);
 
+		// FileRequest	requestFile (
+		// 	const std::string&	request_uri,
+		// 	const std::string&	request_servname,
+		// 	const std::string&	request_ip_host,
+		// 	unsigned short		request_port,
+		// 	const std::string&	basic_auth = {}
+		// );
+
 		FileRequest	requestFile (
-			const std::string&	request_uri,
-			const std::string&	request_servname,
-			const std::string&	request_ip_host,
-			unsigned short		request_port,
-			const std::string&	basic_auth = {}
+			RequestParser&		parsed_request,
+			const std::string&	request_ip,
+			unsigned short		request_port
 		);
 
 		void fetchErrorPage(FileRequest& file_req, int code, const std::string& msg);

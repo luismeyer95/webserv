@@ -311,23 +311,42 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string&
 	return false;
 }
 
+// FileRequest	RequestRouter::requestFile (
+// 	const std::string&	request_uri,
+// 	const std::string&	request_servname,
+// 	const std::string&	request_ip_host,
+// 	unsigned short		request_port,
+// 	const std::string&	basic_auth
+// )
+// {
+// 	FileRequest file_req;
+// 	bindServer(request_servname, request_ip_host, request_port);
+// 	bool located = bindLocation(request_uri);
+// 	if (!located)
+// 		fetchErrorPage(file_req, 404, "Not Found");
+// 	else
+// 	{
+// 		if (checkAuthorization(file_req, basic_auth))
+// 			fetchFile(file_req, request_uri);
+// 	}
+// 	return file_req;
+// }
+
 FileRequest	RequestRouter::requestFile (
-	const std::string&	request_uri,
-	const std::string&	request_servname,
-	const std::string&	request_ip_host,
-	unsigned short		request_port,
-	const std::string&	basic_auth
+	RequestParser&		parsed_request,
+	const std::string&	request_ip,
+	unsigned short		request_port
 )
 {
 	FileRequest file_req;
-	bindServer(request_servname, request_ip_host, request_port);
-	bool located = bindLocation(request_uri);
+	bindServer(parsed_request.getHost(), request_ip, request_port);
+	bool located = bindLocation(parsed_request.getResource());
 	if (!located)
 		fetchErrorPage(file_req, 404, "Not Found");
 	else
 	{
-		if (checkAuthorization(file_req, basic_auth))
-			fetchFile(file_req, request_uri);
+		if (checkAuthorization(file_req, parsed_request.getAuthorization()))
+			fetchFile(file_req, parsed_request.getResource());
 	}
 	return file_req;
 }

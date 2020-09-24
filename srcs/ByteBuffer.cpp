@@ -41,6 +41,11 @@ void	ByteBuffer::append(const BYTE* buffer, size_t size)
 	data.insert(data.end(), buffer, buffer + size);
 }
 
+void	ByteBuffer::append(const ByteBuffer& bb)
+{
+	append(bb.get(), bb.size());
+}
+
 void	ByteBuffer::append(const std::ostringstream& stream)
 {
 	append((BYTE*)stream.str().c_str(), stream.str().size());
