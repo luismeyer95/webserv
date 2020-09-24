@@ -292,7 +292,6 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     {
         if (tokenizer(*it, ':')[0] == "Host")
             j++;
-        std::cout << "|" << *it << "|" << std::endl;
     }
     if (j != 1)
     {
