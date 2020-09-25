@@ -74,6 +74,12 @@ class RequestParser {
 		std::string					_referer;
 		UserAgent					_user_agent;
 
+		std::string					_raw_accept_charset;
+		std::string					_raw_accept_language;
+		std::string					_raw_content_language;
+		std::string					_raw_content_type;
+		std::string					_raw_user_agent;
+
 		void accept_charset_parser(std::vector<std::string> &head);
 		void accept_language_parser(std::vector<std::string> &head);
 		void allow_parser(std::vector<std::string> &head);

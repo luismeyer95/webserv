@@ -32,9 +32,8 @@ RequestParser::~RequestParser()
 int RequestParser::parser(const std::string header)
 {
     std::vector<std::string> temp;
-    temp = tokenizer(header.substr(0, header.find("\r\n\r\n")), '\n');
+    temp = tokenizer(header, '\n');
     
-    _payload = header.substr(header.find("\r\n\r\n"));
     if (tokenizer(temp[0], ' ').size() != 3)
         return (1);
     
@@ -71,6 +70,7 @@ int RequestParser::parser(const std::string header)
     referer_parser(temp);
     user_agent_parser(temp);
 
+
     return (0);
 }
 
@@ -86,6 +86,7 @@ void RequestParser::accept_charset_parser(std::vector<std::string> &head)
     line = header_finder(head, "Accept-Charset");
     if (line.max_size() == 0)
         return;
+    _raw_accept_charset = line[1];
     line = tokenizer(line[1], ',');
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
@@ -130,6 +131,7 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
     line = header_finder(head, "Accept-Language");
     if (line.max_size() == 0)
         return;
+    _raw_accept_language = line[1];
     line = tokenizer(line[1], ',');
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
@@ -209,6 +211,7 @@ void RequestParser::content_language_parser(std::vector<std::string> &head)
     line = header_finder(head, "Content-language");
     if (line.max_size() == 0)
         return;
+    _raw_content_language = line[1];
     line = tokenizer(line[1], ',');
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
@@ -252,6 +255,7 @@ void RequestParser::content_type_parser(std::vector<std::string> &head)
     line = header_finder(head, "Content-Type");
     if (line.max_size() == 0)
         return;
+    _raw_content_type = line[1];
     line = tokenizer(line[1], ';');
     tmp = tokenizer(line[0], '/');
     if (tmp.size() != 2)
@@ -306,6 +310,7 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     }
     if (line.size() == 2)
     {
+        line[1] = line[1].substr(0, line[1].find("\r"));
         if (tokenizer(line[1], ':').size() > 2)
         {
             _error = 400;
@@ -336,7 +341,9 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
         return;
     if (line.size() == 2)
     {
-        URL url(tokenizer(line[1], ' ')[1]);
+         std::string tmp(tokenizer(line[1], ' ')[1]);
+        tmp = tmp.substr(0, tmp.find("\r"));
+        URL url(tmp);
         try
         {
             _referer = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
@@ -356,6 +363,7 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
     line = header_finder(head, "User-Agent");
     if (line.max_size() == 0)
         return;
+    _raw_user_agent = line[1];
     tmp = tokenizer(line[1], ' ');
     tmp = tokenizer(trim(tmp[0]), '/');
     if (tmp.size() != 2)
@@ -370,3 +378,4 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
             _user_agent.comment.push_back(' ');
     }
 }
+//remove \r à la fin et " " au debut
