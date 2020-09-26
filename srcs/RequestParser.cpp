@@ -32,14 +32,9 @@ RequestParser::~RequestParser()
 int RequestParser::parser(const std::string header)
 {
     std::vector<std::string> temp;
-<<<<<<< HEAD
+
     temp = tokenizer(header, '\n');
     
-=======
-    temp = tokenizer(header.substr(0, header.find("\r\n")), '\n');
-    
-    _payload = header.substr(header.find("\r\n"));
->>>>>>> set up env variables for cgi
     if (tokenizer(temp[0], ' ').size() != 3)
         return (1);
     
