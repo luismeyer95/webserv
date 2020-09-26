@@ -15,7 +15,9 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"index", D::index},
 		{"autoindex", D::autoindex},
 		{"auth_basic", D::auth_basic},
-		{"auth_basic_user_file", D::auth_basic_user_file}
+		{"auth_basic_user_file", D::auth_basic_user_file},
+		{"execute_cgi", D::execute_cgi},
+		{"cgi_split_path_info", D::cgi_split_path_info}
 	});
 }
 
@@ -34,6 +36,8 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::autoindex: return "autoindex";
 		case D::auth_basic: return "auth_basic";
 		case D::auth_basic_user_file: return "auth_basic_user_file";
+		case D::execute_cgi: return "execute_cgi";
+		case D::cgi_split_path_info: return "cgi_split_path_info";
 	}
 }
 
@@ -254,6 +258,63 @@ void ConfDirective::validate()
 			else
 				throw dirExcept("could not open file `" + path + "`");
 
+			break;
+		}
+
+		case D::execute_cgi:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			
+			if (parent->key != ContextKey::location)
+				throw dirExcept("`execute_cgi` directives belong in `location` blocks");
+
+			if (values.at(0) != "php")
+				throw dirExcept("only `php` is supported at this time");
+
+			auto count = std::count_if (
+				parent->directives.begin(), parent->directives.end(),
+				[] (const ConfDirective& d) {
+					return d.key == DirectiveKey::cgi_split_path_info;
+				}
+			);
+
+			if (count != 1)
+				throw dirExcept (
+					"an `execute_cgi` directive should be coupled with "
+					"a single `cgi_split_path_info` directive"
+				);
+
+			break;
+		}
+
+		case D::cgi_split_path_info:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+
+			if (parent->key != ContextKey::location)
+				throw dirExcept("`cgi_split_path_info` directives belong in `location` blocks");
+			
+			auto count = std::count_if (
+				parent->directives.begin(), parent->directives.end(),
+				[] (const ConfDirective& d) {
+					return d.key == DirectiveKey::execute_cgi;
+				}
+			);
+
+			if (count != 1)
+				throw dirExcept (
+					"a `cgi_split_path_info` directive should be coupled with "
+					"a single `execute_cgi` directive"
+				);
+
+			try {
+				Regex rgx(values.at(0));
+			} catch (const std::runtime_error& e) {
+				throw dirExcept("value should be a valid regex");
+			}
+			
 			break;
 		}
 	}

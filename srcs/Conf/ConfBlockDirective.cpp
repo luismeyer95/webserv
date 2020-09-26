@@ -104,10 +104,10 @@ void ConfBlockDirective::validateServer()
 
 void ConfBlockDirective::validateLocation()
 {
-	// ensure it has a root/alias directive
 	ConfBlockDirective *b = this;
 	while (b)
 	{
+		// ensure it has a root/alias directive
 		auto count = std::count_if (
 			b->directives.begin(), b->directives.end(),
 			[] (const ConfDirective& d) {

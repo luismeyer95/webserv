@@ -8,9 +8,9 @@ Regex::Regex(const std::string& pattern)
 {
 	PatternValidation check(pattern);
 	
-	alphabet.reserve(127);
-	for (char i = 0; i < 127; ++i)
-		alphabet.push_back(i);
+	alphabet.reserve(256);
+	for (int i = 0; i < 256; ++i)
+		alphabet.push_back(static_cast<char>(i));
 
 	automaton = axiom();
 }

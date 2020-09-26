@@ -155,15 +155,15 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 
 	Logger& log = Logger::getInstance(); 
 	char ipstr[INET_ADDRSTRLEN];
-	struct sockaddr store;
-	socklen_t len;
 
-	std::memset(&store, 0, sizeof(struct sockaddr));
-	std::memset(&len, 0, sizeof(socklen_t));
+	struct sockaddr store;
+	socklen_t		len = sizeof(store);
 
 	comm->socket_fd = accept(lstn->socket_fd, &store, &len);
 	struct sockaddr_in *s = (struct sockaddr_in*)&store;
-	// inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+	inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+	comm->client_address = ipstr;
+
 	// log.out() << "connection ip = " << ipstr << std::endl;
 
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);

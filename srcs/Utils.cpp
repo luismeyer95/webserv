@@ -123,7 +123,7 @@ std::vector<std::string> header_finder(const std::vector<std::string> lines, con
 	for (int i = 0; i < (int)lines.size(); i++)
     {
         out = get_header_name(lines[i], ':');
-        if (out[0] == to_find)
+        if (out[0] == to_find && out.size() == 2)
             break;
         if (i == (int)lines.size() - 1)
         {

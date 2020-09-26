@@ -35,7 +35,7 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	}
 
 	FileRequest file_request = router.requestFile (
-		request, comm.listeningAddress(), comm.listeningPort()
+		request, comm
 	);
 
 	// std::cout << "REQUEST CALL" << std::endl;
@@ -139,31 +139,32 @@ int main(int ac, char **av)
 // 	// );
 
 // 	(void)ac;
-// 	std::cout << URL::removeDotSegments(av[1]) << std::endl;
-// 	// url.printComponents();
+// 	URL url(av[1]);
+// 	// std::cout << URL::decode(url.get(URL::Component::Path)) << std::endl;
+// 	url.printComponents();
 // 	return 0;
 // }
 
 
 // int main(int ac, char **av)
 // {
-// 	// if (ac != 3)
-// 	// 	return (1);
-// 	// auto res = Regex(av[1]).matchAll(av[2]);
-// 	// std::cout << "Match: " << res.first << std::endl;
-// 	// if (res.first)
-// 	// {
-// 	// 	int i = 0;
-// 	// 	for (auto& s : res.second)
-// 	// 		std::cout << "[" << i++ << "]: " << s << std::endl;
-// 	// }
-
 // 	if (ac != 3)
 // 		return (1);
-// 	auto res = Regex(av[1]).match(av[2]);
+// 	auto res = Regex(av[1]).matchAll(av[2]);
 // 	std::cout << "Match: " << res.first << std::endl;
 // 	if (res.first)
 // 	{
-// 		std::cout << "String: " << res.second << std::endl;
+// 		int i = 0;
+// 		for (auto& s : res.second)
+// 			std::cout << "[" << i++ << "]: " << s << std::endl;
 // 	}
+
+// 	// if (ac != 3)
+// 	// 	return (1);
+// 	// auto res = Regex(av[1]).match(av[2]);
+// 	// std::cout << "Match: " << res.first << std::endl;
+// 	// if (res.first)
+// 	// {
+// 	// 	std::cout << "String: " << res.second << std::endl;
+// 	// }
 // }
