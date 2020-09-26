@@ -32,16 +32,23 @@ RequestParser::~RequestParser()
 int RequestParser::parser(const std::string header)
 {
     std::vector<std::string> temp;
+<<<<<<< HEAD
     temp = tokenizer(header, '\n');
     
+=======
+    temp = tokenizer(header.substr(0, header.find("\r\n")), '\n');
+    
+    _payload = header.substr(header.find("\r\n"));
+>>>>>>> set up env variables for cgi
     if (tokenizer(temp[0], ' ').size() != 3)
         return (1);
     
     _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
-    URL url(tokenizer(temp[0], ' ')[1]);
     try
     {
-        _resource = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+		_resource = tokenizer(temp[0], ' ').at(1);
+    	URL url(_resource);
+        // _resource = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
     }
     catch(const std::exception& e)
     {

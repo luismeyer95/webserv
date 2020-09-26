@@ -3,6 +3,7 @@
 #include <Conf/Config.hpp>
 #include <ByteBuffer.hpp>
 #include <RequestParser.hpp>
+#include <CGI.hpp>
 
 class ServerSocketPool;
 
@@ -17,6 +18,9 @@ struct FileRequest
 
 	std::string			realm;
 };
+
+class CGI;
+struct HTTPExchange;
 
 class RequestRouter
 {
@@ -37,18 +41,15 @@ class RequestRouter
 		RequestRouter(const Config& conf);
 		RequestRouter& operator=(const Config& conf);
 
-		// FileRequest	requestFile (
-		// 	const std::string&	request_uri,
-		// 	const std::string&	request_servname,
-		// 	const std::string&	request_ip_host,
-		// 	unsigned short		request_port,
-		// 	const std::string&	basic_auth = {}
-		// );
-
 		FileRequest	requestFile (
 			RequestParser&		parsed_request,
-			const std::string&	request_ip,
-			unsigned short		request_port
+			HTTPExchange&		ticket
+		);
+
+		void		executeCGI(
+			FileRequest&		file_req,
+			RequestParser&		parsed_request,
+			HTTPExchange&		ticket
 		);
 
 		void fetchErrorPage(FileRequest& file_req, int code, const std::string& msg);
@@ -57,6 +58,8 @@ class RequestRouter
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
 
 		bool		checkAuthorization(FileRequest& file_req, const std::string& basic_auth);
+		std::string	getAuthUser(const std::string& basic_auth);
+
 
 
 		std::vector<std::string>		getBoundRequestDirectiveValues(DirectiveKey dirkey);

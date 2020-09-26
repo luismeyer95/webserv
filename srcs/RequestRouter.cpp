@@ -1,4 +1,6 @@
 #include <RequestRouter.hpp>
+#include <ServerSocketPool.hpp>
+#include <CGI.hpp>
 
 RequestRouter::RequestRouter()
 	: route_binding(nullptr)
@@ -240,7 +242,9 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_uri)
 {
 	std::string path = resolveUriToLocalPath(request_uri);
-	// std::cout << path << std::endl;
+	std::cout << path << std::endl;
+
+	
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
@@ -286,6 +290,19 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 	}
 }
 
+std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
+{
+	auto userpwds = getBoundRequestDirectiveValues(DirectiveKey::auth_basic_user_file);
+	for (auto& userpass : userpwds)
+	{
+		auto entry = tokenizer(userpass, ':');
+		std::string pass = entry.at(1);
+		if (pass == basic_auth)
+			return entry.at(0);
+	}
+	return "";
+}
+
 bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string& basic_auth)
 {
 
@@ -298,13 +315,8 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string&
 		fetchErrorPage(file_req, 401, "Unauthorized");
 		return false;
 	}
-	auto userpwds = getBoundRequestDirectiveValues(DirectiveKey::auth_basic_user_file);
-	for (auto& userpass : userpwds)
-	{
-		std::string pass = tokenizer(userpass, ':').at(1);
-		if (pass == basic_auth)
-			return true;
-	}
+	if (!getAuthUser(basic_auth).empty())
+		return true;
 	fetchErrorPage(file_req, 403, "Forbidden");
 	return false;
 }
@@ -330,21 +342,96 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string&
 // 	return file_req;
 // }
 
-FileRequest	RequestRouter::requestFile (
+void		RequestRouter::executeCGI(
+	FileRequest&		file_req,
 	RequestParser&		parsed_request,
-	const std::string&	request_ip,
-	unsigned short		request_port
+	HTTPExchange&		ticket
 )
 {
+
+	URL url(parsed_request.getResource());
+	std::string request_path = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+
+
+	std::map<EnvCGI, std::string> env;
+	using E = EnvCGI;
+
+	auto auth_basic_val = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
+	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
+		env[E::AUTH_TYPE] = "Basic";
+	env[E::CONTENT_LENGTH] = std::to_string(parsed_request.getContentLength());
+	env[E::CONTENT_TYPE] = ""; // DEMANDER A ESTEBAN
+	env[E::GATEWAY_INTERFACE] = "CGI/1.1";
+
+	std::string pathsplit = getBoundRequestDirectiveValues(DirectiveKey::cgi_split_path_info).at(0);
+	auto res = Regex(pathsplit).matchAll(request_path);
+	if (!res.first || res.second.size() != 3)
+	{
+		fetchErrorPage(file_req, 500, "Internal Server Error");
+		return;
+	}
+	env[E::SCRIPT_NAME] = res.second.at(1);
+	env[E::PATH_INFO] = res.second.at(2);
+
+	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
+
+	ConfBlockDirective* saved_binding = route_binding;
+	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
+	bool located = bindLocation(env[E::PATH_INFO]);
+	if (!located)
+	{
+		fetchErrorPage(file_req, 500, "Internal Server Error");
+		return;
+	}
+	env[E::PATH_TRANSLATED] = resolveUriToLocalPath(env[E::PATH_INFO]);
+	route_binding = saved_binding;
+
+	env[E::QUERY_STRING] = url.get(URL::Component::Query);
+
+	env[E::REMOTE_ADDR] = ticket.clientAddress();
+
+	env[E::REMOTE_IDENT] = "";
+	if (env[E::AUTH_TYPE] == "Basic")
+		env[E::REMOTE_USER] = getAuthUser(parsed_request.getAuthorization());
+
+	env[E::REQUEST_METHOD] = parsed_request.getMethod();
+	env[E::REQUEST_URI]	= parsed_request.getResource();
+	env[E::SERVER_NAME] = parsed_request.getHost();
+	env[E::SERVER_PORT] = std::to_string(ticket.listeningPort());
+	env[E::SERVER_PROTOCOL] = "HTTP/1.1";	
+	env[E::SERVER_SOFTWARE] = "Webserv/1.0";
+
+	for (auto& e : env)
+		std::cout << e.second << std::endl;
+	
+}
+
+FileRequest	RequestRouter::requestFile (
+	RequestParser&		parsed_request,
+	HTTPExchange&		ticket
+)
+{
+	URL url(parsed_request.getResource());
+	std::string request_path = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+
+	std::string request_ip = ticket.listeningAddress();
+	unsigned short request_port = ticket.listeningPort();
+
 	FileRequest file_req;
 	bindServer(parsed_request.getHost(), request_ip, request_port);
-	bool located = bindLocation(parsed_request.getResource());
+	bool located = bindLocation(request_path);
 	if (!located)
 		fetchErrorPage(file_req, 404, "Not Found");
 	else
 	{
 		if (checkAuthorization(file_req, parsed_request.getAuthorization()))
-			fetchFile(file_req, parsed_request.getResource());
+		{
+			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
+			if (!cgi_dir.empty())
+				executeCGI(file_req, parsed_request, ticket);
+			else
+				fetchFile(file_req, request_path);
+		}
 	}
 	return file_req;
 }

@@ -174,10 +174,8 @@ std::vector<std::string> Config::locationPrefixes()
 	{
 		if (peek() == "=")
 			prefixes.push_back(next());
-
 		// Only match absolute paths without ".." or "." path segments
-		// UPDATE THIS REGEX PATTERN -  MAY BE TOO RESTRICTIVE
-		bool valid_uri = Regex("^/|(/[-_a-zA-Z\\d]+(\\.[-_a-zA-Z\\d]+)?)+/?$").match(peek()).first;
+		bool valid_uri = Regex("^/|(/[^/.]*(\\.[^/.]+)?)+/?$").match(peek()).first;
 		if (!valid_uri)
 		{
 			throw ConfError (
