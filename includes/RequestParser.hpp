@@ -116,5 +116,10 @@ class RequestParser {
 		UserAgent					getUserAgent() {return _user_agent;}
 		int							getError() {return _error;}
 		std::string					getPayload() {return _payload;}
+		std::string					getRawAcceptCharset() {return _raw_accept_charset;}
+		std::string					getRawAcceptLanguage() {return _raw_accept_language;}
+		std::string					getRawContentLanguage() {return _raw_content_language;}
+		std::string					getRawContentType() {return _raw_content_type;}
+		std::string					getRawUserAgent() {return _raw_user_agent;}
 
 };

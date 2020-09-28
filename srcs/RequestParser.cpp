@@ -312,7 +312,6 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     }
     if (line.size() == 2)
     {
-        line[1] = line[1].substr(0, line[1].find("\r"));
         if (tokenizer(line[1], ':').size() > 2)
         {
             _error = 400;
@@ -344,7 +343,6 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     if (line.size() == 2)
     {
          std::string tmp(tokenizer(line[1], ' ')[1]);
-        tmp = tmp.substr(0, tmp.find("\r"));
         URL url(tmp);
         try
         {
@@ -380,4 +378,3 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
             _user_agent.comment.push_back(' ');
     }
 }
-//remove \r à la fin et " " au debut
