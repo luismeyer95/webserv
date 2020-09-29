@@ -9,7 +9,7 @@ RequestRouter::RequestRouter()
 }
 
 RequestRouter::RequestRouter(const Config& conf)
-	: main(conf.main), route_binding(conf.main.get())
+	: main(conf.main), route_binding(conf.main.get()), saved_binding(conf.main.get())
 {
 
 }
@@ -210,7 +210,7 @@ std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfB
 	}
 	std::string res_uri = request_uri;
 	res_uri.replace(pos, len, alias);
-	return "." + res_uri;
+	return get_current_dir() + res_uri;
 }
 
 std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri)
@@ -226,7 +226,7 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 			std::string uri("");
 			if (request_uri != "/")
 				uri = request_uri;
-			std::string path = "." + root + uri;
+			std::string path = get_current_dir() + root + uri;
 			return path;
 		} catch (...) {}
 		try {
@@ -321,79 +321,50 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string&
 	return false;
 }
 
-// FileRequest	RequestRouter::requestFile (
-// 	const std::string&	request_uri,
-// 	const std::string&	request_servname,
-// 	const std::string&	request_ip_host,
-// 	unsigned short		request_port,
-// 	const std::string&	basic_auth
-// )
-// {
-// 	FileRequest file_req;
-// 	bindServer(request_servname, request_ip_host, request_port);
-// 	bool located = bindLocation(request_uri);
-// 	if (!located)
-// 		fetchErrorPage(file_req, 404, "Not Found");
-// 	else
-// 	{
-// 		if (checkAuthorization(file_req, basic_auth))
-// 			fetchFile(file_req, request_uri);
-// 	}
-// 	return file_req;
-// }
-
-void		RequestRouter::executeCGI(
+std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	FileRequest&		file_req,
 	RequestParser&		parsed_request,
 	HTTPExchange&		ticket
 )
 {
-
-	URL url(parsed_request.getResource());
-	std::string request_path = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
-
-
-	std::map<EnvCGI, std::string> env;
 	using E = EnvCGI;
-
+	URL url(parsed_request.getResource());
+	std::string request_path = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
+	std::map<EnvCGI, std::string> env;
 	auto auth_basic_val = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
 	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
 		env[E::AUTH_TYPE] = "Basic";
 	env[E::CONTENT_LENGTH] = std::to_string(parsed_request.getContentLength());
 	env[E::CONTENT_TYPE] = ""; // DEMANDER A ESTEBAN
 	env[E::GATEWAY_INTERFACE] = "CGI/1.1";
-
 	std::string pathsplit = getBoundRequestDirectiveValues(DirectiveKey::cgi_split_path_info).at(0);
 	auto res = Regex(pathsplit).matchAll(request_path);
 	if (!res.first || res.second.size() != 3)
 	{
 		fetchErrorPage(file_req, 500, "Internal Server Error");
-		return;
+		return {};
 	}
 	env[E::SCRIPT_NAME] = res.second.at(1);
-	env[E::PATH_INFO] = res.second.at(2);
-
-	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
-
-	ConfBlockDirective* saved_binding = route_binding;
-	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
+	env[E::PATH_INFO] = URL::reformatPath(res.second.at(2));
 	bool located = bindLocation(env[E::PATH_INFO]);
 	if (!located)
+		env[E::PATH_INFO].clear();
+	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
+	// check if the script is a file that exists before sending to execution
+	struct stat filecheck;
+	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
-		fetchErrorPage(file_req, 500, "Internal Server Error");
-		return;
+		fetchErrorPage(file_req, 404, "Not Found");
+		return {};
 	}
+	ConfBlockDirective* saved_binding = route_binding;
+	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
 	env[E::PATH_TRANSLATED] = resolveUriToLocalPath(env[E::PATH_INFO]);
 	route_binding = saved_binding;
-
 	env[E::QUERY_STRING] = url.get(URL::Component::Query);
-
 	env[E::REMOTE_ADDR] = ticket.clientAddress();
-
 	env[E::REMOTE_IDENT] = "";
-	if (env[E::AUTH_TYPE] == "Basic")
-		env[E::REMOTE_USER] = getAuthUser(parsed_request.getAuthorization());
-
+	env[E::REMOTE_USER] = getAuthUser(parsed_request.getAuthorization());
 	env[E::REQUEST_METHOD] = parsed_request.getMethod();
 	env[E::REQUEST_URI]	= parsed_request.getResource();
 	env[E::SERVER_NAME] = parsed_request.getHost();
@@ -401,9 +372,49 @@ void		RequestRouter::executeCGI(
 	env[E::SERVER_PROTOCOL] = "HTTP/1.1";	
 	env[E::SERVER_SOFTWARE] = "Webserv/1.0";
 
-	for (auto& e : env)
-		std::cout << e.second << std::endl;
-	
+	return env;
+}
+
+void		RequestRouter::executeCGI(
+	FileRequest&		file_req,
+	RequestParser&		parsed_request,
+	HTTPExchange&		ticket
+)
+{
+	using E = EnvCGI;
+
+	auto env = setCGIEnv(file_req, parsed_request, ticket);
+	if (env.empty())
+		return;
+
+	auto cgi_bin = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
+	auto auth_basic_val = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
+
+	// backup current directory
+	std::string cwd_backup = get_current_dir();
+
+	// switch to the script's directory
+	size_t sn = env.at(EnvCGI::SCRIPT_FILENAME).rfind(env.at(EnvCGI::SCRIPT_NAME));
+	std::string script_dir = env.at(EnvCGI::SCRIPT_FILENAME).substr(0, sn);
+	chdir(script_dir.c_str());
+
+	// run script and reload the saved directory
+	try { CGI::executeCGI(file_req, env, cgi_bin); }
+	catch (const ErrorCode& e)
+	{
+		chdir(cwd_backup.c_str());
+		fetchErrorPage(file_req, e.code(), e.str());
+		return;
+	}
+	chdir(cwd_backup.c_str());
+
+	// filling out the remaining request information
+	file_req.file_path = env.at(E::SCRIPT_FILENAME);
+	struct stat filecheck;
+	stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck);
+	file_req.last_modified = get_gmt_time(filecheck.st_mtime);
+	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
+		file_req.realm = auth_basic_val.at(0);
 }
 
 FileRequest	RequestRouter::requestFile (
@@ -412,7 +423,7 @@ FileRequest	RequestRouter::requestFile (
 )
 {
 	URL url(parsed_request.getResource());
-	std::string request_path = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+	std::string request_path = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
 
 	std::string request_ip = ticket.listeningAddress();
 	unsigned short request_port = ticket.listeningPort();

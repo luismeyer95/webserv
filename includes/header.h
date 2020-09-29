@@ -6,7 +6,7 @@
 /*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/09/25 16:48:15 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/09/26 23:08:45 by lumeyer          ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <netdb.h>
 

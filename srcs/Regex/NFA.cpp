@@ -36,18 +36,9 @@ NFAState* NFA::deepCopy (
 	};
 
 	for (auto& t : state->transition)
-	{
-		copy->addTransition(
-			t.first,
-			fetch(t.second)
-		);
-	}
+		copy->addTransition(t.first, fetch(t.second));
 	for (auto& eps : state->epsilon_transitions)
-	{
-		copy->addEpsilonTransition(
-			fetch(eps)
-		);
-	}
+		copy->addEpsilonTransition(fetch(eps));
 
 	if (copy->is_end)
 		copy_end = copy;

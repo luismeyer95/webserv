@@ -43,7 +43,7 @@ int RequestParser::parser(const std::string header)
     {
 		_resource = tokenizer(temp[0], ' ').at(1);
     	URL url(_resource);
-        // _resource = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+        // _resource = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
     }
     catch(const std::exception& e)
     {
@@ -346,7 +346,7 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
         URL url(tmp);
         try
         {
-            _referer = URL::decode(URL::removeDotSegments(url.get(URL::Component::Path)));
+            _referer = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
         }
         catch(const std::exception& e)
         {

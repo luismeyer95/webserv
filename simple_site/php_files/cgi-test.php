@@ -1,3 +1,5 @@
+#!/usr/bin/php-cgi
+
 <!DOCTYPE html>
 <html>
 <body>

@@ -70,7 +70,9 @@ class URL
 
 		static std::string	decode(const std::string& str);
 
-		static std::string	removeDotSegments(std::string input_url);
+		static std::string	reformatPath(std::string input_url);
+
+		bool				isPartialURI();
 
 
 		void				validate(URL::Component comp);

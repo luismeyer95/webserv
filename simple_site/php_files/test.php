@@ -1,1 +1,3 @@
-<?php echo("oihehe"); ?>
+#!/usr/bin/php-cgi
+
+<?php phpinfo();  ?>

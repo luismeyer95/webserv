@@ -173,7 +173,7 @@ URL::URL(const std::string& encoded_url)
 // Removes empty segments and resolves dot segments.
 // Relative segments referring to a path outside the path hierarchy are removed.
 // Ex: "/../../" --> "/", or "/ab/../cd/./" --> "/cd"
-std::string	URL::removeDotSegments(std::string input_path)
+std::string	URL::reformatPath(std::string input_path)
 {
 	std::string output_path;
 
@@ -231,6 +231,11 @@ std::string& URL::get(URL::Component comp)
 		case C::Query : return _query;
 		case C::Fragment : return _fragment;
 	}
+}
+
+bool		URL::isPartialURI()
+{
+	return !_path.empty() && _scheme.empty() && _host.empty() && _port.empty();
 }
 
 std::string URL::getFullURL()

@@ -19,7 +19,47 @@ std::vector<std::string> tokenizer( const std::string& str, char delim )
 	std::string         temp;
 
 	while(getline(stream, temp, delim ))
+	{
 		tokens.push_back(temp);
+	}
+	return tokens;
+}
+
+std::vector<std::string> real_tokenizer( const std::string& str, char delim )
+{
+	std::vector<std::string> tokens;
+	std::stringstream   stream(str);
+	std::string         temp;
+
+	while(getline(stream, temp, delim ))
+	{
+		if (!temp.empty())
+			tokens.push_back(temp);
+	}
+	return tokens;
+}
+
+std::vector<std::string> strsplit(const std::string& str, const std::string& delim_set)
+{
+	std::vector<std::string> tokens;
+	size_t index = 0;
+	size_t len = 0;
+
+	for (size_t i = 0; i < str.size(); ++i)
+	{
+		if (delim_set.find(str[i]) != std::string::npos)
+		{
+			if (len)
+				tokens.push_back(str.substr(index, len));
+			index = i + 1;
+			len = 0;
+		}
+		else
+			len++;
+	}
+	if (len)
+		tokens.push_back(str.substr(index, len));
+	
 	return tokens;
 }
 
@@ -173,6 +213,15 @@ bool is_http_date(std::string str)
 	if (tmp.size() != 3 || tmp[0].length() != 2 || !is_number(tmp[0]) ||tmp[1].length() != 2 || !is_number(tmp[1]) ||tmp[2].length() != 2 || !is_number(tmp[2]))
 		return (0);
 	return (1);
+}
+
+std::string get_current_dir()
+{
+	char buf[2048];
+
+	if (!getcwd(buf, sizeof(buf)))
+		return "";
+	return std::string(buf);
 }
 
 std::string get_http_code(int i)

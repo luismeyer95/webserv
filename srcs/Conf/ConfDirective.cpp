@@ -269,8 +269,8 @@ void ConfDirective::validate()
 			if (parent->key != ContextKey::location)
 				throw dirExcept("`execute_cgi` directives belong in `location` blocks");
 
-			if (values.at(0) != "php")
-				throw dirExcept("only `php` is supported at this time");
+			// if (values.at(0) != "php")
+			// 	throw dirExcept("only `php` is supported at this time");
 
 			auto count = std::count_if (
 				parent->directives.begin(), parent->directives.end(),

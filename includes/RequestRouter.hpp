@@ -5,27 +5,13 @@
 #include <RequestParser.hpp>
 #include <CGI.hpp>
 
-class ServerSocketPool;
-
-struct FileRequest
-{
-	int					http_code;
-	std::string			http_string;
-
-	std::string			file_path;
-	std::string			last_modified;
-	ByteBuffer			file_content;
-
-	std::string			realm;
-};
-
-class CGI;
-struct HTTPExchange;
+class	ServerSocketPool;
+struct	HTTPExchange;
+class	CGI;
 
 class RequestRouter
 {
 	friend class ServerSocketPool;
-
 	private:
 		void		bindServer (
 			const std::string& request_servname,
@@ -36,6 +22,8 @@ class RequestRouter
 
 		std::shared_ptr<ConfBlockDirective> main;
 		ConfBlockDirective*			route_binding;
+
+		ConfBlockDirective*			saved_binding;
 	public:
 		RequestRouter();
 		RequestRouter(const Config& conf);
@@ -47,6 +35,12 @@ class RequestRouter
 		);
 
 		void		executeCGI(
+			FileRequest&		file_req,
+			RequestParser&		parsed_request,
+			HTTPExchange&		ticket
+		);
+
+		std::map<EnvCGI, std::string>	setCGIEnv (
 			FileRequest&		file_req,
 			RequestParser&		parsed_request,
 			HTTPExchange&		ticket
@@ -67,4 +61,19 @@ class RequestRouter
 		static ConfBlockDirective&		getBlock(ConfBlockDirective& b, ContextKey key);
 		static ConfDirective&			getDirective(ConfBlockDirective& b, DirectiveKey key);
 
+};
+
+struct FileRequest
+{
+		std::string			redirect_uri;
+		int					http_code;
+		std::string			http_string;
+		std::string			file_path;
+		std::string			last_modified;
+		ByteBuffer			file_content;
+		std::string			content_type;
+		std::string			realm;
+
+	FileRequest()
+		: http_code(200) {}
 };

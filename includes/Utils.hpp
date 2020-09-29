@@ -6,6 +6,8 @@ typedef unsigned char BYTE;
 
 bool 						check(bool expr, bool log, bool fatal, std::string);
 std::vector<std::string>	tokenizer( const std::string& str, char delim );
+std::vector<std::string>	real_tokenizer( const std::string& str, char delim );
+std::vector<std::string> strsplit( const std::string& str, const std::string& delim_set);
 std::string					filetostr( std::string filename );
 std::vector<BYTE>			readbin(const std::string& filename);
 std::string					make_html_error_page(int error_code, const std::string& error_string);
@@ -19,3 +21,4 @@ bool                        is_http_date(std::string str);
 std::string                 trim(const std::string &str);
 bool                        check_str_len(const std::string &str, int min, int max);
 std::string                 get_http_code(int i);
+std::string					get_current_dir();
