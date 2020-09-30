@@ -239,13 +239,13 @@ void	ServerSocketPool::pollRead(Socket* s)
 				//	 the request_handler has marked the end of the response
 				// - write poller will pop client from the write queue
 				//	 once the http exchange pool for this client is empty
-				std::string msg(cli->req_buffer);
-				if (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
-					msg = msg.substr(0, msg.find("\r\n\r\n"));
+				ByteBuffer msg(cli->req_buffer);
+				if (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
+					msg = msg.sub(0, msg.find({'\r','\n','\r','\n'}));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
-				log.out(msg);
+				log.out(msg.str());
 				// TO UPDATE LATER (when implementing payload in requests)
-				while (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
+				while (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
 					request_handler(cli->newExchange(), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);

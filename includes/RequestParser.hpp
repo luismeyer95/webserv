@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <Utils.hpp>
+#include <ByteBuffer.hpp>
 
 // struct ContentType {
 // 	std::string media_type;
@@ -54,7 +55,7 @@ class RequestParser {
 
 		int							_error;
 
-		std::string					_payload;
+		ByteBuffer					_payload;
 
 		std::string					_method;
 		std::string					_resource;
@@ -96,7 +97,7 @@ class RequestParser {
 	public:
 		RequestParser();
 		~RequestParser();
-		int parser(const std::string header);
+		int parser(const ByteBuffer request);
 
 		std::string					getMethod() {return _method;}
 		std::string					getResource() {return _resource;}
@@ -115,7 +116,7 @@ class RequestParser {
 		std::string					getReferer() {return _referer;}
 		UserAgent					getUserAgent() {return _user_agent;}
 		int							getError() {return _error;}
-		std::string					getPayload() {return _payload;}
+		ByteBuffer					getPayload() {return _payload;}
 		std::string					getRawAcceptCharset() {return _raw_accept_charset;}
 		std::string					getRawAcceptLanguage() {return _raw_accept_language;}
 		std::string					getRawContentLanguage() {return _raw_content_language;}
