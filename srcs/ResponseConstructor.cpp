@@ -1,10 +1,10 @@
 #include <ResponseConstructor.hpp>
 
 ResponseConstructor::ResponseConstructor()
-    : _first_line("HTTP/1.1 "), _code(""), _server("Webserv/1.0 (Unix)"),
+    : _first_line("HTTP/1.1 "), _code(""),
         _content_length(""), _content_location(""),
         _date(""), _last_modified(""), _location(""), _retry_after(""),
-        _www_authenticate("")//finish setup
+        _server("Server: Webserv/1.0 (Unix)\r\n"), _www_authenticate("")
 {
 
 }
@@ -14,13 +14,21 @@ ResponseConstructor::~ResponseConstructor()
     
 }
 
-void ResponseConstructor::constructor(RequestParser req)
+ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &file_request)
 {
-    FileRequest file_request;
+    _code = get_http_code(file_request.http_code);
+    _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
+
 
     if (req.getMethod() == "GET")
     {
-
+        _header << _first_line;
+        _header << date();
+        _header << last_modified(file_request);
+        _header << _server;
+        content_length(file_request);
+        _header << "\r\n";
+        _header.append(file_request.file_content);
     }
     else if (req.getMethod() == "POST")
     {
@@ -51,40 +59,44 @@ void ResponseConstructor::constructor(RequestParser req)
         
     }
 
-
-    if (req.getError() != 0)
-        _code = get_http_code(req.getError());
-    else
-        _code = get_http_code(file_request.http_code);
-
-        _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
+    return (_header);
 }
 
-void ResponseConstructor::date()
+std::string ResponseConstructor::date()
 {
     _date = "Date: ";
     _date.append(get_gmt_time(time(0)));
     _date.append("\r\n");
+    return (_date);
 }
 
-void ResponseConstructor::retry_after()
+std::string ResponseConstructor::retry_after()
 {
     //sent with 503, 429, 301
     _retry_after = "Retry-After: ";
     _retry_after.append("120");
     _retry_after.append("\r\n");
+    return (_retry_after);
 }
 
-void ResponseConstructor::www_authenticate(FileRequest file_request)
+std::string ResponseConstructor::www_authenticate(FileRequest file_request)
 {
     _www_authenticate = "WWW-Authenticate: Basic ";
-    _www_authenticate.append("realm=");//add realm="HERE"
+    _www_authenticate.append("realm=");
+    _www_authenticate.append(file_request.realm);
     _www_authenticate.append("\r\n");
+    return (_www_authenticate);
 }
 
-void ResponseConstructor::last_modified(FileRequest file_request)
+std::string ResponseConstructor::last_modified(FileRequest file_request)
 {
     _last_modified = "Last-Modified: ";
     _last_modified.append(file_request.last_modified);
     _last_modified.append("\r\n");
+    return (_last_modified);
+}
+
+void ResponseConstructor::content_length(FileRequest file_request)
+{
+    _header << "Content-Length: " << file_request.file_content.size() << "\r\n";
 }

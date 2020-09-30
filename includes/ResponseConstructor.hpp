@@ -9,14 +9,6 @@
 #include <ByteBuffer.hpp>
 #include <RequestRouter.hpp>
 
-
-struct ContentType {
-	std::string media_type;
-	std::string subtype;
-	std::string charset;
-	std::string boundary;
-};
-
 class ResponseConstructor {
 	private:
 		ByteBuffer                 _header;
@@ -37,13 +29,14 @@ class ResponseConstructor {
         std::string                 _transfer_encoding;
         std::string                 _www_authenticate;
 
-		void date();
-		void retry_after();
-		void www_authenticate(FileRequest file_request);
-		void last_modified(FileRequest file_request);
+		std::string date();
+		std::string retry_after();
+		std::string www_authenticate(FileRequest file_request);
+		std::string last_modified(FileRequest file_request);
+		void		content_length(FileRequest file_request);
 
 	public:
 		ResponseConstructor();
 		~ResponseConstructor();
-		void constructor(RequestParser req);
+		ByteBuffer constructor(RequestParser &req, FileRequest &file_request);
 };
