@@ -24,15 +24,7 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	// Extracting header in 
 	//call RequestParser here
 	RequestParser request;
-	if (request.parser(comm.request))
-	{//error in request
-		ByteBuffer d;
-		d << "HTTP/1.1 400 Bad Request\r\n";
-		d << "Content-Length: " << ByteBuffer::peekFileSize("./simple_site/index.html") << "\r\n\r\n";
-		d.appendFile("./simple_site/index.html");
-		comm.bufferResponse(d, true);
-		return;
-	}
+	request.parser(comm.request);
 
 	FileRequest file_request = router.requestFile (
 		request, comm
