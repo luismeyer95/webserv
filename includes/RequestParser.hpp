@@ -100,7 +100,7 @@ class RequestParser {
 		int parser(const ByteBuffer request);
 
 		std::string					getMethod() {return _method;}
-		std::string					getResource() {return _resource;}
+		std::string&				getResource() {return _resource;}
 		std::string					getProtocol() {return _protocol;}
 		std::vector<std::string>	getAcceptCharset() {return _accept_charset;}
 		std::vector<std::string>	getAcceptLanguage() {return _accept_language;}
