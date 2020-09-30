@@ -1,6 +1,7 @@
 #include <Logger.hpp>
 #include <ServerSocketPool.hpp>
 #include <RequestParser.hpp>
+#include <ResponseConstructor.hpp>
 #include <Utils.hpp>
 #include <header.h>
 #include <ByteBuffer.hpp>
@@ -37,11 +38,22 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 		request, comm
 	);
 
-	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
-	doc << "HTTP/1.1 " << file_request.http_code << " " << file_request.http_string << "\r\n";
-	doc << "Content-Length: " << file_request.file_content.size() << "\r\n\r\n";
-	doc.append(file_request.file_content);
+
+	ResponseConstructor response;
+	doc = response.constructor(request, file_request);
+
+	// std::cout << "REQUEST CALL" << std::endl;
+	// std::cout << "request uri: " << request.getResource() << std::endl;
+	// std::cout << "host name: " << request.getHost() << std::endl;
+	// std::cout << "ip: " << comm.listeningAddress() << std::endl;
+	// std::cout << "port: " << comm.listeningPort() << std::endl;
+	// std::cout << "auth: " << request.getAuthorization() << std::endl;
+
+	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
+	// doc << "HTTP/1.1 " << file_request.http_code << " " << file_request.http_string << "\r\n";
+	// doc << "Content-Length: " << file_request.file_content.size() << "\r\n\r\n";
+	// doc.append(file_request.file_content);
 
 	// Load the response in the http exchange ticket and mark as ready
 	comm.bufferResponse(doc, true);
