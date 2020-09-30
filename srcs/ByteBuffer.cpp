@@ -53,6 +53,7 @@ ByteBuffer			ByteBuffer::sub(size_t pos, size_t len) const
 {
 	if (len == std::string::npos)
 		len = size();
+	len = std::min(len, size() - pos);
 	ByteBuffer ret;
 	ret.append(get() + pos, len);
 	return ret;

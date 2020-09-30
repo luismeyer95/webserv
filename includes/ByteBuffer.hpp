@@ -44,4 +44,11 @@ class ByteBuffer
 			buf.append(stream);
 			return buf;
 		}
+
+		friend std::ostream& operator<<(std::ostream& o, const ByteBuffer& bb)
+		{
+			for (auto& c : bb.data)
+				o << c;
+			return o;
+		}
 };
