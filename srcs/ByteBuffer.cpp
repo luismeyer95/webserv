@@ -11,6 +11,14 @@ ByteBuffer&	ByteBuffer::operator=(const ByteBuffer& o)
 	return *this;
 }
 
+ByteBuffer& ByteBuffer::operator=(const std::string& str)
+{
+  head = 0;
+  data.clear();
+  append((BYTE*)str.data(), str.size());
+  return *this;
+}
+
 ByteBuffer::ByteBuffer(const ByteBuffer& o)
 {
 	*this = o;

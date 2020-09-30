@@ -28,10 +28,14 @@ RequestParser::~RequestParser()
     
 }
 
-int RequestParser::parser(const std::string header)
+int RequestParser::parser(const ByteBuffer request)
 {
     std::vector<std::string> temp;
+    std::string header;
 
+    header = request.sub(0, request.find({'\r','\n','\r','\n'})).str();
+    _payload = request.sub(request.find({'\r','\n','\r','\n'}) + 4);
+    
     temp = tokenizer(header, '\n');
     
     if (tokenizer(temp[0], ' ').size() != 3)
