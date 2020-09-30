@@ -46,7 +46,6 @@ int RequestParser::parser(const ByteBuffer request)
     {
 		_resource = tokenizer(temp[0], ' ').at(1);
     	URL url(_resource);
-        _resource = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
     }
     catch(const std::exception& e)
     {
@@ -346,10 +345,10 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     if (line.size() == 2)
     {
 		std::string tmp = line.at(1);
-        URL url(tmp);
         try
         {
-            _referer = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
+            URL url(tmp);
+            _referer = tmp;
         }
         catch(const std::exception& e)
         {

@@ -21,7 +21,7 @@ class ResponseConstructor {
 		std::vector<std::string>	_content_language;
 		std::string					_content_length;
 		std::string					_content_location;
-		ContentType					_content_type;
+		std::string					_content_type;
 		std::string					_date;
         std::string                 _last_modified;
         std::string                 _location;//3xx or 201
@@ -37,6 +37,7 @@ class ResponseConstructor {
 		void		content_length(FileRequest file_request);
 		std::string content_location(FileRequest file_request);
 		std::string location(FileRequest file_request);
+		std::string content_type(FileRequest file_request);
 
 	public:
 		ResponseConstructor();

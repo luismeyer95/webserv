@@ -2,7 +2,7 @@
 
 ResponseConstructor::ResponseConstructor()
     : _first_line("HTTP/1.1 "), _code(""), _error(0),
-        _content_length(""), _content_location(""),
+        _content_length(""), _content_location(""), _content_type("text/html"),
         _date(""), _last_modified(""), _location(""), _retry_after(""),
         _server("Server: Webserv/1.0 (Unix)\r\n"), _www_authenticate("")
 {
@@ -25,6 +25,7 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     {
         _header << _first_line;
         _header << date();
+        _header << content_type(file_request);
         _header << last_modified(file_request);
         _header << _server;
         content_length(file_request);
@@ -104,4 +105,12 @@ std::string ResponseConstructor::last_modified(FileRequest file_request)
 void ResponseConstructor::content_length(FileRequest file_request)
 {
     _header << "Content-Length: " << file_request.file_content.size() << "\r\n";
+}
+
+std::string ResponseConstructor::content_type(FileRequest file_request)
+{
+    _content_type = "Content-Type: ";
+    _content_type.append(file_request.content_type);
+    _content_type.append("\r\n");
+    return (_content_type);
 }
