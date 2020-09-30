@@ -46,10 +46,7 @@ int RequestParser::parser(const ByteBuffer request)
     {
 		_resource = tokenizer(temp[0], ' ').at(1);
     	URL url(_resource);
-<<<<<<< HEAD
-=======
         // _resource = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
->>>>>>> 46ccaca3bd9cfa78ced9f98d62acfd61747ba401
     }
     catch(const std::exception& e)
     {
