@@ -59,6 +59,12 @@ EnvCGI strToEnvCGI(const std::string& str)
 	return E::null;	
 }
 
+CGI::CGI(const std::map<EnvCGI, std::string>& env, std::vector<std::string> command)
+	: env(env), command(command)
+{
+
+}
+
 std::vector<std::string> CGI::buildEnv(const std::map<EnvCGI, std::string>& env)
 {
 	std::vector<std::string> ret;
@@ -115,7 +121,7 @@ std::vector<std::string> CGI::parseShebangCommand(const std::string& cgi_scriptn
 void CGI::scriptError(const std::string& errlog)
 {
 	Logger& log = Logger::getInstance();
-	log.hl(BOLDRED "CGI Failure", std::string(BOLDWHITE) + errlog);
+	log.hl(BOLDRED "CGI Failure", std::string(BOLDWHITE) + env.at(EnvCGI::SCRIPT_FILENAME) + ": " + errlog);
 	throw ErrorCode(500, "Internal Server Error");
 }
 
@@ -145,11 +151,13 @@ void CGI::readProcessOutput (
 	{
 		kill(timer_pid, SIGKILL);
 		waitpid(timer_pid, nullptr, 0);
+		if (WEXITSTATUS(status))
+			scriptError("script execution failed");
 	}
 	else
 	{
 		while (wait(nullptr) != -1);
-		throw ErrorCode(500, "Internal Server Error");
+		scriptError("script execution time-out");
 	}
 }
 
@@ -170,7 +178,7 @@ std::string CGI::runProcess(const char *bin, char **cmd, char **env)
 		dup2(pip[1], 1);
 		close(pip[1]);
 		execve(bin, cmd, env);
-		exit(0);
+		exit(1);
 	}
 	else if (worker_pid > 0)
 	{
@@ -198,7 +206,7 @@ void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 	Regex rgx("^([^\\s]+):\\s*([^\\s]+.*)$");
 	auto res = rgx.matchAll(header);
 	if (!res.first)
-		throw ErrorCode(500, "Internal Server Error");
+		scriptError("bad headers in output of script");
 	std::string key = res.second.at(1);
 	std::string value = res.second.at(2);
 
@@ -211,7 +219,7 @@ void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 	
 }
 
-void splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body)
+void CGI::splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body)
 {
 	size_t header_break = 0;
 	size_t break_len = 0;
@@ -230,11 +238,12 @@ void splitHeaderBody(const std::string& response, std::vector<std::string>& head
 	}
 	
 	if (header_break == std::string::npos)
-		throw ErrorCode(500, "Internal Server Error");
+		scriptError("header break not found in output of script");
+		
 	std::string str_headers = response.substr(0, header_break);
 	headers = strsplit(str_headers, "\n");
 	if (headers.empty())
-		throw ErrorCode(500, "Internal Server Error");
+		scriptError("no headers found in output of script");
 	body = response.substr(header_break + break_len);
 
 }
@@ -261,8 +270,8 @@ void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
 	}
 
 	if (!body.empty() && headers.content_type.empty())
-		throw ErrorCode(500, "Internal Server Error");
-	
+		scriptError("no headers in output of script");
+
 	file_req.content_type = headers.content_type;
 
 	if (!headers.status.empty())
@@ -270,7 +279,7 @@ void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
 		Regex status_rgx("^(200|302|400|501) (?:.+)$");
 		auto res = status_rgx.matchAll(headers.status);
 		if (!res.first)
-			throw ErrorCode(500, "Internal Server Error");
+			scriptError("bad `Status` header in output of script");
 		
 		file_req.http_code = std::stoi(res.second.at(1));
 		if (file_req.http_code == 400)
@@ -284,16 +293,12 @@ void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
 	file_req.file_content.append((BYTE*)body.data(), body.size());
 }
 
-void CGI::executeCGI (
-	FileRequest&		file_req,
-	const std::map<EnvCGI, std::string>& env,
-	std::vector<std::string> command
-)
+void CGI::executeCGI(FileRequest& file_req)
 {
 	if (command.at(0) == "auto")
 		command = parseShebangCommand(env.at(EnvCGI::SCRIPT_FILENAME));
 	if (command.empty())
-		throw ErrorCode(500, "Internal Server Error");
+		scriptError("`execute_cgi` set to auto but missing shebang");
 
 	command.push_back(env.at(EnvCGI::SCRIPT_FILENAME));
 	std::vector<std::string> command_env = buildEnv(env);

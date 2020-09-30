@@ -30,28 +30,29 @@ EnvCGI		strToEnvCGI(const std::string& str);
 class CGI
 {
 	private:
-		static std::vector<std::string>		parseShebangCommand(const std::string& cgi_scriptname);
-		static std::vector<char*>			toArrayOfCStr(const std::vector<std::string>& vec);
-		static std::vector<std::string>		buildEnv(const std::map<EnvCGI, std::string>& env);
+		const std::map<EnvCGI, std::string>&	env;
+		std::vector<std::string>				command;
+
+		std::vector<std::string>		parseShebangCommand(const std::string& cgi_scriptname);
+		std::vector<char*>			toArrayOfCStr(const std::vector<std::string>& vec);
+		std::vector<std::string>		buildEnv(const std::map<EnvCGI, std::string>& env);
 
 
-		static void			parseCGIResponse(const std::string& response, FileRequest& file_req);
-		static void			parseCGIHeader(const std::string& header, CGIResponseHeaders& headers);
+		void			parseCGIResponse(const std::string& response, FileRequest& file_req);
+		void			parseCGIHeader(const std::string& header, CGIResponseHeaders& headers);
 
-		static void			redirectLocalURI(const std::string& location_value);
+		void			redirectLocalURI(const std::string& location_value);
+
+		std::string	runProcess(const char *bin, char **cmd, char **env);
+		void 		readProcessOutput (int (&pip)[2], pid_t timer_pid, std::string& out);
+
+		void		splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body);
 
 
-
-		static std::string	runProcess(const char *bin, char **cmd, char **env);
-		static void 		readProcessOutput (int (&pip)[2], pid_t timer_pid, std::string& out);
-
-		static void			scriptError(const std::string& errlog);
+		void			scriptError(const std::string& errlog);
 		
 	public:
-		static void			executeCGI (
-			FileRequest&		file_req,
-			const std::map<EnvCGI, std::string>& env,
-			std::vector<std::string> command
-		);
+		CGI(const std::map<EnvCGI, std::string>& env, std::vector<std::string> command);
+		void	executeCGI(FileRequest& file_req);
 
 };

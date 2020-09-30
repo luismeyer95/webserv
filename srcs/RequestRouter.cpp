@@ -399,7 +399,8 @@ void		RequestRouter::executeCGI(
 	chdir(script_dir.c_str());
 
 	// run script and reload the saved directory
-	try { CGI::executeCGI(file_req, env, cgi_bin); }
+	CGI cgi(env, cgi_bin);
+	try { cgi.executeCGI(file_req); }
 	catch (const ErrorCode& e)
 	{
 		chdir(cwd_backup.c_str());
