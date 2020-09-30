@@ -6,7 +6,7 @@
 /*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/09/26 23:08:45 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/09/30 14:45:10 by lumeyer          ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,4 +40,5 @@
 #include <queue>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "Containers.hpp"
