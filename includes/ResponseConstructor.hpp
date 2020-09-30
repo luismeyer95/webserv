@@ -15,6 +15,7 @@ class ResponseConstructor {
 
 		std::string					_first_line;
 		std::string					_code;
+		int							_error;
 
 		std::vector<std::string>	_allow;
 		std::vector<std::string>	_content_language;
@@ -34,6 +35,8 @@ class ResponseConstructor {
 		std::string www_authenticate(FileRequest file_request);
 		std::string last_modified(FileRequest file_request);
 		void		content_length(FileRequest file_request);
+		std::string content_location(FileRequest file_request);
+		std::string location(FileRequest file_request);
 
 	public:
 		ResponseConstructor();

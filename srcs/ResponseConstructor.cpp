@@ -1,7 +1,7 @@
 #include <ResponseConstructor.hpp>
 
 ResponseConstructor::ResponseConstructor()
-    : _first_line("HTTP/1.1 "), _code(""),
+    : _first_line("HTTP/1.1 "), _code(""), _error(0),
         _content_length(""), _content_location(""),
         _date(""), _last_modified(""), _location(""), _retry_after(""),
         _server("Server: Webserv/1.0 (Unix)\r\n"), _www_authenticate("")
@@ -16,6 +16,7 @@ ResponseConstructor::~ResponseConstructor()
 
 ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &file_request)
 {
+    _error = file_request.http_code;
     _code = get_http_code(file_request.http_code);
     _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
 
@@ -27,6 +28,10 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
         _header << last_modified(file_request);
         _header << _server;
         content_length(file_request);
+        if (_error == 401)
+            _header << www_authenticate(file_request);
+        if (_error == 301 || _error == 503)
+            _header << retry_after();
         _header << "\r\n";
         _header.append(file_request.file_content);
     }
