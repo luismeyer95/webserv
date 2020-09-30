@@ -8,7 +8,6 @@ RequestParser::RequestParser()
        _authorization(""), _content_length(0), _content_location(""),
         _date(""), _host_name(""), _host_ip(0), 
         _referer("")
-    
 {
     _headers.push_back("Accept-Charset");
     _headers.push_back("Accept-Language");
@@ -342,7 +341,7 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
         return;
     if (line.size() == 2)
     {
-         std::string tmp(tokenizer(line[1], ' ')[1]);
+		std::string tmp = line.at(1);
         URL url(tmp);
         try
         {

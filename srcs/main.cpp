@@ -48,8 +48,7 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
 	doc << "HTTP/1.1 " << file_request.http_code << " " << file_request.http_string << "\r\n";
-	doc << "Content-Length: " << file_request.file_content.size() << "\r\n";
-	doc << "Content-Type: text/html\r\n\r\n";
+	doc << "Content-Length: " << file_request.file_content.size() << "\r\n\r\n";
 	doc.append(file_request.file_content);
 
 	// Load the response in the http exchange ticket and mark as ready
