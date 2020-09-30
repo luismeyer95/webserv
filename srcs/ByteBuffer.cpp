@@ -26,7 +26,31 @@ const BYTE* ByteBuffer::get() const
 	return &data[0] + head;
 }
 
-std::string 	ByteBuffer::str()
+ssize_t		ByteBuffer::find(const std::vector<BYTE>& needle) const
+{
+	if (needle.empty())
+		return (0);
+	auto it = std::search(data.begin(), data.end(), needle.begin(), needle.end());
+	if (it == data.end())
+		return -1;
+	return std::distance(data.begin(), it);
+}
+
+bool			ByteBuffer::empty() const
+{
+	return size() == 0;
+}
+
+ByteBuffer			ByteBuffer::sub(size_t pos, size_t len) const
+{
+	if (len == std::string::npos)
+		len = size();
+	ByteBuffer ret;
+	ret.append(get() + pos, len);
+	return ret;
+}
+
+std::string 	ByteBuffer::str() const
 {
 	return std::string((char*)get(), size());
 }

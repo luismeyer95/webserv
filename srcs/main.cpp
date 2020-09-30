@@ -21,10 +21,9 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 
 	Logger& log = Logger::getInstance();
 	// Extracting header in 
-	std::string msg(comm.request);
 	//call RequestParser here
 	RequestParser request;
-	if (request.parser(msg))
+	if (request.parser(comm.request))
 	{//error in request
 		ByteBuffer d;
 		d << "HTTP/1.1 400 Bad Request\r\n";
@@ -38,13 +37,6 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 		request, comm
 	);
 
-	// std::cout << "REQUEST CALL" << std::endl;
-	// std::cout << "request uri: " << request.getResource() << std::endl;
-	// std::cout << "host name: " << request.getHost() << std::endl;
-	// std::cout << "ip: " << comm.listeningAddress() << std::endl;
-	// std::cout << "port: " << comm.listeningPort() << std::endl;
-	// std::cout << "auth: " << request.getAuthorization() << std::endl;
-
 	// Buffering a generic response for all calls (simply sends 200 OK + the resource's content)
 	ByteBuffer doc;
 	doc << "HTTP/1.1 " << file_request.http_code << " " << file_request.http_string << "\r\n";
@@ -57,10 +49,6 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 
 int main(int ac, char **av)
 {
-	// auto test = strsplit(av[1], av[2]);
-	// for (auto& s:test)
-	// 	std::cout << s << std::endl;
-	// exit(0);
 
 	if (ac != 2)
 	{

@@ -272,8 +272,9 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 		retflags |= (int)IOSTATE::ONCE;
 		buf[ret] = 0;
 		total += ret;
-		cli->req_buffer.append(buf);
-		if (cli->req_buffer.find("\r\n\r\n") != std::string::npos)
+		// cli->req_buffer.append(buf);
+		cli->req_buffer.append((BYTE*)buf, ret);
+		if (cli->req_buffer.find({'\r', '\n', '\r', '\n'}) != -1)
 		{
 			retflags |= (int)IOSTATE::READY;
 			break;

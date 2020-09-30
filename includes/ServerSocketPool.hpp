@@ -33,13 +33,13 @@ struct HTTPExchange
 
 	public:
 		HTTPExchange (
-			const std::string& req, const std::string& client_address,
+			const ByteBuffer& req, const std::string& client_address,
 			const std::string& address, unsigned short port
 		)
 		: response_buffer(), response(), end(false), client_address(client_address),
 		  server_address(address), port(port), request(req) {}
 
-		const std::string	request;
+		const ByteBuffer	request;
 		void	bufferResponse(const ByteBuffer& str, bool mark_end = false)
 		{
 			response_buffer += str;
@@ -74,7 +74,8 @@ struct ClientSocket : Socket
 	std::string					client_address;
 	// The request buffer stores every incoming byte, when requests are extracted
 	// bytes are removed from the buffer until the next request
-	std::string					req_buffer;
+	// std::string					req_buffer;
+	ByteBuffer					req_buffer;
 	std::queue<HTTPExchange>	exchanges;
 
 	bool		isListener() { return false; }
@@ -86,14 +87,14 @@ struct ClientSocket : Socket
 		// TO UPDATE LATER:
 		// cutting out the request payload because we don't handle those yet.
 		// final build will have the cutoff be at crlf + 4 + len(payload)
-		size_t find_end = req_buffer.find("\r\n\r\n");
+		size_t find_end = req_buffer.find({'\r', '\n', '\r', '\n'});
 		HTTPExchange xch (
-			req_buffer.substr(0, find_end + 4), client_address,
+			req_buffer.sub(0, find_end + 4), client_address,
 			lstn_socket->address_str, lstn_socket->port
 		);
 		exchanges.push(std::move(xch));
 		if (!req_buffer.empty())
-			req_buffer = req_buffer.substr(find_end + 4);
+			req_buffer = req_buffer.sub(find_end + 4);
 		return exchanges.back();
 	}
 
