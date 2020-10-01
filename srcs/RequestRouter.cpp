@@ -46,9 +46,8 @@ ConfDirective&			RequestRouter::getDirective(ConfBlockDirective& b, DirectiveKey
 	return *it;
 }
 
-bool	RequestRouter::bindLocation(const std::string& request_uri)
+bool		RequestRouter::saveMostSpecificLocation(const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc)
 {
-	ConfBlockDirective* most_specific_prefix_loc = nullptr;
 	for (auto& block : route_binding->blocks)
 	{
 		if (block.key == ContextKey::location)
@@ -74,6 +73,15 @@ bool	RequestRouter::bindLocation(const std::string& request_uri)
 			}
 		}
 	}
+	return false;
+}
+
+bool	RequestRouter::bindLocation(const std::string& request_uri)
+{
+	ConfBlockDirective* most_specific_prefix_loc = nullptr;
+
+	if (saveMostSpecificLocation(request_uri, most_specific_prefix_loc))
+		return true;
 	for (auto& block : route_binding->blocks)
 		if (block.key == ContextKey::location)
 		{
@@ -302,6 +310,21 @@ std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
 	return "";
 }
 
+bool		RequestRouter::checkMethod(RequestParser& parsed_request, FileRequest& file_req)
+{
+	auto mthds = getBoundRequestDirectiveValues(DirectiveKey::accept_methods);
+	if (mthds.empty())
+	{
+		file_req.allowed_methods.clear();
+		return true;
+	}
+	file_req.allowed_methods = mthds;
+	if (std::find(mthds.begin(), mthds.end(), parsed_request.getMethod()) != mthds.end())
+		return true;
+	fetchErrorPage(file_req, 405, "Method Not Allowed");
+	return false;
+}
+
 bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string& basic_auth)
 {
 
@@ -435,7 +458,8 @@ FileRequest	RequestRouter::requestFile (
 		fetchErrorPage(file_req, 404, "Not Found");
 	else
 	{
-		if (checkAuthorization(file_req, parsed_request.getAuthorization()))
+		if (checkAuthorization(file_req, parsed_request.getAuthorization())
+			&& checkMethod(parsed_request, file_req))
 		{
 			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
 			if (!cgi_dir.empty())

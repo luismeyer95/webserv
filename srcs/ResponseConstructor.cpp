@@ -85,7 +85,7 @@ std::string ResponseConstructor::retry_after()
     return (_retry_after);
 }
 
-std::string ResponseConstructor::www_authenticate(FileRequest file_request)
+std::string ResponseConstructor::www_authenticate(FileRequest& file_request)
 {
     _www_authenticate = "WWW-Authenticate: Basic ";
     _www_authenticate.append("realm=");
@@ -94,7 +94,7 @@ std::string ResponseConstructor::www_authenticate(FileRequest file_request)
     return (_www_authenticate);
 }
 
-std::string ResponseConstructor::last_modified(FileRequest file_request)
+std::string ResponseConstructor::last_modified(FileRequest& file_request)
 {
     _last_modified = "Last-Modified: ";
     _last_modified.append(file_request.last_modified);
@@ -102,15 +102,15 @@ std::string ResponseConstructor::last_modified(FileRequest file_request)
     return (_last_modified);
 }
 
-void ResponseConstructor::content_length(FileRequest file_request)
+void ResponseConstructor::content_length(FileRequest& file_request)
 {
     _header << "Content-Length: " << file_request.file_content.size() << "\r\n";
 }
 
-std::string ResponseConstructor::content_type(FileRequest file_request)
+std::string ResponseConstructor::content_type(FileRequest& file_request)
 {
-    _content_type = "Content-Type: ";
-    _content_type.append(file_request.content_type);
+    _content_type = "Content-Type: " + file_request.content_type;
+    // _content_type.append(file_request.content_type);
     _content_type.append("\r\n");
     return (_content_type);
 }

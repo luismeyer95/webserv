@@ -17,7 +17,8 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"auth_basic", D::auth_basic},
 		{"auth_basic_user_file", D::auth_basic_user_file},
 		{"execute_cgi", D::execute_cgi},
-		{"cgi_split_path_info", D::cgi_split_path_info}
+		{"cgi_split_path_info", D::cgi_split_path_info},
+		{"accept_methods", D::accept_methods}
 	});
 }
 
@@ -38,6 +39,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::auth_basic_user_file: return "auth_basic_user_file";
 		case D::execute_cgi: return "execute_cgi";
 		case D::cgi_split_path_info: return "cgi_split_path_info";
+		case D::accept_methods: return "accept_methods";
 	}
 }
 
@@ -315,6 +317,38 @@ void ConfDirective::validate()
 				throw dirExcept("value should be a valid regex");
 			}
 			
+			break;
+		}
+
+		case D::accept_methods:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			
+			// if (parent->key != ContextKey::location)
+			// 	throw dirExcept("`accept_methods` directives belong in `location` blocks");
+			
+			Regex rgx_method("^GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|all$");
+			for (auto& s : values)
+			{
+				if (!rgx_method.match(s).first)
+					throw dirExcept("not a valid HTTP/1.1 method (`" + s + "`)");
+			}
+
+			if (std::find(values.begin(), values.end(), "all") != values.end())
+			{
+				values.clear();
+				values.reserve(8);
+				values.push_back("GET");
+				values.push_back("HEAD");
+				values.push_back("PUT");
+				values.push_back("POST");
+				values.push_back("DELETE");
+				values.push_back("CONNECT");
+				values.push_back("OPTIONS");
+				values.push_back("TRACE");
+			}
+
 			break;
 		}
 	}

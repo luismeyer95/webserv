@@ -31,7 +31,7 @@ enum class DirectiveKey
 {
 	listen, server_name, root, alias, error_page,
 	internal, index, autoindex, auth_basic, auth_basic_user_file,
-	execute_cgi, cgi_split_path_info
+	execute_cgi, cgi_split_path_info, accept_methods
 };
 
 std::map<std::string, DirectiveKey> directiveKeyLookup();

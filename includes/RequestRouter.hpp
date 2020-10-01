@@ -19,6 +19,10 @@ class RequestRouter
 			unsigned short request_port
 		);
 		bool		bindLocation(const std::string& request_uri);
+		bool		saveMostSpecificLocation (
+			const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc
+		);
+
 
 		std::shared_ptr<ConfBlockDirective> main;
 		ConfBlockDirective*			route_binding;
@@ -52,6 +56,7 @@ class RequestRouter
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
 
 		bool		checkAuthorization(FileRequest& file_req, const std::string& basic_auth);
+		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);
 		std::string	getAuthUser(const std::string& basic_auth);
 
 
@@ -65,14 +70,15 @@ class RequestRouter
 
 struct FileRequest
 {
-		std::string			redirect_uri;
-		int					http_code;
-		std::string			http_string;
-		std::string			file_path;
-		std::string			last_modified;
-		ByteBuffer			file_content;
-		std::string			content_type;
-		std::string			realm;
+		std::string					redirect_uri;
+		int							http_code;
+		std::string					http_string;
+		std::string					file_path;
+		std::string					last_modified;
+		ByteBuffer					file_content;
+		std::string					content_type;
+		std::vector<std::string>	allowed_methods;
+		std::string					realm;
 
 	FileRequest()
 		: http_code(200) {}
