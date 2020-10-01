@@ -22,8 +22,11 @@ class ByteBuffer
 		void			advance(size_t num);
 
 		ssize_t			find(const std::vector<BYTE>& needle) const;
+		ssize_t			strfind(const std::string& needle) const;
+
 
 		bool			empty() const;
+		void			clear();
 		ByteBuffer		sub(size_t pos, size_t len = std::string::npos) const;
 
 		void			append(const ByteBuffer& bb);

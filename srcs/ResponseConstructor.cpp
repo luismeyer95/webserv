@@ -21,7 +21,7 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
 
 
-    if (req.getMethod() == "GET")
+    if (req.getMethod() == "GET" || req.getMethod() == "POST")
     {
         _header << _first_line;
         _header << date();

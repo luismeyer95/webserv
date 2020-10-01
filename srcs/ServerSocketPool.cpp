@@ -3,6 +3,56 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+
+/*		-------------------
+**		class HTTPExchange;
+**		-------------------
+*/
+
+HTTPExchange::HTTPExchange (
+	const ByteBuffer& req,
+	const std::string& client_address,
+	const std::string& address, unsigned short port
+) : response_buffer(), response(), end(false),
+	client_address(client_address),server_address(address),
+	port(port), request(req)
+{
+
+}
+
+void			HTTPExchange::bufferResponse(const ByteBuffer& str, bool mark_end)
+{
+	response_buffer += str;
+	response += str;
+	end = mark_end;
+}
+
+ByteBuffer		HTTPExchange::getResponse()
+{
+	return response;
+}
+
+std::string		HTTPExchange::listeningAddress()
+{
+	return server_address;
+}
+
+std::string		HTTPExchange::clientAddress()
+{
+	return client_address;
+}
+
+unsigned short	HTTPExchange::listeningPort()
+{
+	return port;
+}
+
+
+/*		-------------------
+**		class ServerSocketPool;
+**		-------------------
+*/
+
 ServerSocketPool::ServerSocketPool()
 	: fd_max(-1)
 {
@@ -167,7 +217,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	// log.out() << "connection ip = " << ipstr << std::endl;
 
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);
-	comm->req_buffer = "";
 	lstn->comm_sockets.push_back(comm);
 	FD_SET(comm->socket_fd, &master_read);
 	socket_list.push_back((Socket*)comm);
@@ -239,14 +288,14 @@ void	ServerSocketPool::pollRead(Socket* s)
 				//	 the request_handler has marked the end of the response
 				// - write poller will pop client from the write queue
 				//	 once the http exchange pool for this client is empty
-				ByteBuffer msg(cli->req_buffer);
-				if (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
-					msg = msg.sub(0, msg.find({'\r','\n','\r','\n'}));
+				RequestBuffer& buff = cli->req_buffer;
+				ByteBuffer msg(buff.extract(false));
+				if (msg.strfind("\r\n\r\n") != -1)
+					msg = msg.sub(0, msg.strfind("\r\n\r\n"));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
 				log.out(msg.str());
-				// TO UPDATE LATER (when implementing payload in requests)
-				while (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
-					request_handler(cli->newExchange(), conf);
+				while (cli->req_buffer.ready())
+					request_handler(cli->newExchange(buff.extract()), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -272,9 +321,8 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 		retflags |= (int)IOSTATE::ONCE;
 		buf[ret] = 0;
 		total += ret;
-		// cli->req_buffer.append(buf);
-		cli->req_buffer.append((BYTE*)buf, ret);
-		if (cli->req_buffer.find({'\r', '\n', '\r', '\n'}) != -1)
+		cli->req_buffer.append(buf, ret);
+		if (cli->req_buffer.ready())
 		{
 			retflags |= (int)IOSTATE::READY;
 			break;

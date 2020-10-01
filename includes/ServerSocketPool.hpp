@@ -6,6 +6,8 @@
 #include "ByteBuffer.hpp"
 #include "Conf/Config.hpp"
 #include "RequestRouter.hpp"
+#include <RequestBuffer.hpp>
+#include <Sockets.hpp>
 #include <map>
 #include <list>
 #include <vector>
@@ -35,83 +37,16 @@ struct HTTPExchange
 		HTTPExchange (
 			const ByteBuffer& req, const std::string& client_address,
 			const std::string& address, unsigned short port
-		)
-		: response_buffer(), response(), end(false), client_address(client_address),
-		  server_address(address), port(port), request(req) {}
+		);
 
 		const ByteBuffer	request;
-		void	bufferResponse(const ByteBuffer& str, bool mark_end = false)
-		{
-			response_buffer += str;
-			response += str;
-			end = mark_end;
-		}
-		ByteBuffer getResponse() { return response; }
+		void				bufferResponse(const ByteBuffer& str, bool mark_end = false);
+		ByteBuffer			getResponse();
 
-		std::string listeningAddress() { return server_address; }
-		std::string clientAddress() { return client_address; }
-		unsigned short listeningPort() { return port; }
+		std::string			clientAddress();
+		std::string			listeningAddress();
+		unsigned short		listeningPort();
 };
-
-struct Socket {
-	int socket_fd;
-	virtual bool isListener() = 0;
-	virtual ~Socket() {}
-};
-
-struct Listener : Socket
-{
-	unsigned short				port;
-	std::string					address_str;
-	struct sockaddr_in			address;
-	std::vector<ClientSocket*>	comm_sockets;
-	bool isListener() { return true; }
-};
-
-struct ClientSocket : Socket
-{
-	Listener*					lstn_socket;
-	std::string					client_address;
-	// The request buffer stores every incoming byte, when requests are extracted
-	// bytes are removed from the buffer until the next request
-	// std::string					req_buffer;
-	ByteBuffer					req_buffer;
-	std::queue<HTTPExchange>	exchanges;
-
-	bool		isListener() { return false; }
-
-	// Takes a finished request from the request buffer, creates a http exchange ticket
-	// and advances the buffer to the character after the first crlf (next request) 
-	HTTPExchange&		newExchange()
-	{
-		// TO UPDATE LATER:
-		// cutting out the request payload because we don't handle those yet.
-		// final build will have the cutoff be at crlf + 4 + len(payload)
-		size_t find_end = req_buffer.find({'\r', '\n', '\r', '\n'});
-		HTTPExchange xch (
-			req_buffer.sub(0, find_end + 4), client_address,
-			lstn_socket->address_str, lstn_socket->port
-		);
-		exchanges.push(std::move(xch));
-		if (!req_buffer.empty())
-			req_buffer = req_buffer.sub(find_end + 4);
-		return exchanges.back();
-	}
-
-	HTTPExchange&		getExchange()
-	{
-		return exchanges.front();
-	}
-
-	void				closeExchange()
-	{
-		exchanges.pop();
-	}
-
-	ClientSocket()
-		: Socket(), lstn_socket(nullptr) {}
-};
-
 
 class ServerSocketPool
 {
@@ -131,42 +66,39 @@ class ServerSocketPool
 		void (*connection_handler)(HTTPExchange&, RequestRouter&);
 		void (*request_handler)(HTTPExchange&, RequestRouter&);
 
-		std::runtime_error constructorExcept(const std::string& err)
-		{
-			for (auto& s : socket_list)
-			{
-				delete s;
-				s = nullptr;
-			}
-			throw std::runtime_error(err);
-		}
+		// std::runtime_error constructorExcept(const std::string& err)
+		// {
+		// 	for (auto& s : socket_list)
+		// 	{
+		// 		delete s;
+		// 		s = nullptr;
+		// 	}
+		// 	throw std::runtime_error(err);
+		// }
 
 	public:
 		typedef ft::deque<Socket*>::iterator iterator;
 		ServerSocketPool();
 		~ServerSocketPool();
 
-		void	setConfig(RequestRouter conf_handler);
+		void				setConfig(RequestRouter conf_handler);
 
-		void	addListener(const std::string& host, unsigned short port);
-		ClientSocket*	acceptConnection(Listener* lstn);
-		// bool	portIsUnused(unsigned short port);
+		void				addListener(const std::string& host, unsigned short port);
+		ClientSocket*		acceptConnection(Listener* lstn);
 
-		void	initFdset();
+		void				initFdset();
 
-		bool	selected(Socket* socket, fd_set* set);
-		void	closeComm(ClientSocket* comm);
+		bool				selected(Socket* socket, fd_set* set);
+		void				closeComm(ClientSocket* comm);
 		ft::deque<Socket*>&	getSocketList();
 
-		size_t	recvRequest(ClientSocket* cli, int& retflags);
-		size_t	sendResponse(ClientSocket* cli, int& retflags);
+		size_t				recvRequest(ClientSocket* cli, int& retflags);
+		size_t				sendResponse(ClientSocket* cli, int& retflags);
 
-		void	runServer(
+		void				runServer(
 			void (*connection_handler)(HTTPExchange&, RequestRouter&) ,
 			void (*request_handler)(HTTPExchange&, RequestRouter&)
 		);
-		void	pollRead(Socket* s);
-		void	pollWrite(Socket* s);
-
-		// static ServerSocketPool&	getInstance();
+		void				pollRead(Socket* s);
+		void				pollWrite(Socket* s);
 };

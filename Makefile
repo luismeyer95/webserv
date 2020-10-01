@@ -29,7 +29,9 @@ SRCS	=	main.cpp \
 			ErrorCode.cpp \
 			RequestRouter.cpp \
 			CGI.cpp \
-			ResponseConstructor.cpp
+			ResponseConstructor.cpp \
+			RequestBuffer.cpp \
+			Sockets.cpp
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -45,6 +47,8 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				RequestRouter.hpp \
 				CGI.hpp \
 				ResponseConstructor.hpp \
+				RequestBuffer.hpp \
+				Sockets.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)
