@@ -1,3 +1,5 @@
+#pragma once
+
 #include <header.h>
 
 #include <ByteBuffer.hpp>
@@ -9,7 +11,7 @@ class RequestBuffer
 	private:
 		std::string			current_headers;
 		ssize_t				content_length;
-		ByteBuffer			Contentrequest_buffer;
+		ByteBuffer			request_buffer;
 
 	public:
 		RequestBuffer();

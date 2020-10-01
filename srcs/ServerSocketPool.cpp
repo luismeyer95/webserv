@@ -3,6 +3,56 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+
+/*		-------------------
+**		class HTTPExchange;
+**		-------------------
+*/
+
+HTTPExchange::HTTPExchange (
+	const ByteBuffer& req,
+	const std::string& client_address,
+	const std::string& address, unsigned short port
+) : response_buffer(), response(), end(false),
+	client_address(client_address),server_address(address),
+	port(port), request(req)
+{
+
+}
+
+void			HTTPExchange::bufferResponse(const ByteBuffer& str, bool mark_end)
+{
+	response_buffer += str;
+	response += str;
+	end = mark_end;
+}
+
+ByteBuffer		HTTPExchange::getResponse()
+{
+	return response;
+}
+
+std::string		HTTPExchange::listeningAddress()
+{
+	return server_address;
+}
+
+std::string		HTTPExchange::clientAddress()
+{
+	return client_address;
+}
+
+unsigned short	HTTPExchange::listeningPort()
+{
+	return port;
+}
+
+
+/*		-------------------
+**		class ServerSocketPool;
+**		-------------------
+*/
+
 ServerSocketPool::ServerSocketPool()
 	: fd_max(-1)
 {
@@ -229,7 +279,6 @@ void	ServerSocketPool::pollRead(Socket* s)
 			log.out() << "[inbound packet]: "
 				<< "fd="  << cli->socket_fd << ", "
 				<< "size=" << readbytes << std::endl;
-				http_print(cli->req_buffer.buffer().str());
 			if (retflags & (int)IOSTATE::READY)
 			{
 				// at least one request is fully buffered:
@@ -240,15 +289,11 @@ void	ServerSocketPool::pollRead(Socket* s)
 				// - write poller will pop client from the write queue
 				//	 once the http exchange pool for this client is empty
 				RequestBuffer& buff = cli->req_buffer;
-
 				ByteBuffer msg(buff.extract(false));
 				if (msg.strfind("\r\n\r\n") != -1)
 					msg = msg.sub(0, msg.strfind("\r\n\r\n"));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
 				log.out(msg.str());
-				// TO UPDATE LATER (when implementing payload in requests)
-				// while (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
-				// 	request_handler(cli->newExchange(), conf);
 				while (cli->req_buffer.ready())
 					request_handler(cli->newExchange(buff.extract()), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
@@ -282,11 +327,6 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 			retflags |= (int)IOSTATE::READY;
 			break;
 		}
-		// if (cli->req_buffer.strfind("\r\n\r\n") != -1)
-		// {
-		// 	retflags |= (int)IOSTATE::READY;
-		// 	break;
-		// }
 	}
 
 	return total;

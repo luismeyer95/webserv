@@ -242,9 +242,6 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_uri)
 {
 	std::string path = resolveUriToLocalPath(request_uri);
-	std::cout << path << std::endl;
-
-	
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
@@ -258,7 +255,6 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 		for (auto ipath : index_paths)
 		{
 			ipath = path + "/" + ipath;
-			// std::cout << ipath << std::endl;
 			if (stat(ipath.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
 			{
 				try {
@@ -335,7 +331,7 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
 		env[E::AUTH_TYPE] = "Basic";
 	env[E::CONTENT_LENGTH] = std::to_string(parsed_request.getContentLength());
-	env[E::CONTENT_TYPE] = ""; // DEMANDER A ESTEBAN
+	env[E::CONTENT_TYPE] = parsed_request.getRawContentType(); // NEED IT FOR POST REQUESTS
 	env[E::GATEWAY_INTERFACE] = "CGI/1.1";
 	std::string pathsplit = getBoundRequestDirectiveValues(DirectiveKey::cgi_split_path_info).at(0);
 	auto res = Regex(pathsplit).matchAll(request_path);
@@ -399,7 +395,7 @@ void		RequestRouter::executeCGI(
 	chdir(script_dir.c_str());
 
 	// run script and reload the saved directory
-	CGI cgi(env, cgi_bin);
+	CGI cgi(parsed_request, env, cgi_bin);
 	try { cgi.executeCGI(file_req); }
 	catch (const ErrorCode& e)
 	{

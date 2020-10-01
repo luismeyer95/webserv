@@ -4,6 +4,7 @@
 #include <ErrorCode.hpp>
 #include <Logger.hpp>
 #include <URL.hpp>
+#include <RequestParser.hpp>
 
 struct FileRequest;
 class RequestRouter;
@@ -30,6 +31,7 @@ EnvCGI		strToEnvCGI(const std::string& str);
 class CGI
 {
 	private:
+		RequestParser&							request;
 		const std::map<EnvCGI, std::string>&	env;
 		std::vector<std::string>				command;
 
@@ -44,7 +46,7 @@ class CGI
 		void			redirectLocalURI(const std::string& location_value);
 
 		std::string	runProcess(const char *bin, char **cmd, char **env);
-		void 		readProcessOutput (int (&pip)[2], pid_t timer_pid, std::string& out);
+		void 		readProcessOutput (int (&pip_main)[2], int (&pip_cgi)[2], pid_t timer_pid, std::string& out);
 
 		void		splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body);
 
@@ -52,7 +54,7 @@ class CGI
 		void			scriptError(const std::string& errlog);
 		
 	public:
-		CGI(const std::map<EnvCGI, std::string>& env, std::vector<std::string> command);
+		CGI(RequestParser& request_parser, const std::map<EnvCGI, std::string>& env, std::vector<std::string> command);
 		void	executeCGI(FileRequest& file_req);
 
 };
