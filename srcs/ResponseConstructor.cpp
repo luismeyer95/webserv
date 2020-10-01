@@ -132,7 +132,7 @@ std::string ResponseConstructor::allow(FileRequest& file_request)
     for (std::vector<std::string>::iterator it = file_request.allowed_methods.begin(); it != file_request.allowed_methods.end(); it++)
     {
         _allow.append(*it);
-        if (it != file_request.allowed_methods.end() - 1)
+        if (it != --file_request.allowed_methods.end())
             _allow.append(", ");
     }
     _allow.append("\r\n");
