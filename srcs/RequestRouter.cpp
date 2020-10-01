@@ -141,6 +141,7 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, int code, const std::s
 {
 	file_req.http_code = code;
 	file_req.http_string = msg;
+	file_req.content_type = "text/html";
 	std::vector<std::string> vals = getBoundRequestDirectiveValues(DirectiveKey::error_page);
 	if (vals.empty())
 	{
@@ -263,6 +264,7 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 					file_req.http_code = 200;
 					file_req.http_string = "OK";
 					file_req.last_modified = get_gmt_time(buffer.st_mtime);
+					file_req.content_type = get_mime_type(ipath);
 					return;
 				} catch (const std::runtime_error& e) {
 					fetchErrorPage(file_req, 404, "Not Found");
@@ -280,6 +282,7 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 		file_req.http_code = 200;
 		file_req.http_string = "OK";
 		file_req.last_modified = get_gmt_time(buffer.st_mtime);
+		file_req.content_type = get_mime_type(path);
 	} catch (const std::runtime_error& e) {
 		fetchErrorPage(file_req, 404, "Not Found");
 		return;

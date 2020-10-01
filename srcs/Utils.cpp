@@ -310,3 +310,100 @@ std::string get_http_code(int i)
 		out = "505 HTTP Version not supported";
 	return (out);
 }
+
+std::string					get_mime_type(const std::string& path)
+{
+	auto split_segment = strsplit(URL::reformatPath(path), "/");
+	std::string last_segment = split_segment.empty() ? "" : split_segment.back();
+
+	if (last_segment.find('.') == std::string::npos)
+		return "text/plain";
+	std::string ext = strsplit(last_segment, ".").back();
+	auto search = [&ext] (const std::pair<const std::string, std::vector<std::string> >& e)
+	{
+		return std::find(e.second.begin(), e.second.end(), ext) != e.second.end();
+	};
+	auto& mimemap = mime_types();
+	auto find = std::find_if(mimemap.begin(), mimemap.end(), search);
+	if (find == mimemap.end())
+		return "text/plain";
+	return find->first;
+}
+
+std::map<std::string, std::vector<std::string>>& mime_types()
+{
+	static std::map< std::string, std::vector<std::string> > mimemap
+	({
+		{"text/html", {"html", "htm", "shtml"}},
+		{"text/css", {"css"}},
+		{"audio/aac", {"aac"}},
+		{"application/x-abiword", {"abw"}},
+		{"application/x-freearc", {"arc"}},
+		{"video/x-msvideo", {"avi"}},
+		{"application/vnd.amazon.ebook", {"azw"}},
+		{"application/octet-stream", {"bin", "exe", "deb", "dll", "dmg", "iso", "img"}},
+		{"image/bmp", {"bmp"}},
+		{"application/x-bzip", {"bz"}},
+		{"application/x-bzip2", {"bz2"}},
+		{"application/x-csh", {"csh"}},
+		{"text/csv", {"csv"}},
+		{"application/msword", {"doc"}},
+		{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", {"docx"}},
+		{"application/vnd.ms-fontobject", {"eot"}},
+		{"application/epub+zip", {"epub"}},
+		{"application/gzip", {"gz"}},
+		{"image/gif", {"gif"}},
+		{"image/vnd.microsoft.icon", {"ico"}},
+		{"text/calendar", {"ics"}},
+		{"application/java-archive", {"jar"}},
+		{"image/jpeg", {"jpeg", "jpg"}},
+		{"text/javascript", {"js", "mjs"}},
+		{"application/json", {"json"}},
+		{"application/ld+json", {"jsonld"}},
+		{"audio/midi", {"midi", "mid"}},
+		{"audio/mpeg", {"mp3"}},
+		{"video/mpeg", {"mpeg"}},
+		{"application/vnd.apple.installer+xml", {"mpkg"}},
+		{"application/vnd.oasis.opendocument.presentation", {"odp"}},
+		{"application/vnd.oasis.opendocument.spreadsheet", {"ods"}},
+		{"application/vnd.oasis.opendocument.text", {"odt"}},
+		{"audio/ogg", {"oga"}},
+		{"video/ogg", {"ogv"}},
+		{"application/ogg", {"ogx"}},
+		{"audio/opus", {"opus"}},
+		{"font/otf", {"otf"}},
+		{"image/png", {"png"}},
+		{"application/pdf", {"pdf"}},
+		{"application/x-httpd-php", {"php"}},
+		{"application/vnd.ms-powerpoint", {"ppt"}},
+		{"application/vnd.openxmlformats-officedocument.presentationml.presentation", {"pptx"}},
+		{"application/vnd.rar", {"rar"}},
+		{"application/rtf", {"rtf"}},
+		{"application/x-sh", {"sh"}},
+		{"image/svg+xml", {"svg"}},
+		{"application/x-shockwave-flash", {"swf"}},
+		{"application/x-tar", {"tar"}},
+		{"image/tiff", {"tiff", "tif"}},
+		{"video/mp2t", {"ts"}},
+		{"font/ttf", {"ttf"}},
+		{"text/plain", {"txt"}},
+		{"application/vnd.visio", {"vsd"}},
+		{"audio/wav", {"wav"}},
+		{"audio/webm", {"weba"}},
+		{"video/webm", {"webm"}},
+		{"image/webp", {"webp"}},
+		{"font/woff", {"woff"}},
+		{"font/woff2", {"woff2"}},
+		{"application/xhtml+xml", {"xhtml"}},
+		{"application/vnd.ms-excel", {"xls"}},
+		{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", {"xlsx"}},
+		{"application/xml", {"xml"}},
+		{"application/vnd.mozilla.xul+xml", {"xul"}},
+		{"application/zip", {"zip"}},
+		{"video/3gpp", {"3gp"}},
+		{"video/3gpp2", {"3g2"}},
+		{"application/x-7z-compressed", {"7z"}}
+	});
+
+	return mimemap;
+}

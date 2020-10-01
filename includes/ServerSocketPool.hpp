@@ -56,25 +56,15 @@ class ServerSocketPool
 			READY = 2
 		};
 
-		RequestRouter	conf;
+		RequestRouter		conf;
 
-		int		fd_max;
-		fd_set	master_read;
-		fd_set	master_write;
-		ft::deque<Socket*> socket_list;
+		int					fd_max;
+		fd_set				master_read;
+		fd_set				master_write;
+		ft::deque<Socket*>	socket_list;
 
 		void (*connection_handler)(HTTPExchange&, RequestRouter&);
 		void (*request_handler)(HTTPExchange&, RequestRouter&);
-
-		// std::runtime_error constructorExcept(const std::string& err)
-		// {
-		// 	for (auto& s : socket_list)
-		// 	{
-		// 		delete s;
-		// 		s = nullptr;
-		// 	}
-		// 	throw std::runtime_error(err);
-		// }
 
 	public:
 		typedef ft::deque<Socket*>::iterator iterator;
