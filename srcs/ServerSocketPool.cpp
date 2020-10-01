@@ -167,7 +167,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	// log.out() << "connection ip = " << ipstr << std::endl;
 
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);
-	comm->req_buffer = "";
 	lstn->comm_sockets.push_back(comm);
 	FD_SET(comm->socket_fd, &master_read);
 	socket_list.push_back((Socket*)comm);
@@ -230,6 +229,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 			log.out() << "[inbound packet]: "
 				<< "fd="  << cli->socket_fd << ", "
 				<< "size=" << readbytes << std::endl;
+				http_print(cli->req_buffer.buffer().str());
 			if (retflags & (int)IOSTATE::READY)
 			{
 				// at least one request is fully buffered:
@@ -239,14 +239,18 @@ void	ServerSocketPool::pollRead(Socket* s)
 				//	 the request_handler has marked the end of the response
 				// - write poller will pop client from the write queue
 				//	 once the http exchange pool for this client is empty
-				ByteBuffer msg(cli->req_buffer);
-				if (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
-					msg = msg.sub(0, msg.find({'\r','\n','\r','\n'}));
+				RequestBuffer& buff = cli->req_buffer;
+
+				ByteBuffer msg(buff.extract(false));
+				if (msg.strfind("\r\n\r\n") != -1)
+					msg = msg.sub(0, msg.strfind("\r\n\r\n"));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
 				log.out(msg.str());
 				// TO UPDATE LATER (when implementing payload in requests)
-				while (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
-					request_handler(cli->newExchange(), conf);
+				// while (cli->req_buffer.find({'\r','\n','\r','\n'}) != -1)
+				// 	request_handler(cli->newExchange(), conf);
+				while (cli->req_buffer.ready())
+					request_handler(cli->newExchange(buff.extract()), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -272,13 +276,17 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 		retflags |= (int)IOSTATE::ONCE;
 		buf[ret] = 0;
 		total += ret;
-		// cli->req_buffer.append(buf);
-		cli->req_buffer.append((BYTE*)buf, ret);
-		if (cli->req_buffer.find({'\r', '\n', '\r', '\n'}) != -1)
+		cli->req_buffer.append(buf, ret);
+		if (cli->req_buffer.ready())
 		{
 			retflags |= (int)IOSTATE::READY;
 			break;
 		}
+		// if (cli->req_buffer.strfind("\r\n\r\n") != -1)
+		// {
+		// 	retflags |= (int)IOSTATE::READY;
+		// 	break;
+		// }
 	}
 
 	return total;

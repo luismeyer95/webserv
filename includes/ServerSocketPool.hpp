@@ -6,6 +6,7 @@
 #include "ByteBuffer.hpp"
 #include "Conf/Config.hpp"
 #include "RequestRouter.hpp"
+#include <RequestBuffer.hpp>
 #include <map>
 #include <list>
 #include <vector>
@@ -74,27 +75,31 @@ struct ClientSocket : Socket
 	std::string					client_address;
 	// The request buffer stores every incoming byte, when requests are extracted
 	// bytes are removed from the buffer until the next request
-	// std::string					req_buffer;
-	ByteBuffer					req_buffer;
+	// ByteBuffer				req_buffer;
+	RequestBuffer				req_buffer;
 	std::queue<HTTPExchange>	exchanges;
 
 	bool		isListener() { return false; }
 
 	// Takes a finished request from the request buffer, creates a http exchange ticket
 	// and advances the buffer to the character after the first crlf (next request) 
-	HTTPExchange&		newExchange()
+	HTTPExchange&		newExchange(const ByteBuffer& buffer)
 	{
 		// TO UPDATE LATER:
 		// cutting out the request payload because we don't handle those yet.
 		// final build will have the cutoff be at crlf + 4 + len(payload)
-		size_t find_end = req_buffer.find({'\r', '\n', '\r', '\n'});
+		// size_t find_end = req_buffer.find({'\r', '\n', '\r', '\n'});
+		// HTTPExchange xch (
+		// 	req_buffer.sub(0, find_end + 4), client_address,
+		// 	lstn_socket->address_str, lstn_socket->port
+		// );
+
+		std::cout << "NEW EXCHANGE!\n" << buffer << std::endl;
 		HTTPExchange xch (
-			req_buffer.sub(0, find_end + 4), client_address,
+			buffer, client_address,
 			lstn_socket->address_str, lstn_socket->port
 		);
 		exchanges.push(std::move(xch));
-		if (!req_buffer.empty())
-			req_buffer = req_buffer.sub(find_end + 4);
 		return exchanges.back();
 	}
 

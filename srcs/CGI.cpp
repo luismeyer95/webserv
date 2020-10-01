@@ -241,7 +241,7 @@ void CGI::splitHeaderBody(const std::string& response, std::vector<std::string>&
 		scriptError("header break not found in output of script");
 		
 	std::string str_headers = response.substr(0, header_break);
-	headers = strsplit(str_headers, "\n");
+	headers = strsplit(str_headers, "\r\n");
 	if (headers.empty())
 		scriptError("no headers found in output of script");
 	body = response.substr(header_break + break_len);
@@ -303,10 +303,10 @@ void CGI::executeCGI(FileRequest& file_req)
 	command.push_back(env.at(EnvCGI::SCRIPT_FILENAME));
 	std::vector<std::string> command_env = buildEnv(env);
 
-	// for (auto& s : command_env)
-	// 	std::cout << s << std::endl;
-	// for (auto& s : command)
-	// 	std::cout << s << std::endl;
+	for (auto& s : command_env)
+		std::cout << s << std::endl;
+	for (auto& s : command)
+		std::cout << s << std::endl;
 
 	std::vector<char*> command_c = CGI::toArrayOfCStr(command);
 	std::vector<char*> command_env_c = CGI::toArrayOfCStr(command_env);
