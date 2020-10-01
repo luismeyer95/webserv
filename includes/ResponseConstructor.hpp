@@ -17,9 +17,9 @@ class ResponseConstructor {
 		std::string					_code;
 		int							_error;
 
-		std::vector<std::string>	_allow;
-		std::vector<std::string>	_content_language;
-		std::string					_content_length;
+		std::string					_allow;//405
+		std::string					_content_language;
+		std::string					_content_length;//be careful lot of condition
 		std::string					_content_location;
 		std::string					_content_type;
 		std::string					_date;
@@ -27,7 +27,7 @@ class ResponseConstructor {
         std::string                 _location;//3xx or 201
         std::string                 _retry_after;
         std::string                 _server;
-        std::string                 _transfer_encoding;
+        std::string                 _transfer_encoding;//304, (HEAD ?), NO 1xx, NO 204, NO Connect 2xx,
         std::string                 _www_authenticate;
 
 		std::string date();
@@ -38,6 +38,8 @@ class ResponseConstructor {
 		std::string content_location(FileRequest file_request);
 		std::string location(FileRequest file_request);
 		std::string content_type(FileRequest file_request);
+		std::string content_location(FileRequest file_request);
+		std::string allow(FileRequest file_request);
 
 	public:
 		ResponseConstructor();
