@@ -30,6 +30,8 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
         _header << _server;
         _header << content_location(file_request);
         content_length(file_request);
+        if (_error == 405)
+            _header << allow(file_request);
         if (_error == 401)
             _header << www_authenticate(file_request);
         if (_error == 301 || _error == 503)
@@ -127,7 +129,12 @@ std::string ResponseConstructor::content_location(FileRequest& file_request)
 std::string ResponseConstructor::allow(FileRequest& file_request)
 {
     _allow = "Allow: ";
-    _allow.append(file_request.file_path);//allow
+    for (std::vector<std::string>::iterator it = file_request.allowed_methods.begin(); it != file_request.allowed_methods.end(); it++)
+    {
+        _allow.append(*it);
+        if (it != file_request.allowed_methods.end() - 1)
+            _allow.append(", ");
+    }
     _allow.append("\r\n");
     return (_allow);
 }
