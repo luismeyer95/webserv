@@ -28,6 +28,7 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
         _header << content_type(file_request);
         _header << last_modified(file_request);
         _header << _server;
+        _header << content_location(file_request);
         content_length(file_request);
         if (_error == 401)
             _header << www_authenticate(file_request);
@@ -42,7 +43,7 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     }
     else if (req.getMethod() == "HEAD")
     {
-
+        //same as GET methods but NO payload and NO content-length
     }
     else if (req.getMethod() == "PUT")
     {
@@ -113,4 +114,20 @@ std::string ResponseConstructor::content_type(FileRequest& file_request)
     // _content_type.append(file_request.content_type);
     _content_type.append("\r\n");
     return (_content_type);
+}
+
+std::string ResponseConstructor::content_location(FileRequest& file_request)
+{
+    _content_location = "Content-Location: ";
+    _content_location.append(file_request.file_path);
+    _content_location.append("\r\n");
+    return (_content_location);
+}
+
+std::string ResponseConstructor::allow(FileRequest& file_request)
+{
+    _allow = "Allow: ";
+    _allow.append(file_request.file_path);//allow
+    _allow.append("\r\n");
+    return (_allow);
 }
