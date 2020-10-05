@@ -36,15 +36,15 @@ int RequestParser::parser(const ByteBuffer request)
     header = request.sub(0, request.find({'\r','\n','\r','\n'})).str();
     _payload = request.sub(request.find({'\r','\n','\r','\n'}) + 4);
     
-    temp = tokenizer(header, '\n');
+    temp = strsplit(header, "\n");
     
-    if (tokenizer(temp[0], ' ').size() != 3)
+    if (strsplit(temp[0], " ").size() != 3)
         return (1);
     
-    _method = tokenizer(temp[0], ' ')[0];//check if Method no allowed
+    _method = strsplit(temp[0], " ")[0];//check if Method no allowed
     try
     {
-		_resource = tokenizer(temp[0], ' ').at(1);
+		_resource = strsplit(temp[0], " ").at(1);
     	URL url(_resource);
     }
     catch(const std::exception& e)
@@ -53,8 +53,8 @@ int RequestParser::parser(const ByteBuffer request)
         return (1);
     }
 
-    _protocol = tokenizer(temp[0], ' ')[2];
-    _protocol = tokenizer(_protocol, '\r')[0];
+    _protocol = strsplit(temp[0], " ")[2];
+    _protocol = strsplit(_protocol, "\r")[0];
     if (_protocol != "HTTP/1.1")
     {
         _error = 505;
@@ -91,16 +91,16 @@ void RequestParser::accept_charset_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     _raw_accept_charset = line[1];
-    line = tokenizer(line[1], ',');
+    line = strsplit(line[1], ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
-        tmp = tokenizer(*it, ';');
+        tmp = strsplit(*it, ";");
         if (tmp.size() > 2)
             return ((void)_accept_charset.clear());
         if (tmp.size() == 2 && weight.match(tmp[1]).first)
         {
             tmp2 = num.match(weight.match(tmp[1]).second).second;
-            tmp = tokenizer(tmp2, '.');
+            tmp = strsplit(tmp2, ".");
             tmp2.clear();
             tmp2.append(tmp[0]);
             tmp2.append(tmp[1]);
@@ -136,16 +136,16 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     _raw_accept_language = line[1];
-    line = tokenizer(line[1], ',');
+    line = strsplit(line[1], ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
-        tmp = tokenizer(*it, ';');
+        tmp = strsplit(*it, ";");
         if (tmp.size() > 2)
             return ((void)_accept_language.clear());
         if (tmp.size() == 2 && weight.match(tmp[1]).first)
         {
             tmp2 = num.match(weight.match(tmp[1]).second).second;
-            tmp = tokenizer(tmp2, '.');
+            tmp = strsplit(tmp2, ".");
             tmp2.clear();
             tmp2.append(tmp[0]);
             tmp2.append(tmp[1]);
@@ -176,7 +176,7 @@ void RequestParser::allow_parser(std::vector<std::string> &head)
     line = header_finder(head, "Allow");
     if (line.max_size() == 0)
         return;
-    line = tokenizer(line[1], ',');
+    line = strsplit(line[1], ",");
      for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
      {
          for (unsigned long i = 0; i < req_methods.size(); i++)
@@ -198,7 +198,7 @@ void RequestParser::authorization_parser(std::vector<std::string> &head)
     line = header_finder(head, "Authorization");
     if (line.max_size() == 0)
         return;
-    line = tokenizer(line[1], ' ');
+    line = strsplit(line[1], " ");
     if (line.size() != 2)
         return;
     if (trim(line[0]) == "Basic")
@@ -216,7 +216,7 @@ void RequestParser::content_language_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     _raw_content_language = line[1];
-    line = tokenizer(line[1], ',');
+    line = strsplit(line[1], ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
         if (language.match(trim(*it)).first)
@@ -260,15 +260,15 @@ void RequestParser::content_type_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     _raw_content_type = line[1];
-    line = tokenizer(line[1], ';');
-    tmp = tokenizer(line[0], '/');
+    line = strsplit(line[1], ";");
+    tmp = strsplit(line[0], "/");
     if (tmp.size() != 2)
         return;
     _content_type.media_type = tmp[0];
     _content_type.subtype = tmp[1];
     for (unsigned int i = 1; i < line.size(); i++)
     {
-        tmp = tokenizer(line[i], '=');
+        tmp = strsplit(line[i], "=");
         if (tmp.size() != 2)
             return; //error ?
         if (tmp[0] == " charset")
@@ -298,7 +298,7 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     int j = 0;
     for (std::vector<std::string>::iterator it = head.begin(); it != head.end(); it++)
     {
-        if (tokenizer(*it, ':')[0] == "Host")
+        if (strsplit(*it, ":")[0] == "Host")
             j++;
     }
     if (j != 1)
@@ -314,14 +314,14 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     }
     if (line.size() == 2)
     {
-        if (tokenizer(line[1], ':').size() > 2)
+        if (strsplit(line[1], ":").size() > 2)
         {
             _error = 400;
             return;
         }
-        if (tokenizer(line[1], ':').size() == 2)
+        if (strsplit(line[1], ":").size() == 2)
         {
-            line = tokenizer(line[1], ':');
+            line = strsplit(line[1], ":");
             if (!is_number(line[1]))
             {
                 _error = 400;
@@ -366,14 +366,14 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     _raw_user_agent = line[1];
-    tmp = tokenizer(line[1], ' ');
-    tmp = tokenizer(trim(tmp[0]), '/');
+    tmp = strsplit(line[1], " ");
+    tmp = strsplit(trim(tmp[0]), "/");
     if (tmp.size() != 2)
         return;
     _user_agent.product = tmp[0];
     _user_agent.version = tmp[1];
-    tmp = tokenizer(line[1], ' ');
-    for (std::vector<std::string>::iterator it = tmp.begin() + 1; it != tmp.end(); it++)//decripter ?
+    tmp = strsplit(line[1], " ");
+    for (std::vector<std::string>::iterator it = tmp.begin() + 1; it != tmp.end(); it++)
     {
         _user_agent.comment.append(*it);
         if (it != tmp.end() - 1)

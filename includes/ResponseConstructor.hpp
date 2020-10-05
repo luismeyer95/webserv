@@ -38,6 +38,7 @@ class ResponseConstructor {
 		std::string content_location(FileRequest& file_request);
 		void		location(FileRequest& file_request);
 		void		content_type(FileRequest& file_request);
+		void		allow(FileRequest& file_request);
 
 	public:
 		ResponseConstructor();
