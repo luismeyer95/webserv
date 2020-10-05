@@ -5,6 +5,7 @@
 #include <Logger.hpp>
 #include <URL.hpp>
 #include <RequestParser.hpp>
+#include <ResponseBuffer.hpp>
 
 struct FileRequest;
 class RequestRouter;
@@ -35,21 +36,19 @@ class CGI
 		const std::map<EnvCGI, std::string>&	env;
 		std::vector<std::string>				command;
 
+		ByteBuffer								buffer;
+
 		std::vector<std::string>		parseShebangCommand(const std::string& cgi_scriptname);
 		std::vector<char*>			toArrayOfCStr(const std::vector<std::string>& vec);
 		std::vector<std::string>		buildEnv(const std::map<EnvCGI, std::string>& env);
 
 
-		void			parseCGIResponse(const std::string& response, FileRequest& file_req);
 		void			parseCGIHeader(const std::string& header, CGIResponseHeaders& headers);
 
+		void			parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req);
+
+
 		void			redirectLocalURI(const std::string& location_value);
-
-		std::string	runProcess(const char *bin, char **cmd, char **env);
-		void 		readProcessOutput (int (&pip_main)[2], int (&pip_cgi)[2], pid_t timer_pid, std::string& out);
-
-		void		splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body);
-
 
 		void			scriptError(const std::string& errlog);
 		

@@ -33,12 +33,11 @@ class ResponseConstructor {
 		std::string date();
 		std::string retry_after();
 		std::string www_authenticate(FileRequest& file_request);
-		std::string last_modified(FileRequest& file_request);
+		void		last_modified(FileRequest& file_request);
 		void		content_length(FileRequest& file_request);
 		std::string content_location(FileRequest& file_request);
-		std::string location(FileRequest& file_request);
-		std::string content_type(FileRequest& file_request);
-		std::string allow(FileRequest& file_request);
+		void		location(FileRequest& file_request);
+		void		content_type(FileRequest& file_request);
 
 	public:
 		ResponseConstructor();

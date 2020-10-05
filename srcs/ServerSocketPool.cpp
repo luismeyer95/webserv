@@ -13,23 +13,23 @@ HTTPExchange::HTTPExchange (
 	const ByteBuffer& req,
 	const std::string& client_address,
 	const std::string& address, unsigned short port
-) : response_buffer(), response(), end(false),
+) : response_buffer(), end(false),
 	client_address(client_address),server_address(address),
 	port(port), request(req)
 {
 
 }
 
-void			HTTPExchange::bufferResponse(const ByteBuffer& str, bool mark_end)
+void	HTTPExchange::bufferResponse(const ByteBuffer& headers, SharedPtr<ResponseBuffer> buf, bool mark_end)
 {
-	response_buffer += str;
-	response += str;
+	response_headers = headers;
+	response_buffer = buf;
 	end = mark_end;
 }
 
-ByteBuffer		HTTPExchange::getResponse()
+ResponseBuffer&		HTTPExchange::getResponse()
 {
-	return response;
+	return *response_buffer;
 }
 
 std::string		HTTPExchange::listeningAddress()
@@ -98,10 +98,10 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 		throw std::runtime_error("invalid IP address `" + host + "`");
 
 	int sock = 0;
-	log.out() << "Creating virtual host socket for `" << host << ":" << port << "`\n";
+	log.out() << "Creating virtual host for `" << host << ":" << port << "`\n";
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1)
-		throw std::runtime_error("Failed to create server socket. " + std::string(strerror(errno)));
+		throw std::runtime_error("Failed to create socket. " + std::string(strerror(errno)));
 	
 
 	Listener* lstn = new Listener();
@@ -120,7 +120,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 			"Failed to bind socket to `" + host + ":"
 			+ std::to_string(port) + "`. " + strerror(errno) + "."
 		);
-	log.out() << "Virtual host socket bound successfully to `" << host << ":" << port << "`\n";
+	log.out() << "Virtual host bound successfully to `" << host << ":" << port << "`\n";
 
 	listen(lstn->socket_fd, MAXQUEUE);
 	
@@ -276,7 +276,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 		}
 		else
 		{
-			log.out() << "[inbound packet]: "
+			log.out() << "[inbound]: "
 				<< "fd="  << cli->socket_fd << ", "
 				<< "size=" << readbytes << std::endl;
 			if (retflags & (int)IOSTATE::READY)
@@ -343,14 +343,14 @@ void	ServerSocketPool::pollWrite(Socket* s)
 	{
 		int retflags = 0;
 		size_t sendbytes = sendResponse(cli, retflags);
-		log.out() << "[outbound packet]: "
+		log.out() << "[outbound]: "
 					<< "fd="  << cli->socket_fd << ", "
 					<< "size=" << sendbytes << std::endl;
 		
 		if (retflags & (int)IOSTATE::READY)
 		{
 			// Full response has been sent
-			std::string msg(cli->getExchange().response.str());
+			std::string msg(cli->getExchange().response_headers.str());
 			if (msg.find("\r\n\r\n") != std::string::npos)
 				msg = msg.substr(0, msg.find("\r\n\r\n"));
 			log.out() << "[response]: fd=" << cli->socket_fd << std::endl;
@@ -380,19 +380,19 @@ void	ServerSocketPool::pollWrite(Socket* s)
 size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 {
 	size_t total = 0;
-	ByteBuffer& response_buf = cli->getExchange().response_buffer;
+	ResponseBuffer& response_buf = *cli->getExchange().response_buffer;
 
 	retflags &= 0;
 
 	ssize_t ret;
-	size_t sendbytes = std::min(response_buf.size(), (size_t)MAXBUF);
-	while ( (ret = send(cli->socket_fd, response_buf.get(), sendbytes, MSG_NOSIGNAL)) > 0 )
+	size_t sendbytes = std::min(response_buf.get().size(), (size_t)MAXBUF);
+	while ((ret = send(cli->socket_fd, response_buf.get().get(), sendbytes, MSG_NOSIGNAL)) > 0)
 	{
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;
-		sendbytes = std::min(response_buf.size(), (size_t)MAXBUF);
-		if (response_buf.size() == 0)
+		sendbytes = std::min(response_buf.get().size(), (size_t)MAXBUF);
+		if (response_buf.eof())
 		{
 			if (cli->getExchange().end)
 				retflags |= (int)IOSTATE::READY;

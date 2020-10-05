@@ -80,6 +80,8 @@ std::vector<BYTE> readbin(const std::string& filename)
     return fileData;
 }
 
+
+
 std::string make_html_error_page(int error_code, const std::string& error_string)
 {
 	std::string page = "<div><div style=\"text-align: center;\"><h1>Error "
@@ -407,3 +409,44 @@ std::map<std::string, std::vector<std::string>>& mime_types()
 
 	return mimemap;
 }
+
+std::string ntohexstr(size_t num)
+{
+    static const char* digits = "0123456789ABCDEF";
+    std::string rc(16, '0');
+    for (size_t i = 0, j = (16 - 1) * 4 ; i < 16; ++i, j -= 4)
+        rc[i] = digits[(num >> j) & 0x0f];
+	size_t z = 0;
+	for (; rc[z] == '0'; ++z);
+	if (z == rc.size())
+		z = rc.size() - 1;
+	return rc.substr(z);
+}
+
+size_t	peek_file_size(const std::string& filename)
+{
+	// check if it is a valid file
+	struct stat buffer;
+	if (stat(filename.c_str(), &buffer) != 0 || !(buffer.st_mode & S_IFREG))
+		throw std::runtime_error("peek_file_size(): not a file");
+
+	// open the file:
+	std::streampos file_size;
+	std::ifstream file(filename.c_str(), std::ios::binary);
+	if (!file.is_open())
+		throw std::runtime_error("peek_file_size() : error opening file");
+
+	// get its size:
+	file.seekg(0, std::ios::end);
+	file_size = file.tellg();
+	file.seekg(0, std::ios::beg);
+
+	file.close();
+	return (size_t)file_size;
+}
+
+// std::string atoi_base()
+// {
+// 	std::string base("0123456789ABCDEF")
+// }
+

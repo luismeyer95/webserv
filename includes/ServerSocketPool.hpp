@@ -7,7 +7,9 @@
 #include "Conf/Config.hpp"
 #include "RequestRouter.hpp"
 #include <RequestBuffer.hpp>
+#include <ResponseBuffer.hpp>
 #include <Sockets.hpp>
+#include <SharedPtr.hpp>
 #include <map>
 #include <list>
 #include <vector>
@@ -24,9 +26,11 @@ struct HTTPExchange
 	private:
 		friend struct	ClientSocket;
 		friend class	ServerSocketPool;
-
-		ByteBuffer		response_buffer;
-		ByteBuffer		response;
+		
+		ByteBuffer					response_headers;
+		SharedPtr<ResponseBuffer>	response_buffer;
+		// ByteBuffer		response_buffer;
+		// ByteBuffer		response;
 		bool			end;
 
 		std::string		client_address;
@@ -40,8 +44,8 @@ struct HTTPExchange
 		);
 
 		const ByteBuffer	request;
-		void				bufferResponse(const ByteBuffer& str, bool mark_end = false);
-		ByteBuffer			getResponse();
+		void				bufferResponse(const ByteBuffer& headers, SharedPtr<ResponseBuffer> buf, bool mark_end = false);
+		ResponseBuffer&		getResponse();
 
 		std::string			clientAddress();
 		std::string			listeningAddress();

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   header.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
+/*   By: luis <luis@student.42lyon.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/09/30 14:45:10 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/10/03 21:25:37 by luis             ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/resource.h>
 #include <netdb.h>
 
 #include <string>

@@ -46,6 +46,15 @@ ConfDirective&			RequestRouter::getDirective(ConfBlockDirective& b, DirectiveKey
 	return *it;
 }
 
+void		RequestRouter::saveBinding()
+{
+	saved_binding = route_binding;
+}
+void		RequestRouter::loadBinding()
+{
+	route_binding = saved_binding;
+}
+
 bool		RequestRouter::saveMostSpecificLocation(const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc)
 {
 	for (auto& block : route_binding->blocks)
@@ -145,16 +154,20 @@ void	RequestRouter::bindServer (
 		route_binding = default_server;
 }
 
-void	RequestRouter::fetchErrorPage(FileRequest& file_req, int code, const std::string& msg)
+void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_request, int code, const std::string& msg)
 {
 	file_req.http_code = code;
 	file_req.http_string = msg;
 	file_req.content_type = "text/html";
+	file_req.response_buffer.set(new ResponseBuffer);
 	std::vector<std::string> vals = getBoundRequestDirectiveValues(DirectiveKey::error_page);
 	if (vals.empty())
 	{
 		std::string tmp = make_html_error_page(code, msg);
-		file_req.file_content.append((BYTE*)tmp.data(), tmp.length());
+		// file_req.file_content.append((BYTE*)tmp.data(), tmp.length());
+		file_req.content_length = tmp.length();
+		if (parsed_request.getMethod() != "HEAD")
+			file_req.response_buffer->get().append((BYTE*)tmp.data(), tmp.length());
 	}
 	else
 	{
@@ -165,16 +178,25 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, int code, const std::s
 				size_t xxx = uri.find("xxx");
 				uri.replace(xxx, 3, std::to_string(code));
 				try {
-					file_req.file_content.appendFile(uri);
+					// file_req.file_content.appendFile(uri);
+					file_req.content_length = file_req.response_buffer->get().size();
+					if (parsed_request.getMethod() != "HEAD")
+						file_req.response_buffer->get().appendFile(uri);
 					return;
 				} catch (const std::runtime_error& e) {
 					std::string errpage = make_html_error_page(code, msg);
-					file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
+					// file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
+					file_req.content_length = errpage.length();
+					if (parsed_request.getMethod() != "HEAD")
+						file_req.response_buffer->get().append((BYTE*)errpage.data(), errpage.length());
 					return;
 				}
 			}
 		std::string errpage = make_html_error_page(code, msg);
-		file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
+		// file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
+		file_req.content_length = errpage.length();
+		if (parsed_request.getMethod() != "HEAD")
+			file_req.response_buffer->get().append((BYTE*)errpage.data(), errpage.length());
 	}
 }
 
@@ -248,14 +270,15 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 	return "";	
 }
 
-void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_uri)
+void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
 {
 	std::string path = resolveUriToLocalPath(request_uri);
+	file_req.response_buffer.set(new ResponseBuffer);
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
 	{
-		fetchErrorPage(file_req, 404, "Not Found");
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
 	else if (!(buffer.st_mode & S_IFREG))
@@ -267,7 +290,10 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 			if (stat(ipath.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
 			{
 				try {
-					file_req.file_content.appendFile(ipath);
+					// file_req.file_content.appendFile(ipath);
+					if (parsed_request.getMethod() != "HEAD")
+						file_req.response_buffer->get().appendFile(ipath);
+					file_req.content_length = peek_file_size(ipath);
 					file_req.file_path = ipath;
 					file_req.http_code = 200;
 					file_req.http_string = "OK";
@@ -275,24 +301,26 @@ void	RequestRouter::fetchFile(FileRequest& file_req, const std::string& request_
 					file_req.content_type = get_mime_type(ipath);
 					return;
 				} catch (const std::runtime_error& e) {
-					fetchErrorPage(file_req, 404, "Not Found");
+					fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 					return;
 				}
 			}
 		}
-		fetchErrorPage(file_req, 404, "Not Found");
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
 
 	try {
-		file_req.file_content.appendFile(path);
+		if (parsed_request.getMethod() != "HEAD")
+			file_req.response_buffer->get().appendFile(path);
+		file_req.content_length = peek_file_size(path);
 		file_req.file_path = path;
 		file_req.http_code = 200;
 		file_req.http_string = "OK";
 		file_req.last_modified = get_gmt_time(buffer.st_mtime);
 		file_req.content_type = get_mime_type(path);
 	} catch (const std::runtime_error& e) {
-		fetchErrorPage(file_req, 404, "Not Found");
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
 }
@@ -321,11 +349,11 @@ bool		RequestRouter::checkMethod(RequestParser& parsed_request, FileRequest& fil
 	file_req.allowed_methods = mthds;
 	if (std::find(mthds.begin(), mthds.end(), parsed_request.getMethod()) != mthds.end())
 		return true;
-	fetchErrorPage(file_req, 405, "Method Not Allowed");
+	fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");
 	return false;
 }
 
-bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string& basic_auth)
+bool	RequestRouter::checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth)
 {
 
 	auto auth_basic_vals = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
@@ -334,12 +362,12 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, const std::string&
 	file_req.realm = auth_basic_vals.at(0);
 	if (basic_auth.empty())
 	{
-		fetchErrorPage(file_req, 401, "Unauthorized");
+		fetchErrorPage(file_req, parsed_request, 401, "Unauthorized");
 		return false;
 	}
 	if (!getAuthUser(basic_auth).empty())
 		return true;
-	fetchErrorPage(file_req, 403, "Forbidden");
+	fetchErrorPage(file_req, parsed_request, 403, "Forbidden");
 	return false;
 }
 
@@ -363,26 +391,26 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	auto res = Regex(pathsplit).matchAll(request_path);
 	if (!res.first || res.second.size() != 3)
 	{
-		fetchErrorPage(file_req, 500, "Internal Server Error");
+		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
 		return {};
 	}
 	env[E::SCRIPT_NAME] = res.second.at(1);
 	env[E::PATH_INFO] = URL::reformatPath(res.second.at(2));
-	bool located = bindLocation(env[E::PATH_INFO]);
-	if (!located)
-		env[E::PATH_INFO].clear();
 	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
 	// check if the script is a file that exists before sending to execution
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
-		fetchErrorPage(file_req, 404, "Not Found");
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
-	ConfBlockDirective* saved_binding = route_binding;
+	saveBinding();
 	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
+	bool located = bindLocation(env[E::PATH_INFO]);
+	if (!located)
+		env[E::PATH_INFO].clear();
 	env[E::PATH_TRANSLATED] = resolveUriToLocalPath(env[E::PATH_INFO]);
-	route_binding = saved_binding;
+	loadBinding();
 	env[E::QUERY_STRING] = url.get(URL::Component::Query);
 	env[E::REMOTE_ADDR] = ticket.clientAddress();
 	env[E::REMOTE_IDENT] = "";
@@ -392,7 +420,7 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	env[E::SERVER_NAME] = parsed_request.getHost();
 	env[E::SERVER_PORT] = std::to_string(ticket.listeningPort());
 	env[E::SERVER_PROTOCOL] = "HTTP/1.1";	
-	env[E::SERVER_SOFTWARE] = "Webserv/1.0";
+	env[E::SERVER_SOFTWARE] = "Webserv/1.0 (Unix)";
 
 	return env;
 }
@@ -422,11 +450,12 @@ void		RequestRouter::executeCGI(
 
 	// run script and reload the saved directory
 	CGI cgi(parsed_request, env, cgi_bin);
+	// cgi.executeCGI(file_req);
 	try { cgi.executeCGI(file_req); }
 	catch (const ErrorCode& e)
 	{
 		chdir(cwd_backup.c_str());
-		fetchErrorPage(file_req, e.code(), e.str());
+		fetchErrorPage(file_req, parsed_request, e.code(), e.str());
 		return;
 	}
 	chdir(cwd_backup.c_str());
@@ -438,6 +467,24 @@ void		RequestRouter::executeCGI(
 	file_req.last_modified = get_gmt_time(filecheck.st_mtime);
 	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
 		file_req.realm = auth_basic_val.at(0);
+}
+
+void	RequestRouter::checkRedirect(RequestParser& parsed_request, HTTPExchange& ticket, FileRequest& file_req)
+{
+	if (file_req.http_code == 302)
+	{
+		try {
+			URL url(file_req.redirect_uri);
+			if (url.isPartialURI())
+			{
+				parsed_request.getResource() = file_req.redirect_uri;
+				file_req = requestFile(parsed_request, ticket);
+			}
+		} catch (const std::exception& e) {
+			file_req = FileRequest();
+			fetchErrorPage(file_req, parsed_request, 502, "Bad Gateway");
+		}
+	}
 }
 
 FileRequest	RequestRouter::requestFile (
@@ -455,17 +502,18 @@ FileRequest	RequestRouter::requestFile (
 	bindServer(parsed_request.getHost(), request_ip, request_port);
 	bool located = bindLocation(request_path);
 	if (!located)
-		fetchErrorPage(file_req, 404, "Not Found");
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 	else
 	{
-		if (checkAuthorization(file_req, parsed_request.getAuthorization())
+		if (checkAuthorization(file_req, parsed_request, parsed_request.getAuthorization())
 			&& checkMethod(parsed_request, file_req))
 		{
 			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
 			if (!cgi_dir.empty())
 				executeCGI(file_req, parsed_request, ticket);
 			else
-				fetchFile(file_req, request_path);
+				fetchFile(file_req, parsed_request, request_path);
+			checkRedirect(parsed_request, ticket, file_req);
 		}
 	}
 	return file_req;

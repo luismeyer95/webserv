@@ -124,98 +124,6 @@ void CGI::scriptError(const std::string& errlog)
 	throw ErrorCode(500, "Internal Server Error");
 }
 
-void CGI::readProcessOutput (
-	int (&pip_main)[2], int (&pip_cgi)[2], pid_t timer_pid,
-	std::string& out
-)
-{
-	std::string line;
-	int			status;
-	int			in_bkp = dup(0);
-	ByteBuffer	payload = request.getPayload();
-	ssize_t		content_length = std::stoull(env.at(EnvCGI::CONTENT_LENGTH));
-	size_t		sendbytes = payload.size();
-	ssize_t		ret = 0;
-
-	while ((ret = write(pip_cgi[1], payload.get(), sendbytes)) > 0)
-	{
-		payload.advance(ret);
-		sendbytes = payload.size();
-	}
-	close(pip_cgi[1]);
-	dup2(pip_main[0], 0);
-	close(pip_main[0]);
-	while (std::getline(std::cin, line, '\n'))
-	{
-		out += line;
-		if (std::cin.good())
-			out += "\n";
-	}
-	waitpid(WAIT_ANY, &status, 0);
-	dup2(in_bkp, 0);
-	close(in_bkp);
-	std::cin.clear();
-	std::cout.clear();
-	if (WIFEXITED(status))
-	{
-		kill(timer_pid, SIGKILL);
-		waitpid(timer_pid, nullptr, 0);
-		if (WEXITSTATUS(status))
-			scriptError("script execution failed");
-	}
-	else
-	{
-		while (wait(nullptr) != -1);
-		scriptError("script execution time-out");
-	}
-}
-
-std::string CGI::runProcess(const char *bin, char **cmd, char **env)
-{
-	int pip_main[2];
-	int pip_cgi[2];
-	std::string out;
-
-	if (pipe(pip_main) == -1 || pipe(pip_cgi) == -1)
-		scriptError(std::string("pipe(): ") + strerror(errno));
-	pid_t worker_pid = fork();
-	if (worker_pid == -1)
-		scriptError(std::string("fork(): ") + strerror(errno));
-	if (!worker_pid)
-	{
-		setpgid(0, 0);
-		close(pip_cgi[1]);
-		dup2(pip_cgi[0], 0);
-		close(pip_cgi[0]);
-		close(pip_main[0]);
-		dup2(pip_main[1], 1);
-		close(pip_main[1]);
-		execve(bin, cmd, env);
-		exit(1);
-	}
-	else if (worker_pid > 0)
-	{
-		close(pip_main[1]);
-		close(pip_cgi[0]);
-		pid_t timer_pid = fork();
-		if (timer_pid == -1)
-			scriptError(std::string("fork(): ") + strerror(errno));
-		if (!timer_pid)
-		{
-			close(pip_main[0]);
-			close(pip_cgi[1]);
-
-			usleep(1000000);
-			if (kill(-worker_pid, SIGTERM) == -1)
-				kill(-worker_pid, SIGKILL);
-			exit(0);
-		}
-		else if (timer_pid > 0)
-			readProcessOutput
-				(pip_main, pip_cgi, timer_pid, out);
-	}
-	return out;
-}
 
 void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 {
@@ -235,45 +143,8 @@ void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 	
 }
 
-void CGI::splitHeaderBody(const std::string& response, std::vector<std::string>& headers, std::string& body)
+void CGI::parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req)
 {
-	size_t header_break = 0;
-	size_t break_len = 0;
-	size_t double_lf = response.find("\n\n");
-	size_t double_crlf = response.find("\r\n\r\n");
-
-	if (double_lf < double_crlf)
-	{
-		header_break = double_lf;
-		break_len = 2;
-	}
-	else
-	{
-		header_break = double_crlf;
-		break_len = 4;
-	}
-	
-	if (header_break == std::string::npos)
-		scriptError("header break not found in output of script");
-		
-	std::string str_headers = response.substr(0, header_break);
-	headers = strsplit(str_headers, "\r\n");
-	if (headers.empty())
-		scriptError("no headers found in output of script");
-	body = response.substr(header_break + break_len);
-
-}
-
-void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
-{
-	std::vector<std::string> vec_headers;
-	std::string body;
-
-	splitHeaderBody(response, vec_headers, body);
-
-	// for (auto& s : vec_headers)
-	// 	std::cout << "HEADER=" << s << std::endl;
-
 	CGIResponseHeaders headers;
 	for (auto& s : vec_headers)
 		parseCGIHeader(s, headers);
@@ -285,8 +156,8 @@ void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
 		return;
 	}
 
-	if (!body.empty() && headers.content_type.empty())
-		scriptError("no headers in output of script");
+	if (headers.content_type.empty())
+		scriptError("missing `Content-Type` header in output of script");
 
 	file_req.content_type = headers.content_type;
 
@@ -305,8 +176,6 @@ void CGI::parseCGIResponse(const std::string& response, FileRequest& file_req)
 	}
 	else
 		file_req.http_code = 200;
-
-	file_req.file_content.append((BYTE*)body.data(), body.size());
 }
 
 void CGI::executeCGI(FileRequest& file_req)
@@ -327,9 +196,15 @@ void CGI::executeCGI(FileRequest& file_req)
 	std::vector<char*> command_c = CGI::toArrayOfCStr(command);
 	std::vector<char*> command_env_c = CGI::toArrayOfCStr(command_env);
 
-	
-	std::string cgi_content = runProcess(command.at(0).c_str(), &command_c[0], &command_env_c[0]);
-	// std::cout << "FULL CGI RESPONSE:\n" << cgi_content << "\n____________________\n";
+	file_req.response_buffer.set(new ResponseBufferProcessStream (
+		env.at(EnvCGI::SCRIPT_FILENAME), request.getPayload(),
+		command[0], command_c, command_env_c, true
+	));
 
-	parseCGIResponse(cgi_content, file_req);
+	auto headers = file_req.response_buffer->getHeaders();
+
+	if (request.getMethod() == "HEAD")
+		file_req.response_buffer.set(new ResponseBuffer());
+
+	parseCGIResponse(headers, file_req);
 }

@@ -32,6 +32,8 @@ class ByteBuffer
 		void			append(const ByteBuffer& bb);
 		void			append(const BYTE* buffer, size_t size);
 		void			append(const std::ostringstream& stream);
+		void			prepend(const BYTE* buffer, size_t size);
+		void			prepend(const ByteBuffer& bb);
 
 		static size_t 	peekFileSize(const std::string& filename);
 		void			appendFile(const std::string& filename);

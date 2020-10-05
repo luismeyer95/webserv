@@ -90,9 +90,19 @@ void	ByteBuffer::append(const BYTE* buffer, size_t size)
 	data.insert(data.end(), buffer, buffer + size);
 }
 
+void	ByteBuffer::prepend(const BYTE* buffer, size_t size)
+{
+	data.insert(data.begin(), buffer, buffer + size);
+}
+
 void	ByteBuffer::append(const ByteBuffer& bb)
 {
 	append(bb.get(), bb.size());
+}
+
+void	ByteBuffer::prepend(const ByteBuffer& bb)
+{
+	prepend(bb.get(), bb.size());
 }
 
 void	ByteBuffer::append(const std::ostringstream& stream)

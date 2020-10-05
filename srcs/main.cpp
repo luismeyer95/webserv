@@ -5,6 +5,7 @@
 #include <Utils.hpp>
 #include <header.h>
 #include <ByteBuffer.hpp>
+#include <SharedPtr.hpp>
 
 #include <Regex.hpp>
 #include <Conf.hpp>
@@ -23,28 +24,22 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 	Logger& log = Logger::getInstance();
 	// Extracting header in 
 	//call RequestParser here
+
 	RequestParser request;
 	request.parser(comm.request);
 
-	FileRequest file_request = router.requestFile (
-		request, comm
-	);
-
-	ByteBuffer doc;
+	FileRequest file_request(router.requestFile(request, comm));
 
 	ResponseConstructor response;
-	doc = response.constructor(request, file_request);
+	ByteBuffer headers = response.constructor(request, file_request);
 
-	// std::cout << "REQUEST CALL" << std::endl;
-	// std::cout << "request uri: " << request.getResource() << std::endl;
-	// std::cout << "host name: " << request.getHost() << std::endl;
-	// std::cout << "ip: " << comm.listeningAddress() << std::endl;
-	// std::cout << "port: " << comm.listeningPort() << std::endl;
-	// std::cout << "auth: " << request.getAuthorization() << std::endl;
-
+	SharedPtr<ResponseBuffer> response_buffer(file_request.response_buffer);
+	response_buffer->get().prepend(headers);
 	// Load the response in the http exchange ticket and mark as ready
-	comm.bufferResponse(doc, true);
+	comm.bufferResponse(headers, response_buffer, true);
 }
+
+
 
 int main(int ac, char **av)
 {
@@ -70,8 +65,6 @@ int main(int ac, char **av)
 		RequestRouter router(conf);
 
 		pool.setConfig(router);
-
-		log.hl(BOLDGREEN "SUCCESS");
 
 	} catch (const std::runtime_error& e) {
 		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
