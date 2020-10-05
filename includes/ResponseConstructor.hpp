@@ -30,15 +30,15 @@ class ResponseConstructor {
         std::string                 _transfer_encoding;//304, (HEAD ?), NO 1xx, NO 204, NO Connect 2xx,
         std::string                 _www_authenticate;
 
-		std::string date();
-		std::string retry_after();
-		std::string www_authenticate(FileRequest& file_request);
-		void		last_modified(FileRequest& file_request);
-		void		content_length(FileRequest& file_request);
-		std::string content_location(FileRequest& file_request);
-		void		location(FileRequest& file_request);
-		void		content_type(FileRequest& file_request);
-		void		allow(FileRequest& file_request);
+		void date();
+		void retry_after();
+		void www_authenticate(FileRequest& file_request);
+		void last_modified(FileRequest& file_request);
+		void content_length(FileRequest& file_request);
+		void content_location(FileRequest& file_request);
+		void location(FileRequest& file_request);
+		void content_type(FileRequest& file_request);
+		void allow(FileRequest& file_request);
 
 	public:
 		ResponseConstructor();

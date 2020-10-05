@@ -23,46 +23,49 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
 
     _header << _first_line;
-    _header << date();
+    date();
     _header << _server;
     content_type(file_request);
     content_length(file_request);
     last_modified(file_request);
 	location(file_request);
     allow(file_request);
-    if (_error == 401)
-        _header << www_authenticate(file_request);
-    if (_error == 301 || _error == 503)
-        _header << retry_after();
+    www_authenticate(file_request);
+    retry_after();
     _header << "\r\n";
 
     return (_header);
 }
 
-std::string ResponseConstructor::date()
+void ResponseConstructor::date()
 {
     _date = "Date: ";
     _date.append(get_gmt_time(time(0)));
     _date.append("\r\n");
-    return (_date);
+    _header << _date;
 }
 
-std::string ResponseConstructor::retry_after()
+void ResponseConstructor::retry_after()
 {
-    //sent with 503, 429, 301
-    _retry_after = "Retry-After: ";
-    _retry_after.append("120");
-    _retry_after.append("\r\n");
-    return (_retry_after);
+    if (_error == 503 || _error == 429 || _error == 301)
+    {
+        _retry_after = "Retry-After: ";
+        _retry_after.append("120");
+        _retry_after.append("\r\n");
+        _header << _retry_after;
+    }
 }
 
-std::string ResponseConstructor::www_authenticate(FileRequest& file_request)
+void ResponseConstructor::www_authenticate(FileRequest& file_request)
 {
-    _www_authenticate = "WWW-Authenticate: Basic ";
-    _www_authenticate.append("realm=");
-    _www_authenticate.append(file_request.realm);
-    _www_authenticate.append("\r\n");
-    return (_www_authenticate);
+    if (_error == 401)
+    {
+        _www_authenticate = "WWW-Authenticate: Basic ";
+        _www_authenticate.append("realm=");
+        _www_authenticate.append(file_request.realm);
+        _www_authenticate.append("\r\n");
+        _header << _www_authenticate;
+    }
 }
 
 void ResponseConstructor::last_modified(FileRequest& file_request)
@@ -87,13 +90,13 @@ void ResponseConstructor::content_type(FileRequest& file_request)
 
 void ResponseConstructor::location(FileRequest& file_request)
 {
-	if (file_request.http_code == 302)
+	if (_error == 302)
 		_header << "Location: " << file_request.redirect_uri << "\r\n";
 }
 
 void ResponseConstructor::allow(FileRequest& file_request)
 {
-    if (file_request.http_code == 405)
+    if (_error == 405)
     {
         _allow = "Allow: ";
         for (std::vector<std::string>::iterator it = file_request.allowed_methods.begin(); it != file_request.allowed_methods.end(); it++)
