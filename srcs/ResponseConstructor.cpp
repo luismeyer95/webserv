@@ -86,34 +86,6 @@ void ResponseConstructor::content_type(FileRequest& file_request)
 
 void ResponseConstructor::location(FileRequest& file_request)
 {
-<<<<<<< HEAD
-    _content_type = "Content-Type: " + file_request.content_type;
-    // _content_type.append(file_request.content_type);
-    _content_type.append("\r\n");
-    return (_content_type);
-}
-
-std::string ResponseConstructor::content_location(FileRequest& file_request)
-{
-    _content_location = "Content-Location: ";
-    _content_location.append(file_request.file_path);
-    _content_location.append("\r\n");
-    return (_content_location);
-}
-
-std::string ResponseConstructor::allow(FileRequest& file_request)
-{
-    _allow = "Allow: ";
-    for (std::vector<std::string>::iterator it = file_request.allowed_methods.begin(); it != file_request.allowed_methods.end(); it++)
-    {
-        _allow.append(*it);
-        if (it != --file_request.allowed_methods.end())
-            _allow.append(", ");
-    }
-    _allow.append("\r\n");
-    return (_allow);
-=======
 	if (file_request.http_code == 302)
 		_header << "Location: " << file_request.redirect_uri << "\r\n";
->>>>>>> transfer encoding ok + HEAD requests
 }
