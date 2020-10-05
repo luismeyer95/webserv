@@ -148,6 +148,12 @@ ft::deque<Socket*>&		ServerSocketPool::getSocketList()
 	return socket_list;
 }
 
+void handle_sigint(int sig) 
+{
+	(void)sig;
+	write(1, "\n", 1);
+}
+
 void	ServerSocketPool::runServer(
 	void (*connection_handler)(HTTPExchange&, RequestRouter& conf),
 	void (*request_handler)(HTTPExchange&, RequestRouter& conf)
@@ -157,11 +163,15 @@ void	ServerSocketPool::runServer(
 	this->request_handler = request_handler;
 	initFdset();
 
+	signal(SIGINT, handle_sigint);
+
 	while (true)
 	{
 		fd_set copy_read = master_read;
 		fd_set copy_write = master_write;
 		int socket_count = select(fd_max + 1, &copy_read, &copy_write, nullptr, nullptr);
+		if (socket_count == -1 && errno == EINTR)
+			break;
 		
 		size_t i = 0;
 		size_t size = socket_list.size();
