@@ -7,7 +7,8 @@ RequestParser::RequestParser()
     : _error(0), _method(""), _resource(""), _protocol(""),
        _authorization(""), _content_length(0), _content_location(""),
         _date(""), _host_name(""), _host_ip(0), 
-        _referer("")
+        _referer(""),
+        _req_methods({"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE"})
 {
     _headers.push_back("Accept-Charset");
     _headers.push_back("Accept-Language");
@@ -41,7 +42,17 @@ int RequestParser::parser(const ByteBuffer request)
     if (strsplit(temp[0], " ").size() != 3)
         return (1);
     
-    _method = strsplit(temp[0], " ")[0];//check if Method no allowed
+    _method = strsplit(temp[0], " ")[0];
+    for (unsigned long i = 0; i < _req_methods.size(); i++)
+    {
+        if (_method == _req_methods[i])
+            break;
+        else if (i == _req_methods.size())
+        {
+            _error = 400;
+            return (1);
+        }
+    }
     try
     {
 		_resource = strsplit(temp[0], " ").at(1);
@@ -171,7 +182,6 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
 void RequestParser::allow_parser(std::vector<std::string> &head)
 {
     std::vector<std::string> line;
-    std::vector<std::string> req_methods = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE"};
 
     line = header_finder(head, "Allow");
     if (line.max_size() == 0)
@@ -179,11 +189,11 @@ void RequestParser::allow_parser(std::vector<std::string> &head)
     line = strsplit(line[1], ",");
      for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
      {
-         for (unsigned long i = 0; i < req_methods.size(); i++)
+         for (unsigned long i = 0; i < _req_methods.size(); i++)
          {
-             if (trim(*it) == req_methods[i])
+             if (trim(*it) == _req_methods[i])
                 break;
-            if (i == req_methods.size() - 1)//if method does not exist what to do ?
+            if (i == _req_methods.size() - 1)//if method does not exist what to do ?
                 return;
          }
          _allow.push_back(trim(*it));

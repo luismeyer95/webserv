@@ -445,6 +445,74 @@ size_t	peek_file_size(const std::string& filename)
 	return (size_t)file_size;
 }
 
+std::string itoa(int i)
+{
+	unsigned int j;
+	std::string out;
+	if (i < 0)
+	{
+		out = "-";
+		j = -i;
+	}
+	else
+		j = i;
+
+	if (j / 10 != 0)
+	{
+		out.append(itoa((int)(j / 10)));
+		out.push_back((char)(j % 10 + 48));
+		return (out);
+	}
+	out = j + 48;
+	return (out);
+}
+
+std::string http_index(std::string folder)
+{
+	std::string index;
+	DIR *d;
+	struct dirent *dir;
+	struct stat result;
+	std::string real_dir = "./";
+	d = opendir((real_dir.append(folder)).c_str());
+
+	if (d != NULL)
+	{
+		index = filetostr("./preset_index.html");
+		index.append("/");
+		index.append(folder);
+		index.append("/");
+		index.append("</h1> <table id=\"list\" cellpadding=\"0.1em\" cellspacing=\"0\"> <colgroup> <col width=\"55%\"/> <col width=\"20%\"/> <col width=\"25%\"/> </colgroup> <thead> <tr><th><strong>Name</strong></th> <th><strong>File Size</strong></th> <th><strong>Date</strong></th> </thead> <tbody>");
+		while ((dir = readdir(d)))
+		{
+			index.append("<tr><td><a href=\"");
+			index.append(dir->d_name);
+			index.append("\">");
+			index.append(dir->d_name);
+			index.append("</a></td><td>");
+
+			real_dir = "./";
+			real_dir.append(folder);
+			real_dir.append("/");
+
+			if (dir->d_type == DT_REG && stat(real_dir.append(dir->d_name).c_str(), &result) == 0)
+				index.append(itoa((int)result.st_size));
+			else
+				index.append("-");
+			index.append("</td><td>");
+			if (stat(real_dir.append(dir->d_name).c_str(), &result) == 0)
+				index.append(get_gmt_time((result.st_mtime)));
+			index.append("</td></tr>\n");
+		}
+		index.append("</tbody> </table> </div> </div> </body> </html>");
+		closedir(d);
+	}
+	else
+		perror("");
+	
+	return (index);
+}
+
 // std::string atoi_base()
 // {
 // 	std::string base("0123456789ABCDEF")

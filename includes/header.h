@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   header.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: luis <luis@student.42lyon.fr>              +#+  +:+       +#+        */
+/*   By: user42 <user42@student.42lyon.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/10/03 21:25:37 by luis             ###   ########lyon.fr   */
+/*   Updated: 2020/10/06 14:06:11 by user42           ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <netdb.h>
+#include <dirent.h>
 
 #include <string>
 #include <iostream>
