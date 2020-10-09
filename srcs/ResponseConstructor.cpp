@@ -20,18 +20,20 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
 
     _error = file_request.http_code;
     _code = get_http_code(file_request.http_code);
-    _first_line.append(_code + "\r\n");//first line HTTP/1.1 + code
+    _first_line.append(std::to_string(_error) + " " + get_http_string(_error) + "\r\n");
 
     _header << _first_line;
     date();
     _header << _server;
     content_type(file_request);
     content_length(file_request);
+	content_location(file_request);
     last_modified(file_request);
 	location(file_request);
     allow(file_request);
     www_authenticate(file_request);
     retry_after();
+	_header << "Connection: close\r\n";
     _header << "\r\n";
 
     return (_header);
@@ -76,9 +78,9 @@ void ResponseConstructor::last_modified(FileRequest& file_request)
 
 void ResponseConstructor::content_length(FileRequest& file_request)
 {
-	if (file_request.content_length != -1)
+	if (file_request.content_length > 0)
     	_header << "Content-Length: " << file_request.content_length << "\r\n";
-	else
+	else if (file_request.content_length == -1)
 		_header << "Transfer-Encoding: chunked\r\n";
 }
 
@@ -108,4 +110,10 @@ void ResponseConstructor::allow(FileRequest& file_request)
         _allow.append("\r\n");
         _header << _allow;
     }
+}
+
+void ResponseConstructor::content_location(FileRequest& file_request)
+{
+	if (!file_request.content_location.empty())
+		_header << "Content-Location: " << file_request.content_location << "\r\n";
 }

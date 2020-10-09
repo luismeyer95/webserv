@@ -18,7 +18,8 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"auth_basic_user_file", D::auth_basic_user_file},
 		{"execute_cgi", D::execute_cgi},
 		{"cgi_split_path_info", D::cgi_split_path_info},
-		{"accept_methods", D::accept_methods}
+		{"accept_methods", D::accept_methods},
+		{"max_request_body", D::max_request_body}
 	});
 }
 
@@ -40,6 +41,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::execute_cgi: return "execute_cgi";
 		case D::cgi_split_path_info: return "cgi_split_path_info";
 		case D::accept_methods: return "accept_methods";
+		case D::max_request_body: return "max_request_body";
 	}
 }
 
@@ -349,6 +351,23 @@ void ConfDirective::validate()
 				values.push_back("TRACE");
 			}
 
+			break;
+		}
+
+		case D::max_request_body:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			
+			Regex rgx("^\\d+$");
+			auto res = rgx.match(values.at(0));
+			if (!res.first)
+				throw dirExcept("value must be a number");
+			try {
+				std::stoull(values.at(0));
+			} catch (const std::out_of_range& e) {
+				throw dirExcept("value must fit in a 64-bit unsigned integer");
+			}
 			break;
 		}
 	}

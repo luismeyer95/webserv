@@ -6,7 +6,8 @@ bool 				Listener::isListener()
 	return true;
 }
 
-ClientSocket::ClientSocket() : Socket(), lstn_socket(nullptr)
+ClientSocket::ClientSocket(RequestRouter& route)
+	: Socket(), lstn_socket(nullptr), req_buffer(route, this)
 {
 
 }

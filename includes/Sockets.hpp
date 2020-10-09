@@ -34,7 +34,7 @@ struct ClientSocket : Socket
 	RequestBuffer				req_buffer;
 	std::queue<HTTPExchange>	exchanges;
 
-	ClientSocket();
+	ClientSocket(RequestRouter& route);
 
 	// Takes a finished request from the request buffer, creates a http exchange ticket
 	// and advances the buffer to the character after the first crlf (next request) 

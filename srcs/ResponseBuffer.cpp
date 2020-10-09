@@ -204,18 +204,33 @@ bool ResponseBufferProcessStream::searchHeaderBreak(ssize_t& break_pos, ssize_t&
 	ssize_t double_lf = buffer.strfind("\n\n");
 	ssize_t double_crlf = buffer.strfind("\r\n\r\n");
 
-	if (double_crlf == -1 && double_lf == -1)
+	auto is_set = [] (ssize_t val) { return val != -1; };
+
+	if (!is_set(double_lf) && !is_set(double_crlf))
 		return false;
 
-	if (double_lf < double_crlf)
+	if (is_set(double_lf) && is_set(double_crlf))
+	{
+		if (double_lf < double_crlf)
+		{
+			break_pos = double_lf;
+			break_len = 2;
+		}
+		else
+		{
+			break_pos = double_crlf;
+			break_len = 4;
+		}
+	}
+	else if (is_set(double_lf))
 	{
 		break_pos = double_lf;
 		break_len = 2;
 	}
-	else
+	else if (is_set(double_crlf))
 	{
 		break_pos = double_crlf;
-		break_len = 4;
+		break_len = 4;	
 	}
 
 	return true;

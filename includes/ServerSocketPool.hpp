@@ -7,6 +7,7 @@
 #include "Conf/Config.hpp"
 #include "RequestRouter.hpp"
 #include <RequestBuffer.hpp>
+#include <RequestParser.hpp>
 #include <ResponseBuffer.hpp>
 #include <Sockets.hpp>
 #include <SharedPtr.hpp>
@@ -88,6 +89,8 @@ class ServerSocketPool
 
 		size_t				recvRequest(ClientSocket* cli, int& retflags);
 		size_t				sendResponse(ClientSocket* cli, int& retflags);
+
+		// void				preprocessRequest(HTTPExchange&);
 
 		void				runServer(
 			void (*connection_handler)(HTTPExchange&, RequestRouter&) ,

@@ -252,12 +252,7 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 	{
 		try {
 			std::string root = getDirective(*tmp, DirectiveKey::root).values.at(0);
-			if (root == "/")
-				root = "";
-			std::string uri("");
-			if (request_uri != "/")
-				uri = request_uri;
-			std::string path = get_current_dir() + root + uri;
+			std::string path = URL::reformatPath(get_current_dir() + root + request_uri);
 			return path;
 		} catch (...) {}
 		try {
@@ -270,10 +265,62 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 	return "";	
 }
 
+bool	RequestRouter::assertOrError(bool expr, FileRequest& file_req, RequestParser& parsed_request, int code, const std::string& msg)
+{
+	if (!expr)
+	{
+		fetchErrorPage(file_req, parsed_request, code, msg);
+		return false;
+	}
+	return true;
+}
+
+void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
+{
+	file_req.response_buffer.set(new ResponseBuffer);
+	std::string path = resolveUriToLocalPath(request_uri);
+
+	struct stat buffer;
+	int st_ret = stat(path.c_str(), &buffer);
+	if (st_ret != 0 || (buffer.st_mode & S_IFREG))
+	{
+		int in;
+		if (!assertOrError((in = open(path.c_str(), O_RDWR | O_CREAT, 0644)) != -1,
+			file_req, parsed_request, 500, "Internal Server Error"))
+			return;
+		const void *buf = parsed_request.getPayload().get();
+		ssize_t len = parsed_request.getContentLength();
+		if (!assertOrError(write(in, buf, len) == len, file_req, parsed_request, 500, "Internal Server Error"))
+		{
+			std::cout << "HERE?" << std::endl;
+			close(in);
+			return;
+		}
+		if (!st_ret && (buffer.st_mode & S_IFREG))
+		{
+			file_req.http_code = 200;
+			file_req.http_string = "OK";
+		}
+		else
+		{
+			file_req.http_code = 201;
+			file_req.http_string = "Created";
+		}
+		file_req.content_location = request_uri;
+		file_req.content_length = 0;
+	}
+	else
+		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
+}
+
+
 void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
 {
-	std::string path = resolveUriToLocalPath(request_uri);
 	file_req.response_buffer.set(new ResponseBuffer);
+	std::string path = resolveUriToLocalPath(request_uri);
+
+	Logger& log = Logger::getInstance();
+	// log.hl(BOLDWHITE "RESOLVED PATH", path);
 
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
@@ -482,9 +529,25 @@ void	RequestRouter::checkRedirect(RequestParser& parsed_request, HTTPExchange& t
 			}
 		} catch (const std::exception& e) {
 			file_req = FileRequest();
-			fetchErrorPage(file_req, parsed_request, 502, "Bad Gateway");
+			fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
 		}
 	}
+}
+
+// bool	RequestRouter::checkBodyLength(RequestParser& parsed_request, FileRequest& file_req)
+// {
+// 	auto max_body_dir = getBoundRequestDirectiveValues(DirectiveKey::max_request_body);
+// 	if (max_body_dir.empty())
+// 		return true;
+// 	if (parsed_request.getContentLength() <= std::stoull(max_body_dir.at(0)))
+// 		return true;
+// 	fetchErrorPage(file_req, parsed_request, 413, "Payload Too Large");
+// 	return false;
+// }
+
+bool RequestRouter::methodIsEither(const std::string& method, const std::vector<std::string>& list)
+{
+	return std::find(list.begin(), list.end(), method) != list.end();
 }
 
 FileRequest	RequestRouter::requestFile (
@@ -511,8 +574,15 @@ FileRequest	RequestRouter::requestFile (
 			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
 			if (!cgi_dir.empty())
 				executeCGI(file_req, parsed_request, ticket);
-			else
+			else if (methodIsEither(parsed_request.getMethod(), {"GET", "HEAD"}))
 				fetchFile(file_req, parsed_request, request_path);
+			else if (parsed_request.getMethod() == "PUT")
+				putFile(file_req, parsed_request, request_path);
+			else
+			{
+				fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");
+				return file_req;
+			}
 			checkRedirect(parsed_request, ticket, file_req);
 		}
 	}

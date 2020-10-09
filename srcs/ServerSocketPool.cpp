@@ -210,7 +210,7 @@ bool	ServerSocketPool::selected(Socket* socket, fd_set* set)
 
 ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 {
-	ClientSocket* comm = new ClientSocket();
+	ClientSocket* comm = new ClientSocket(conf);
 	comm->lstn_socket = lstn;
 
 	Logger& log = Logger::getInstance(); 
@@ -299,13 +299,12 @@ void	ServerSocketPool::pollRead(Socket* s)
 				// - write poller will pop client from the write queue
 				//	 once the http exchange pool for this client is empty
 				RequestBuffer& buff = cli->req_buffer;
-				ByteBuffer msg(buff.extract(false));
+				ByteBuffer msg(buff.get());
 				if (msg.strfind("\r\n\r\n") != -1)
 					msg = msg.sub(0, msg.strfind("\r\n\r\n"));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
 				log.out(msg.str());
-				while (cli->req_buffer.ready())
-					request_handler(cli->newExchange(buff.extract()), conf);
+				// request_handler(cli->newExchange(buff.extract()), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}
@@ -321,10 +320,6 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 
 	retflags = 0;
 
-	// - recv() will return -1 and set EAGAIN if socket is non-blocking and no data available
-	// - recv() returns 0 if client sends ctrl-c (probably sets EINTR too)
-
-	// buffers the bytes read across calls, then set ready when crlf is found
 	int ret;
 	while ( (ret = recv(cli->socket_fd, buf, MAXBUF, 0)) > 0 )
 	{
@@ -341,6 +336,7 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 
 	return total;
 }
+
 
 void	ServerSocketPool::pollWrite(Socket* s)
 {
