@@ -192,7 +192,11 @@ void ConfDirective::validate()
 
 		case D::autoindex:
 		{
-			// . . .
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			if ((values.at(0) != "on" && values.at(0) != "off") || values.size() != 1)
+				throw dirExcept("invalid value(s)");
+
 			break;
 		}
 

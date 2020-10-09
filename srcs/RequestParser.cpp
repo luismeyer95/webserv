@@ -78,7 +78,7 @@ int RequestParser::parser(const ByteBuffer request)
     host_parser(temp);
     referer_parser(temp);
     user_agent_parser(temp);
-
+	transfer_encoding(temp);
 
     return (0);
 }
@@ -375,7 +375,7 @@ void RequestParser::transfer_encoding(std::vector<std::string> &head)
     std::vector<std::string> tmp;
     
     line = header_finder(head, "Transfer-Encoding");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     if (line.at(1) != "chunked")
         _error = 400;

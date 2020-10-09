@@ -66,6 +66,7 @@ class RequestRouter
 		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);
 		bool		checkBodyLength(RequestParser& parsed_request, FileRequest& file_req);
 		void		checkRedirect(RequestParser& parsed_request, HTTPExchange& ticket, FileRequest& file_req);
+		bool		checkAutoindex(FileRequest& file_req, RequestParser& parsed_request, const std::string& path);
 		bool		methodIsEither(const std::string& method, const std::vector<std::string>& list);
 
 		std::string	getAuthUser(const std::string& basic_auth);

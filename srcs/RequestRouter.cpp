@@ -323,6 +323,24 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
 }
 
+bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_request, const std::string& path)
+{
+	auto autoindex_vals = getBoundRequestDirectiveValues(DirectiveKey::autoindex);
+
+	if (autoindex_vals.empty() || autoindex_vals.at(0) == "off")
+		return false;
+
+	std::string autoindex_html = http_index(path);
+	if (parsed_request.getMethod() != "HEAD")
+		file_req.response_buffer->get().append((BYTE*)autoindex_html.c_str(), autoindex_html.size());
+	file_req.content_length = autoindex_html.size();
+	file_req.file_path = path;
+	file_req.http_code = 200;
+	file_req.http_string = "OK";
+	file_req.content_type = "text/html";
+
+	return true;
+}
 
 void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
 {
@@ -363,7 +381,8 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 				}
 			}
 		}
-		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
+		if (!checkAutoindex(file_req, parsed_request, path))
+			fetchErrorPage(file_req, parsed_request, 403, "Forbidden");
 		return;
 	}
 

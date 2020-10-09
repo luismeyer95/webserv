@@ -525,7 +525,7 @@ std::string http_index(std::string folder)
 	DIR *d;
 	struct dirent *dir;
 	struct stat result;
-	std::string real_dir = "./";
+	std::string real_dir;
 	d = opendir((real_dir.append(folder)).c_str());
 
 	if (d != NULL)
@@ -543,7 +543,7 @@ std::string http_index(std::string folder)
 			index.append(dir->d_name);
 			index.append("</a></td><td>");
 
-			real_dir = "./";
+			real_dir = "";
 			real_dir.append(folder);
 			real_dir.append("/");
 

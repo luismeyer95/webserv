@@ -43,6 +43,10 @@ void	handle_request(HTTPExchange& comm, RequestRouter& router)
 
 int main(int ac, char **av)
 {
+
+	// std::cout << http_index(av[1]) << std::endl;
+	// exit(0);
+	
 	if (ac != 2)
 	{
 		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;

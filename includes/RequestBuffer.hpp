@@ -40,6 +40,8 @@ class RequestBuffer
 		bool				parserError();
 		bool				processError(bool expr, int code);
 
+		ByteBuffer			unchunk(ByteBuffer buffer);
+
 
 		void				processHeader();
 		void				processRequest();
