@@ -7,7 +7,7 @@ const size_t default_max_header_size = 10000;
 
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
 	: route(route), socket(sock), max_body(default_max_body_size),
-	header_break(-1), content_length(0), errcode(-1) {}
+	header_break(-1), content_length(0), errcode(-1), processed(false) {}
 
 template <typename T>
 bool				RequestBuffer::isSet(T var)

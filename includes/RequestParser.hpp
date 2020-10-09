@@ -122,7 +122,7 @@ class RequestParser {
 		std::string					getReferer() {return _referer;}
 		UserAgent					getUserAgent() {return _user_agent;}
 		int							getError() {return _error;}
-		ByteBuffer&					getPayload() {return _payload;}
+		ByteBuffer&					getPayload() {return _payload; }
 		std::string					getRawAcceptCharset() {return _raw_accept_charset;}
 		std::string					getRawAcceptLanguage() {return _raw_accept_language;}
 		std::string					getRawContentLanguage() {return _raw_content_language;}

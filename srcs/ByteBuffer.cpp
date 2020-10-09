@@ -87,12 +87,14 @@ void	ByteBuffer::advance(size_t num)
 
 void	ByteBuffer::append(const BYTE* buffer, size_t size)
 {
-	data.insert(data.end(), buffer, buffer + size);
+	if (size)
+		data.insert(data.end(), buffer, buffer + size);
 }
 
 void	ByteBuffer::prepend(const BYTE* buffer, size_t size)
 {
-	data.insert(data.begin(), buffer, buffer + size);
+	if (size)
+		data.insert(data.begin(), buffer, buffer + size);
 }
 
 void	ByteBuffer::append(const ByteBuffer& bb)
