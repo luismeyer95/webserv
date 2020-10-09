@@ -362,6 +362,20 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     }
 }
 
+void RequestParser::transfer_encoding(std::vector<std::string> &head)
+{
+    std::vector<std::string> line;
+    std::vector<std::string> tmp;
+    
+    line = header_finder(head, "Transfer-Encoding");
+    if (line.max_size() == 0)
+        return;
+    if (line.at(1) != "chunked")
+        _error = 400;
+    else
+        _transfer_encoding = line.at(1);
+}
+
 void RequestParser::user_agent_parser(std::vector<std::string> &head)
 {
     std::vector<std::string> line;

@@ -55,6 +55,8 @@ class RequestParser {
 
 		int							_error;
 
+		ByteBuffer					_payload;
+
 		std::string					_method;
 		std::string					_resource;
 		std::string					_protocol;
@@ -71,6 +73,7 @@ class RequestParser {
 		std::string					_host_name;
 		unsigned short				_host_ip;
 		std::string					_referer;
+		std::string					_transfer_encoding;
 		UserAgent					_user_agent;
 
 		std::string					_raw_accept_charset;
@@ -92,6 +95,7 @@ class RequestParser {
 		void date_parser(std::vector<std::string> &head);
 		void host_parser(std::vector<std::string> &head);
 		void referer_parser(std::vector<std::string> &head);
+		void transfer_encoding(std::vector<std::string> &head);
 		void user_agent_parser(std::vector<std::string> &head);
 
 	public:
@@ -124,5 +128,6 @@ class RequestParser {
 		std::string					getRawContentLanguage() {return _raw_content_language;}
 		std::string					getRawContentType() {return _raw_content_type;}
 		std::string					getRawUserAgent() {return _raw_user_agent;}
+		std::string					getTransferEncoding() {return _transfer_encoding;}
 
 };
