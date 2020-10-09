@@ -55,8 +55,6 @@ class RequestParser {
 
 		int							_error;
 
-		ByteBuffer					_payload;
-
 		std::string					_method;
 		std::string					_resource;
 		std::string					_protocol;

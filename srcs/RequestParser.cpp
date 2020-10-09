@@ -41,7 +41,6 @@ int RequestParser::parser(const ByteBuffer request)
     std::string header;
 
     header = request.sub(0, request.strfind("\r\n\r\n")).str();
-    _payload = request.sub(request.strfind("\r\n\r\n") + 4);
     
     temp = strsplit(header, "\r\n");
 
@@ -97,33 +96,33 @@ void RequestParser::accept_charset_parser(std::vector<std::string> &head)
     line = header_finder(head, "Accept-Charset");
     if (line.max_size() == 0)
         return;
-    _raw_accept_charset = line[1];
-    line = strsplit(line[1], ",");
+    _raw_accept_charset = line.at(1);
+    line = strsplit(line.at(1), ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
         tmp = strsplit(*it, ";");
         if (tmp.size() > 2)
             return ((void)_accept_charset.clear());
-        if (tmp.size() == 2 && weight.match(tmp[1]).first)
+        if (tmp.size() == 2 && weight.match(tmp.at(1)).first)
         {
-            tmp2 = num.match(weight.match(tmp[1]).second).second;
+            tmp2 = num.match(weight.match(tmp.at(1)).second).second;
             tmp = strsplit(tmp2, ".");
             tmp2.clear();
-            tmp2.append(tmp[0]);
-            tmp2.append(tmp[1]);
+            tmp2.append(tmp.at(0));
+            tmp2.append(tmp.at(1));
             w.push_back(atoi(tmp2.c_str()));
         }
         else
             w.push_back(1);
-         _accept_charset.push_back(trim(line[0]));
+         _accept_charset.push_back(trim(line.at(0)));
     }
     for (unsigned long i = 0; i < _accept_charset.size() - 1; i++)
     {
-        if (w[i] > w[i + 1])
+        if (w.at(i) > w.at(i + 1))
         {
-            w.push_back(w[i]);
+            w.push_back(w.at(i));
             w.erase(w.begin() + i);
-            _accept_charset.push_back(_accept_charset[i]);
+            _accept_charset.push_back(_accept_charset.at(i));
             _accept_charset.erase(_accept_charset.begin() + i);
             i = 0;
         }
@@ -142,33 +141,33 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
     line = header_finder(head, "Accept-Language");
     if (line.max_size() == 0)
         return;
-    _raw_accept_language = line[1];
-    line = strsplit(line[1], ",");
+    _raw_accept_language = line.at(1);
+    line = strsplit(line.at(1), ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
         tmp = strsplit(*it, ";");
         if (tmp.size() > 2)
             return ((void)_accept_language.clear());
-        if (tmp.size() == 2 && weight.match(tmp[1]).first)
+        if (tmp.size() == 2 && weight.match(tmp.at(1)).first)
         {
-            tmp2 = num.match(weight.match(tmp[1]).second).second;
+            tmp2 = num.match(weight.match(tmp.at(1)).second).second;
             tmp = strsplit(tmp2, ".");
             tmp2.clear();
-            tmp2.append(tmp[0]);
-            tmp2.append(tmp[1]);
+            tmp2.append(tmp.at(0));
+            tmp2.append(tmp.at(1));
             w.push_back(atoi(tmp2.c_str()));
         }
         else
             w.push_back(1);
-         _accept_language.push_back(trim(line[0]));
+         _accept_language.push_back(trim(line.at(0)));
     }
     for (unsigned long i = 0; i < _accept_language.size() - 1; i++)
     {
-        if (w[i] > w[i + 1])
+        if (w.at(i) > w.at(i + 1))
         {
             w.push_back(w[i]);
             w.erase(w.begin() + i);
-            _accept_language.push_back(_accept_language[i]);
+            _accept_language.push_back(_accept_language.at(i));
             _accept_language.erase(_accept_language.begin() + i);
             i = 0;
         }
@@ -182,12 +181,12 @@ void RequestParser::allow_parser(std::vector<std::string> &head)
     line = header_finder(head, "Allow");
     if (line.max_size() == 0)
         return;
-    line = strsplit(line[1], ",");
+    line = strsplit(line.at(1), ",");
      for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
      {
          for (unsigned long i = 0; i < _req_methods.size(); i++)
          {
-             if (trim(*it) == _req_methods[i])
+             if (trim(*it) == _req_methods.at(i))
                 break;
             if (i == _req_methods.size() - 1)//if method does not exist what to do ?
                 return;
@@ -204,11 +203,11 @@ void RequestParser::authorization_parser(std::vector<std::string> &head)
     line = header_finder(head, "Authorization");
     if (line.max_size() == 0)
         return;
-    line = strsplit(line[1], " ");
+    line = strsplit(line.at(1), " ");
     if (line.size() != 2)
         return;
-    if (trim(line[0]) == "Basic")
-        _authorization = line[1];
+    if (trim(line.at(0)) == "Basic")
+        _authorization = line.at(1);
     else
         return;
 }
@@ -221,8 +220,8 @@ void RequestParser::content_language_parser(std::vector<std::string> &head)
     line = header_finder(head, "Content-language");
     if (line.max_size() == 0)
         return;
-    _raw_content_language = line[1];
-    line = strsplit(line[1], ",");
+    _raw_content_language = line.at(1);
+    line = strsplit(line.at(1), ",");
     for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
     {
         if (language.match(trim(*it)).first)
@@ -240,9 +239,9 @@ void RequestParser::content_length_parser(std::vector<std::string> &head)
         return;
     if (line.size() == 2)
     {
-        if (!is_number(line[1]))
+        if (!is_number(line.at(1)))
             ;//error 400 ? + compare to max client size
-        _content_length = atoi(line[1].c_str());
+        _content_length = atoi(line.at(1).c_str());
     }
 }
 
@@ -254,7 +253,7 @@ void RequestParser::content_location_parser(std::vector<std::string> &head)
     if (line.max_size() == 0)
         return;
     if (line.size() == 2)
-        _content_location = line[1]; //CHECK URL SYNTAX
+        _content_location = line.at(1); //CHECK URL SYNTAX
 }
 
 void RequestParser::content_type_parser(std::vector<std::string> &head)
@@ -265,22 +264,22 @@ void RequestParser::content_type_parser(std::vector<std::string> &head)
     line = header_finder(head, "Content-Type");
     if (line.max_size() == 0)
         return;
-    _raw_content_type = line[1];
-    line = strsplit(line[1], ";");
-    tmp = strsplit(line[0], "/");
+    _raw_content_type = line.at(1);
+    line = strsplit(line.at(1), ";");
+    tmp = strsplit(line.at(0), "/");
     if (tmp.size() != 2)
         return;
-    _content_type.media_type = tmp[0];
-    _content_type.subtype = tmp[1];
+    _content_type.media_type = tmp.at(0);
+    _content_type.subtype = tmp.at(1);
     for (unsigned int i = 1; i < line.size(); i++)
     {
-        tmp = strsplit(line[i], "=");
+        tmp = strsplit(line.at(i), "=");
         if (tmp.size() != 2)
             return; //error ?
-        if (tmp[0] == " charset")
-            _content_type.charset = tmp[1];
-        else if (tmp[0] == " boundary")
-            _content_type.boundary = tmp[1];
+        if (tmp.at(0) == " charset")
+            _content_type.charset = tmp.at(1);
+        else if (tmp.at(0) == " boundary")
+            _content_type.boundary = tmp.at(1);
         else
             return; //error ?
     }
@@ -293,8 +292,8 @@ void RequestParser::date_parser(std::vector<std::string> &head)
     line = header_finder(head, "Date");
     if (line.max_size() == 0)
         return;
-    if (line.size() == 2 && is_http_date(trim(line[1])))
-        _date = trim(line[1]);
+    if (line.size() == 2 && is_http_date(trim(line.at(1))))
+        _date = trim(line.at(1));
 }
 
 void RequestParser::host_parser(std::vector<std::string> &head)
@@ -304,7 +303,7 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     int j = 0;
     for (std::vector<std::string>::iterator it = head.begin(); it != head.end(); it++)
     {
-        if (strsplit(*it, ":")[0] == "Host")
+        if (strsplit(*it, ":").at(0) == "Host")
             j++;
     }
     if (j != 1)
@@ -320,24 +319,24 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     }
     if (line.size() == 2)
     {
-        if (strsplit(line[1], ":").size() > 2)
+        if (strsplit(line.at(1), ":").size() > 2)
         {
             _error = 400;
             return;
         }
-        if (strsplit(line[1], ":").size() == 2)
+        if (strsplit(line.at(1), ":").size() == 2)
         {
-            line = strsplit(line[1], ":");
-            if (!is_number(line[1]))
+            line = strsplit(line.at(1), ":");
+            if (!is_number(line.at(1)))
             {
                 _error = 400;
                 return;
             }
-            _host_name = line[0];
-            _host_ip = (unsigned short)atoi(line[1].c_str());
+            _host_name = line.at(0);
+            _host_ip = (unsigned short)atoi(line.at(1).c_str());
         }
         else
-            _host_name = line[1];
+            _host_name = line.at(1);
     }
 }
 
@@ -371,14 +370,14 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
     line = header_finder(head, "User-Agent");
     if (line.max_size() == 0)
         return;
-    _raw_user_agent = line[1];
-    tmp = strsplit(line[1], " ");
-    tmp = strsplit(trim(tmp[0]), "/");
+    _raw_user_agent = line.at(1);
+    tmp = strsplit(line.at(1), " ");
+    tmp = strsplit(trim(tmp.at(0)), "/");
     if (tmp.size() != 2)
         return;
-    _user_agent.product = tmp[0];
-    _user_agent.version = tmp[1];
-    tmp = strsplit(line[1], " ");
+    _user_agent.product = tmp.at(0);
+    _user_agent.version = tmp.at(1);
+    tmp = strsplit(line.at(1), " ");
     for (std::vector<std::string>::iterator it = tmp.begin() + 1; it != tmp.end(); it++)
     {
         _user_agent.comment.append(*it);
