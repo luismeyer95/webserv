@@ -60,6 +60,8 @@ class RequestParser {
 		std::string					_method;
 		std::string					_resource;
 		std::string					_protocol;
+		ByteBuffer					_payload;
+
 
 		std::vector<std::string>	_accept_charset;
 		std::vector<std::string>	_accept_language;

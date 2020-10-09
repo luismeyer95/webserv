@@ -94,7 +94,7 @@ void RequestParser::accept_charset_parser(std::vector<std::string> &head)
     Regex num("[0-9]\\.[0-9]");
 
     line = header_finder(head, "Accept-Charset");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     _raw_accept_charset = line.at(1);
     line = strsplit(line.at(1), ",");
@@ -139,7 +139,7 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
     Regex num("[0-9]\\.[0-9]");
     
     line = header_finder(head, "Accept-Language");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     _raw_accept_language = line.at(1);
     line = strsplit(line.at(1), ",");
@@ -179,7 +179,7 @@ void RequestParser::allow_parser(std::vector<std::string> &head)
     std::vector<std::string> line;
 
     line = header_finder(head, "Allow");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     line = strsplit(line.at(1), ",");
      for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
@@ -201,7 +201,7 @@ void RequestParser::authorization_parser(std::vector<std::string> &head)
     std::vector<std::string> tmp;
     
     line = header_finder(head, "Authorization");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     line = strsplit(line.at(1), " ");
     if (line.size() != 2)
@@ -218,7 +218,7 @@ void RequestParser::content_language_parser(std::vector<std::string> &head)
     Regex language("\\A[0-9A-Za-z-]*$");
 
     line = header_finder(head, "Content-language");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     _raw_content_language = line.at(1);
     line = strsplit(line.at(1), ",");
@@ -235,13 +235,20 @@ void RequestParser::content_length_parser(std::vector<std::string> &head)
     std::vector<std::string> line;
     
     line = header_finder(head, "Content-Length");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     if (line.size() == 2)
     {
         if (!is_number(line.at(1)))
-            ;//error 400 ? + compare to max client size
-        _content_length = atoi(line.at(1).c_str());
+		{
+			try {
+				_content_length = std::stoull(line.at(1));
+			} catch (const std::exception& e) {
+				reportError(400);
+				// throw std::exception();
+			}
+		}
+        // _content_length = atoi(line.at(1).c_str());
     }
 }
 
@@ -250,7 +257,7 @@ void RequestParser::content_location_parser(std::vector<std::string> &head)
     std::vector<std::string> line;
     
     line = header_finder(head, "Content-Location");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     if (line.size() == 2)
         _content_location = line.at(1); //CHECK URL SYNTAX
@@ -262,7 +269,7 @@ void RequestParser::content_type_parser(std::vector<std::string> &head)
     std::vector<std::string> tmp;
     
     line = header_finder(head, "Content-Type");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     _raw_content_type = line.at(1);
     line = strsplit(line.at(1), ";");
@@ -290,7 +297,7 @@ void RequestParser::date_parser(std::vector<std::string> &head)
     std::vector<std::string> line;
     
     line = header_finder(head, "Date");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     if (line.size() == 2 && is_http_date(trim(line.at(1))))
         _date = trim(line.at(1));
@@ -312,7 +319,7 @@ void RequestParser::host_parser(std::vector<std::string> &head)
         return;
     }
     line = header_finder(head, "Host");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
     {
         _error = 400;
         return;
@@ -345,7 +352,7 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
     std::vector<std::string> line;
     
     line = header_finder(head, "Referer");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     if (line.size() == 2)
     {
@@ -382,7 +389,7 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
     std::vector<std::string> tmp;
     
     line = header_finder(head, "User-Agent");
-    if (line.max_size() == 0)
+    if (line.size() == 0)
         return;
     _raw_user_agent = line.at(1);
     tmp = strsplit(line.at(1), " ");

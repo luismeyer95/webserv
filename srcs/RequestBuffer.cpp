@@ -7,7 +7,7 @@ const size_t default_max_header_size = 10000;
 
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
 	: route(route), socket(sock), max_body(default_max_body_size),
-	header_break(-1), content_length(0), errcode(-1), processed(false) {}
+	header_break(-1), content_length(0), errcode(-1), processed(false), chunked_flag(false) {}
 
 template <typename T>
 bool				RequestBuffer::isSet(T var)
@@ -39,6 +39,8 @@ const ByteBuffer&	RequestBuffer::get() const
 
 void	RequestBuffer::append(char *buf, size_t len)
 {
+	std::cout << "APPEND CALLED" << std::endl;
+	std::cout << "BUFFER: " << request_buffer << std::endl;
 	if (!isSet(header_break) && request_buffer.size() + len > maxRequestLength())
 	{
 		request_buffer.append((BYTE*)buf, maxRequestLength() - request_buffer.size());
@@ -50,9 +52,9 @@ void	RequestBuffer::append(char *buf, size_t len)
 		else
 			processHeader();
 	}
-	else if (isSet(header_break) && request_buffer.size() + len > neededLength())
+	else if (isSet(header_break) && request_buffer.size() + len > neededLength()) // 1159 + 8 > 155
 	{
-		request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size());
+		request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
 		processRequest();
 	}
 	else
@@ -94,6 +96,16 @@ bool				RequestBuffer::processError(bool expr, int code)
 		return true;
 	}
 	return false;
+}
+
+ByteBuffer			RequestBuffer::chunkify()
+{
+	if (chunked_flag && !buffer.empty())
+	{
+		auto hexlen = ntohexstr(buffer.size()) + "\r\n";
+		buffer.prepend((BYTE*)&hexlen[0], hexlen.size());
+		buffer.append((BYTE*)"\r\n", 2);
+	}
 }
 
 

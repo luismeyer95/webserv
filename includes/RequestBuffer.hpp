@@ -26,6 +26,7 @@ class RequestBuffer
 		size_t				content_length;
 		int					errcode;
 		bool				processed;
+		bool				chunked_flag;
 
 		ByteBuffer			request_buffer;
 
