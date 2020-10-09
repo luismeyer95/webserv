@@ -101,6 +101,8 @@ class RequestParser {
 		~RequestParser();
 		int parser(const ByteBuffer request);
 
+		int 						reportError(int code);
+
 		std::string					getMethod() {return _method;}
 		std::string&				getResource() {return _resource;}
 		std::string					getProtocol() {return _protocol;}

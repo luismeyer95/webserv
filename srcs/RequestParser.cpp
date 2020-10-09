@@ -29,48 +29,43 @@ RequestParser::~RequestParser()
     
 }
 
+int RequestParser::reportError(int code)
+{
+	_error = code;
+	return code;
+}
+
 int RequestParser::parser(const ByteBuffer request)
 {
     std::vector<std::string> temp;
     std::string header;
 
-    header = request.sub(0, request.find({'\r','\n','\r','\n'})).str();
-    _payload = request.sub(request.find({'\r','\n','\r','\n'}) + 4);
+    header = request.sub(0, request.strfind("\r\n\r\n")).str();
+    _payload = request.sub(request.strfind("\r\n\r\n") + 4);
     
-    temp = strsplit(header, "\n");
-    
-    if (strsplit(temp[0], " ").size() != 3)
-        return (1);
-    
-    _method = strsplit(temp[0], " ")[0];
-    for (unsigned long i = 0; i < _req_methods.size(); i++)
-    {
-        if (_method == _req_methods[i])
-            break;
-        else if (i == _req_methods.size())
-        {
-            _error = 400;
-            return (1);
-        }
-    }
-    try
-    {
-		_resource = strsplit(temp[0], " ").at(1);
-    	URL url(_resource);
-    }
-    catch(const std::exception& e)
-    {
-        _error = 400;
-        return (1);
-    }
+    temp = strsplit(header, "\r\n");
 
-    _protocol = strsplit(temp[0], " ")[2];
-    _protocol = strsplit(_protocol, "\r")[0];
+	if (header.empty())
+		return reportError(400);
+
+	auto first_line_tokens = strsplit(temp.at(0), " ");
+    if (first_line_tokens.size() != 3)
+        return reportError(400);
+    _method = first_line_tokens.at(0);
+
+	if (std::find(_req_methods.begin(), _req_methods.end(), _method) == _req_methods.end())
+		return reportError(400);
+
+	_resource = strsplit(temp.at(0), " ").at(1);
+    try { URL url(_resource); }
+    catch(const std::exception& e)
+	{
+		return reportError(400);
+	}
+
+    _protocol = strsplit(temp.at(0), " ").at(2);
     if (_protocol != "HTTP/1.1")
-    {
-        _error = 505;
-        return (1);
-    }
+		return reportError(505);
 
     accept_charset_parser(temp);
     accept_language_parser(temp);
@@ -88,6 +83,7 @@ int RequestParser::parser(const ByteBuffer request)
 
     return (0);
 }
+
 
 void RequestParser::accept_charset_parser(std::vector<std::string> &head)
 {

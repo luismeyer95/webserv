@@ -23,7 +23,8 @@ class RequestRouter
 			const std::string& request_ip_host,
 			unsigned short request_port
 		);
-		bool		bindLocation(const std::string& request_uri);
+		bool		bindLocation(const std::string& request_uri, const std::string& request_method);
+		bool		hasMethod(const std::string& method, ConfBlockDirective& location_block);
 		bool		saveMostSpecificLocation (
 			const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc
 		);

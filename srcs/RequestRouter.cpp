@@ -85,7 +85,17 @@ bool		RequestRouter::saveMostSpecificLocation(const std::string& request_uri, Co
 	return false;
 }
 
-bool	RequestRouter::bindLocation(const std::string& request_uri)
+bool	RequestRouter::hasMethod(const std::string& method, ConfBlockDirective& location_block)
+{
+	try
+	{
+		auto dir = getDirective(location_block, DirectiveKey::accept_methods);
+		return std::find(dir.values.begin(), dir.values.end(), method) != dir.values.end();
+	}
+	catch (const std::exception& e) { return true; }
+}
+
+bool	RequestRouter::bindLocation(const std::string& request_uri, const std::string& request_method)
 {
 	ConfBlockDirective* most_specific_prefix_loc = nullptr;
 
@@ -98,7 +108,7 @@ bool	RequestRouter::bindLocation(const std::string& request_uri)
 			if (prefixes.at(0) == "~")
 			{
 				auto res = Regex(prefixes.at(1)).match(request_uri);
-				if (res.first)
+				if (res.first && hasMethod(request_method, block))
 				{
 					route_binding = &block;
 					return true;
@@ -179,7 +189,8 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 				uri.replace(xxx, 3, std::to_string(code));
 				try {
 					// file_req.file_content.appendFile(uri);
-					file_req.content_length = file_req.response_buffer->get().size();
+					file_req.content_length = peek_file_size(uri);
+					std::cout << "IT IS " << file_req.content_length << std::endl;
 					if (parsed_request.getMethod() != "HEAD")
 						file_req.response_buffer->get().appendFile(uri);
 					return;
@@ -292,7 +303,6 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		ssize_t len = parsed_request.getContentLength();
 		if (!assertOrError(write(in, buf, len) == len, file_req, parsed_request, 500, "Internal Server Error"))
 		{
-			std::cout << "HERE?" << std::endl;
 			close(in);
 			return;
 		}
@@ -388,6 +398,12 @@ std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
 bool		RequestRouter::checkMethod(RequestParser& parsed_request, FileRequest& file_req)
 {
 	auto mthds = getBoundRequestDirectiveValues(DirectiveKey::accept_methods);
+
+	// std::cout << "ALLOWED: " << std::endl;
+	// for (auto& s : mthds)
+	// 	std::cout << s;
+	// std::cout << std::endl;
+
 	if (mthds.empty())
 	{
 		file_req.allowed_methods.clear();
@@ -453,7 +469,7 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	}
 	saveBinding();
 	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
-	bool located = bindLocation(env[E::PATH_INFO]);
+	bool located = bindLocation(env[E::PATH_INFO], parsed_request.getMethod());
 	if (!located)
 		env[E::PATH_INFO].clear();
 	env[E::PATH_TRANSLATED] = resolveUriToLocalPath(env[E::PATH_INFO]);
@@ -563,7 +579,7 @@ FileRequest	RequestRouter::requestFile (
 
 	FileRequest file_req;
 	bindServer(parsed_request.getHost(), request_ip, request_port);
-	bool located = bindLocation(request_path);
+	bool located = bindLocation(request_path, parsed_request.getMethod());
 	if (!located)
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 	else
