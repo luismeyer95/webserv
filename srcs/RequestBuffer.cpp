@@ -53,25 +53,28 @@ void				RequestBuffer::readHeader(char *buf, size_t len)
 	// would exceed max
 	if (request_buffer.size() + len > default_max_header_size)
 	{
-		// std::cout << "req buf size: " << request_buffer.size() << std::endl;
-		// std::cout << "len: " << len << std::endl;
-		// std::cout << "default header max: " << default_max_header_size << std::endl;
+		std::cout << "req buf size: " << request_buffer.size() << std::endl;
+		std::cout << "len: " << request_buffer.size() << std::endl;
+		std::cout << "req buf size: " << request_buffer.size() << std::endl;
 		request_buffer.append((BYTE*)buf, default_max_header_size - request_buffer.size());
 		if (processError(!isSet(headerBreak(request_buffer)), 431))
 			return;
 		else
 			processHeader();
 	}
-	else if (isSet(header_break) && request_buffer.size() + len > neededLength()) // 1159 + 8 > 155
+	else // would not exceed max
 	{
-		request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
-		processRequest();
+		request_buffer.append((BYTE*)buf, len);
+		if (isSet(headerBreak(request_buffer)))
+		{
+			splitHeaderPayload();
+			processHeader();
+			processRequestIfPossible();
+		}
 	}
-	else
-		readPayload(buf, len);
 }
 
-void				RequestBuffer::readHeader(char *buf, size_t len)
+void	RequestBuffer::splitHeaderPayload()
 {
 	header_break = headerBreak(request_buffer) + 4;
 }
@@ -99,6 +102,7 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 			request_buffer.append((BYTE*)buf, len);
 	}
 }
+
 
 void	RequestBuffer::processHeader()
 {
@@ -209,10 +213,7 @@ void				RequestBuffer::processRequest()
 
 	HTTPExchange& ticket = socket->newExchange(request_buffer);
 	if (isSet(errcode))
-	{
-		std::cout << "ENCOUNTERED ERROR IN REQUEST BUFFER";
 		route.fetchErrorPage(file_request, req_parser, errcode, get_http_string(errcode));
-	}
 	else
 	{
 		req_parser.getPayload() = request_buffer.sub(header_break);
