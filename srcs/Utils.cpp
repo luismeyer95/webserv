@@ -553,7 +553,9 @@ std::string http_index(std::string folder)
 			else
 				index.append("-");
 			index.append("</td><td>");
-			if (stat(real_dir.append(dir->d_name).c_str(), &result) == 0)
+			if (dir->d_type == DT_DIR && stat(real_dir.append(dir->d_name).c_str(), &result) == 0)
+				index.append(get_gmt_time((result.st_mtime)));
+			else
 				index.append(get_gmt_time((result.st_mtime)));
 			index.append("</td></tr>\n");
 		}

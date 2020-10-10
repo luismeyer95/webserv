@@ -78,7 +78,7 @@ void ResponseConstructor::last_modified(FileRequest& file_request)
 
 void ResponseConstructor::content_length(FileRequest& file_request)
 {
-	if (file_request.content_length > 0)
+	if (file_request.content_length >= 0)
     	_header << "Content-Length: " << file_request.content_length << "\r\n";
 	else if (file_request.content_length == -1)
 		_header << "Transfer-Encoding: chunked\r\n";
