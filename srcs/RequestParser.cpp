@@ -239,14 +239,12 @@ void RequestParser::content_length_parser(std::vector<std::string> &head)
         return;
     if (line.size() == 2)
     {
-        if (!is_number(line.at(1)))
-		{
-			try {
-				_content_length = std::stoull(line.at(1));
-			} catch (const std::exception& e) {
-				reportError(400);
-				// throw std::exception();
-			}
+		try {
+			_content_length = std::stoull(line.at(1));
+		} catch (const std::exception& e) {
+			reportError(400);
+			// throw std::exception();
+
 		}
         // _content_length = atoi(line.at(1).c_str());
     }

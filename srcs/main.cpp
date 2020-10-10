@@ -46,6 +46,7 @@ int main(int ac, char **av)
 
 	// std::cout << http_index(av[1]) << std::endl;
 	// exit(0);
+	std::cout << getpid() << std::endl;
 	
 	if (ac != 2)
 	{

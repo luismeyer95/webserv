@@ -318,6 +318,7 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		}
 		file_req.content_location = request_uri;
 		file_req.content_length = 0;
+		close(in);
 	}
 	else
 		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
@@ -382,7 +383,7 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 			}
 		}
 		if (!checkAutoindex(file_req, parsed_request, path))
-			fetchErrorPage(file_req, parsed_request, 403, "Forbidden");
+			fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
 
