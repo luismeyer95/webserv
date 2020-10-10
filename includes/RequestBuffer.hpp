@@ -26,13 +26,18 @@ class RequestBuffer
 		size_t				content_length;
 		int					errcode;
 		bool				processed;
+
 		bool				chunked_flag;
+		bool				chunk_eof;
+		size_t				chunked_body_len;
+		ByteBuffer			chunk_buffer;
 
 		ByteBuffer			request_buffer;
 
+
 		template <typename T>
 		bool				isSet(T var);
-		ssize_t				headerBreak();
+		ssize_t				headerBreak(ByteBuffer& bb);
 		size_t				neededLength();
 		size_t				maxRequestLength();
 
@@ -40,11 +45,20 @@ class RequestBuffer
 		bool				parserError();
 		bool				processError(bool expr, int code);
 
-		ByteBuffer			unchunk(ByteBuffer buffer);
+		void				splitHeaderPayload();
+
+		void				add(char *buf, size_t len);
+
+		ssize_t				processChunk();
+		void				dechunk();
 
 
+
+		void				readHeader(char *buf, size_t len);
+		void				readPayload(char *buf, size_t len);
 		void				processHeader();
 		void				processRequest();
+		void				processRequestIfPossible();
 
 	public:
 		RequestBuffer(RequestRouter& route, ClientSocket* sock);

@@ -113,7 +113,7 @@ class RequestParser {
 		std::vector<std::string>	getAllow() {return _allow;}
 		std::string					getAuthorization() {return _authorization;}
 		std::vector<std::string>	getContentLanguage() {return _content_language;}
-		size_t						getContentLength() {return _content_length;}
+		size_t&						getContentLength() {return _content_length;}
 		std::string					getContentLocation() {return _content_location;}
 		ContentType					getContentType() {return _content_type;}
 		std::string					getDate() {return _date;}

@@ -191,11 +191,19 @@ void ResponseBufferProcessStream::feedRequestPayload(ByteBuffer request_payload)
 	size_t		sendbytes = request_payload.size();
 	ssize_t		ret = 0;
 
+	std::cout << "___________________________________________" << std::endl;
+	std::cout << "PAYLOAD: " << request_payload << std::endl;
 	while ((ret = write(pip_out[1], request_payload.get(), sendbytes)) > 0)
 	{
+		std::cout << "WROTE TO CGI: ";
+		for (int i = 0; i < ret; ++i)
+			std::cout << request_payload.get()[i];
+		std::cout << std::endl;
+
 		request_payload.advance(ret);
 		sendbytes = request_payload.size();
 	}
+	std::cout << "___________________________________________" << std::endl;
 	close(pip_out[1]);
 }
 

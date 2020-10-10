@@ -320,7 +320,7 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 
 	retflags = 0;
 
-	int ret;
+	ssize_t ret;
 	while ( (ret = recv(cli->socket_fd, buf, MAXBUF, 0)) > 0 )
 	{
 		retflags |= (int)IOSTATE::ONCE;
@@ -392,8 +392,10 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 
 	ssize_t ret;
 	size_t sendbytes = std::min(response_buf.get().size(), (size_t)MAXBUF);
-	while ((ret = send(cli->socket_fd, response_buf.get().get(), sendbytes, MSG_NOSIGNAL)) > 0)
+	ByteBuffer& bb = response_buf.get();
+	while ((ret = send(cli->socket_fd, bb.get(), sendbytes, MSG_NOSIGNAL)) > 0)
 	{
+		std::cout << bb;
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;
@@ -404,6 +406,7 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 				retflags |= (int)IOSTATE::READY;
 			break;
 		}
+		response_buf.get();
 	}
 	return total;
 }

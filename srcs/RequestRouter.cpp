@@ -298,11 +298,17 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		int in;
 		if (!assertOrError((in = open(path.c_str(), O_RDWR | O_CREAT, 0644)) != -1,
 			file_req, parsed_request, 500, "Internal Server Error"))
+		{
+			std::cout << "PUT ERROR 1" << std::endl;
+			std::cout << path << std::endl;			
+			std::cout << strerror(errno) << std::endl;
 			return;
+		}
 		const void *buf = parsed_request.getPayload().get();
 		ssize_t len = parsed_request.getContentLength();
 		if (!assertOrError(write(in, buf, len) == len, file_req, parsed_request, 500, "Internal Server Error"))
 		{
+			std::cout << "WRITE RETURN NOT EQUAL TO LEN" << std::endl;
 			close(in);
 			return;
 		}
@@ -320,7 +326,10 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		file_req.content_length = 0;
 	}
 	else
+	{
+		std::cout << "PUT ERROR 3" << std::endl;
 		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
+	}
 }
 
 bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_request, const std::string& path)

@@ -7,7 +7,8 @@ const size_t default_max_header_size = 10000;
 
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
 	: route(route), socket(sock), max_body(default_max_body_size),
-	header_break(-1), content_length(0), errcode(-1), processed(false), chunked_flag(false) {}
+	header_break(-1), content_length(0), errcode(-1), processed(false), chunked_flag(false),
+	chunk_eof(false), chunked_body_len(0) {}
 
 template <typename T>
 bool				RequestBuffer::isSet(T var)
@@ -15,9 +16,9 @@ bool				RequestBuffer::isSet(T var)
 	return var != -1;
 }
 
-ssize_t				RequestBuffer::headerBreak()
+ssize_t				RequestBuffer::headerBreak(ByteBuffer& bb)
 {
-	return request_buffer.strfind("\r\n\r\n");
+	return bb.strfind("\r\n\r\n");
 }
 
 size_t				RequestBuffer::neededLength()
@@ -37,85 +38,82 @@ const ByteBuffer&	RequestBuffer::get() const
 	return request_buffer;
 }
 
-void	RequestBuffer::append(char *buf, size_t len)
-{
 	// std::cout << "APPEND CALLED" << std::endl;
 	// std::cout << "BUFFER: " << request_buffer << std::endl;
-	if (!isSet(header_break) && request_buffer.size() + len > maxRequestLength())
+	// if (!isSet(header_break) && request_buffer.size() + len > maxRequestLength())
+	// {
+	// 	request_buffer.append((BYTE*)buf, maxRequestLength() - request_buffer.size());
+	// 	if (!isSet(headerBreak(request_buffer)))
+	// 	{
+	// 		errcode = 431;
+	// 		processRequest();
+	// 	}
+	// 	else
+	// 		processHeader();
+	// }
+	// else if (isSet(header_break) && request_buffer.size() + len > neededLength()) // 1159 + 8 > 155
+	// {
+	// 	request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
+	// 	processRequest();
+	// }
+	// else
+	// {
+	// 	request_buffer.append((BYTE*)buf, len);
+	// 	if (isSet(headerBreak()) && !isSet(header_break))
+	// 		processHeader();
+	// }
+
+
+void	RequestBuffer::append(char *buf, size_t len)
+{
+	// header not found yet
+	if (!isSet(header_break))
+		readHeader(buf, len);
+	else
+		readPayload(buf, len);
+}
+
+void				RequestBuffer::readHeader(char *buf, size_t len)
+{
+	// would exceed max
+	if (request_buffer.size() + len > default_max_header_size)
 	{
-		request_buffer.append((BYTE*)buf, maxRequestLength() - request_buffer.size());
-		if (!isSet(headerBreak()))
-		{
-			errcode = 431;
-			processRequest();
-		}
+		request_buffer.append((BYTE*)buf, default_max_header_size - request_buffer.size());
+		if (processError(!isSet(headerBreak(request_buffer)), 431))
+			return;
 		else
 			processHeader();
 	}
-	else if (isSet(header_break) && request_buffer.size() + len > neededLength()) // 1159 + 8 > 155
-	{
-		request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
-		processRequest();
-	}
-	else
+	else // would not exceed max
 	{
 		request_buffer.append((BYTE*)buf, len);
-		if (isSet(headerBreak()) && !isSet(header_break))
+		if (isSet(headerBreak(request_buffer)))
+		{
+			splitHeaderPayload();
 			processHeader();
+			processRequestIfPossible();
+		}
 	}
 }
 
-bool				RequestBuffer::headerSizeError()
+void	RequestBuffer::splitHeaderPayload()
 {
-	if (static_cast<size_t>(header_break) > default_max_header_size)
+	header_break = headerBreak(request_buffer) + 4;
+	if (chunked_flag)
 	{
-		errcode = 431;
-		processRequest();
-		return true;
+		chunk_buffer = request_buffer.sub(header_break);
+		request_buffer = request_buffer.sub(0, header_break);
+		dechunk();
 	}
-	return false;
 }
-
-bool				RequestBuffer::parserError()
-{
-	if (req_parser.getError())
-	{
-		errcode = req_parser.getError();
-		processRequest();
-		return true;
-	}
-	return false;
-}
-
-bool				RequestBuffer::processError(bool expr, int code)
-{
-	if (expr)
-	{
-		errcode = code;
-		processRequest();
-		return true;
-	}
-	return false;
-}
-
-// ByteBuffer			RequestBuffer::unchunk(ByteBuffer buffer)
-// {
-// 	if (chunked_flag && !buffer.empty())
-// 	{
-// 		auto hexlen = ntohexstr(buffer.size()) + "\r\n";
-// 		buffer.prepend((BYTE*)&hexlen[0], hexlen.size());
-// 		buffer.append((BYTE*)"\r\n", 2);
-// 	}
-// }
-
 
 void	RequestBuffer::processHeader()
 {
-	header_break = headerBreak() + 4;
-	req_parser.parser(request_buffer.sub(0, header_break));
-
+	// header_break = headerBreak(request_buffer) + 4;
 	if (processError(static_cast<size_t>(header_break) > default_max_header_size, 431))
 		return;
+
+	req_parser.parser(request_buffer.sub(0, header_break));
 	if (processError(req_parser.getError(), req_parser.getError()))
 		return;
 
@@ -131,17 +129,98 @@ void	RequestBuffer::processHeader()
 			max_body = std::stoull(max_req_body.at(0));
 	}
 
-	content_length = req_parser.getContentLength();
+	if (req_parser.getTransferEncoding() == "chunked")
+		chunked_flag = true;
+	else
+		content_length = req_parser.getContentLength();
+}
 
-	if (processError(content_length > max_body, 413))
-		return;
-	else if (!content_length)
-		processRequest();
-	else if (request_buffer.size() >= neededLength())
+
+
+void	RequestBuffer::processRequestIfPossible()
+{
+	if (!chunked_flag)
 	{
-		request_buffer = request_buffer.sub(0, neededLength());
-		processRequest();
+		if (processError(content_length > max_body, 413))
+			return;
+		else if (!content_length)
+			processRequest();
+		else if (request_buffer.size() >= neededLength())
+		{
+			request_buffer = request_buffer.sub(0, neededLength());
+			processRequest();
+		}
 	}
+	else
+	{
+		if (processError(chunked_body_len > max_body, 413))
+			return;
+		else if (chunk_eof)
+			processRequest();
+	}
+}
+
+void				RequestBuffer::readPayload(char *buf, size_t len)
+{
+	if (chunked_flag)
+	{
+		if (processError(request_buffer.size() + len > max_body, 413))
+			return;
+		chunk_buffer.append((BYTE*)buf, len);
+		dechunk();
+		if (chunk_eof)
+			processRequest();
+	}
+	else
+	{
+		if (request_buffer.size() + len >= neededLength()) // 1159 + 8 > 155
+		{
+			request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
+			processRequest();
+		}
+		else
+			request_buffer.append((BYTE*)buf, len);
+	}
+}
+
+void			RequestBuffer::dechunk()
+{
+	ssize_t ret;
+	while ((ret = processChunk()) && isSet(ret));
+	if (!ret)
+		chunk_eof = true;
+}
+
+ssize_t			RequestBuffer::processChunk()
+{
+	ssize_t hex_break = chunk_buffer.strfind("\r\n");
+	if (!isSet(hex_break))
+		return -1;
+	std::string hexnumstr = chunk_buffer.sub(0, hex_break).str();
+	size_t hexnum = 0;
+	hexnum = std::stoull(hexnumstr, nullptr, 16); 
+	if (chunk_buffer.size() >= hexnumstr.size() + 2 + hexnum + 2
+		&& chunk_buffer.sub(hex_break + 2 + hexnum).strfind("\r\n") == 0)
+	{
+		request_buffer.append(chunk_buffer.sub(hex_break + 2, hexnum));
+		chunk_buffer = chunk_buffer.sub(hex_break + 2 + hexnum + 2);
+		chunked_body_len += hexnumstr.size() + 2 + hexnum + 2;
+		return hexnum;
+	}
+	else
+		return -1;
+	
+}
+
+bool				RequestBuffer::processError(bool expr, int code)
+{
+	if (expr)
+	{
+		errcode = code;
+		processRequest();
+		return true;
+	}
+	return false;
 }
 
 void				RequestBuffer::processRequest()
@@ -153,10 +232,15 @@ void				RequestBuffer::processRequest()
 
 	HTTPExchange& ticket = socket->newExchange(request_buffer);
 	if (isSet(errcode))
+	{
+		std::cout << "ENCOUNTERED ERROR IN REQUEST BUFFER";
 		route.fetchErrorPage(file_request, req_parser, errcode, get_http_string(errcode));
+	}
 	else
 	{
 		req_parser.getPayload() = request_buffer.sub(header_break);
+		if (chunked_flag)
+			req_parser.getContentLength() = req_parser.getPayload().size();
 		file_request = route.requestFile(req_parser, ticket);
 	}
 
@@ -167,6 +251,8 @@ void				RequestBuffer::processRequest()
 
 	SharedPtr<ResponseBuffer> response_buffer(file_request.response_buffer);
 	response_buffer->get().prepend(headers);
+
+	// std::cout << "response headers: " << headers << std::endl;
 	// Load the response in the http exchange ticket and mark as ready
 	ticket.bufferResponse(headers, response_buffer, true);
 
