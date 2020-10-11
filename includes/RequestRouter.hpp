@@ -42,7 +42,7 @@ class RequestRouter
 			HTTPExchange&		ticket
 		);
 
-		void		executeCGI(
+		void		executeCGI (
 			FileRequest&		file_req,
 			RequestParser&		parsed_request,
 			HTTPExchange&		ticket
@@ -61,6 +61,9 @@ class RequestRouter
 		void		putFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
 		std::string resolveUriToLocalPath(const std::string& request_uri);
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
+		std::string expandCaptures(std::string to_expand, const std::vector<std::string>& match_groups);
+		
+
 
 		bool		checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth);
 		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);
@@ -74,7 +77,8 @@ class RequestRouter
 
 
 		std::vector<std::string>		getBoundRequestDirectiveValues(DirectiveKey dirkey);
-
+		std::string 					getCurrentLocationPrefix();
+		
 		static ConfBlockDirective&		getBlock(ConfBlockDirective& b, ContextKey key);
 		static ConfDirective&			getDirective(ConfBlockDirective& b, DirectiveKey key);
 

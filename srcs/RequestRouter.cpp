@@ -190,7 +190,6 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 				try {
 					// file_req.file_content.appendFile(uri);
 					file_req.content_length = peek_file_size(uri);
-					std::cout << "IT IS " << file_req.content_length << std::endl;
 					if (parsed_request.getMethod() != "HEAD")
 						file_req.response_buffer->get().appendFile(uri);
 					return;
@@ -211,47 +210,58 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 	}
 }
 
+std::string RequestRouter::expandCaptures(std::string to_expand, const std::vector<std::string>& match_group)
+{
+	static Regex capture_rgx("^(?:.*[^\\\\])?(\\$\\d+)(?:[^\\d].*)?$");
+	auto cap = capture_rgx.matchAll(to_expand);
+	while (cap.first)
+	{
+		if (cap.second.size() <= 1)
+			return to_expand;
+		std::string capvar = cap.second.at(1);
+		size_t cpos = to_expand.find(capvar);
+		size_t clen = capvar.size();
+		try {
+			unsigned long cap_nb = std::stoul(&capvar[1]);
+			if (cap_nb < match_group.size())
+				to_expand.replace(cpos, clen, match_group.at(cap_nb));
+			else
+				to_expand.erase(cpos, clen);
+		} catch (...) {
+			to_expand.erase(cpos, clen);
+		}
+		cap = capture_rgx.matchAll(to_expand);
+	}
+	auto end = std::remove_if
+		(to_expand.begin(), to_expand.end(), [] (char c) { return c == '\\'; });
+	to_expand.resize(std::distance(to_expand.begin(), end));
+
+	return to_expand;
+}
+
+std::string RequestRouter::getCurrentLocationPrefix()
+{
+	if (!route_binding || route_binding->key != ContextKey::location)
+		return {};
+	if (route_binding->prefixes.at(0) == "~" || route_binding->prefixes.at(0) == "=")
+		return route_binding->prefixes.at(1);
+	else
+		return route_binding->prefixes.at(0);
+}
+
 std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block)
 {
 	std::string alias = getDirective(block, DirectiveKey::alias).values.at(0);
-
-	std::string loc_regex;
-	if (route_binding->prefixes.at(0) == "~")
-		loc_regex = route_binding->prefixes.at(1);
-	else
-		loc_regex = route_binding->prefixes.at(0);
+	std::string loc_regex = getCurrentLocationPrefix();
 
 	auto res = Regex(loc_regex).matchAll(request_uri);
 	std::string matched = res.second.at(0);
 	size_t pos = request_uri.find(matched);
 	size_t len = matched.size();
 
-	if (route_binding->prefixes.at(0) == "~")
-	{
-		Regex capture_rgx("^(?:.*[^\\\\])?(\\$\\d+)(?:[^\\d].*)?$");
-		auto cap = capture_rgx.matchAll(alias);
-		while (cap.first)
-		{
-			std::string capvar = cap.second.at(1);
-			size_t cpos = alias.find(capvar);
-			size_t clen = capvar.size();
-			try {
-				unsigned long cap_nb = std::stoul(&capvar[1]);
-				if (cap_nb < res.second.size())
-					alias.replace(cpos, clen, res.second.at(cap_nb));
-				else
-					alias.erase(cpos, clen);
-			} catch (...) {
-				alias.erase(cpos, clen);
-			}
-			cap = capture_rgx.matchAll(alias);
-		}
-		auto end = std::remove_if
-			(alias.begin(), alias.end(), [] (char c) { return c == '\\'; });
-		alias.resize(std::distance(alias.begin(), end));
-	}
+	std::string expanded_alias = expandCaptures(alias, res.second);
 	std::string res_uri = request_uri;
-	res_uri.replace(pos, len, alias);
+	res_uri.replace(pos, len, expanded_alias);
 	return get_current_dir() + res_uri;
 }
 
@@ -298,17 +308,11 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		int in;
 		if (!assertOrError((in = open(path.c_str(), O_RDWR | O_CREAT, 0644)) != -1,
 			file_req, parsed_request, 500, "Internal Server Error"))
-		{
-			std::cout << "PUT ERROR 1" << std::endl;
-			std::cout << path << std::endl;			
-			std::cout << strerror(errno) << std::endl;
 			return;
-		}
 		const void *buf = parsed_request.getPayload().get();
 		ssize_t len = parsed_request.getContentLength();
 		if (!assertOrError(write(in, buf, len) == len, file_req, parsed_request, 500, "Internal Server Error"))
 		{
-			std::cout << "WRITE RETURN NOT EQUAL TO LEN" << std::endl;
 			close(in);
 			return;
 		}
@@ -327,10 +331,7 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 		close(in);
 	}
 	else
-	{
-		std::cout << "PUT ERROR 3" << std::endl;
 		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
-	}
 }
 
 bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_request, const std::string& path)
@@ -477,24 +478,19 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	if (!auth_basic_val.empty() && auth_basic_val.at(0) != "off")
 		env[E::AUTH_TYPE] = "Basic";
 	env[E::CONTENT_LENGTH] = std::to_string(parsed_request.getContentLength());
-	env[E::CONTENT_TYPE] = parsed_request.getRawContentType(); // NEED IT FOR POST REQUESTS
+	env[E::CONTENT_TYPE] = parsed_request.getRawContentType();
 	env[E::GATEWAY_INTERFACE] = "CGI/1.1";
-	std::string pathsplit = getBoundRequestDirectiveValues(DirectiveKey::cgi_split_path_info).at(0);
-	auto res = Regex(pathsplit).matchAll(request_path);
-	if (!res.first || res.second.size() != 3)
-	{
-		fetchErrorPage(file_req, parsed_request, 500, "Internal Server Error");
-		return {};
-	}
-	env[E::SCRIPT_NAME] = res.second.at(1);
-	env[E::PATH_INFO] = URL::reformatPath(res.second.at(2));
+
+	auto res = Regex(getCurrentLocationPrefix()).matchAll(request_path);
+	env[E::SCRIPT_NAME] = expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_script_name).at(0), res.second);
+	env[E::SCRIPT_NAME] = URL::reformatPath(env[E::SCRIPT_NAME]);
+	env[E::PATH_INFO] = expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_path_info).at(0), res.second);
+	env[E::PATH_INFO] = URL::reformatPath(env[E::PATH_INFO]);
 	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
 	// check if the script is a file that exists before sending to execution
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
-		// std::cout << "HMMMMM ...." << std::endl;
-		// std::cout << "path: " << env.at(E::SCRIPT_FILENAME) << std::endl;
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
@@ -619,12 +615,12 @@ FileRequest	RequestRouter::requestFile (
 			&& checkMethod(parsed_request, file_req))
 		{
 			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
-			if (methodIsEither(parsed_request.getMethod(), {"GET", "HEAD"}))
+			if (!cgi_dir.empty())
+				executeCGI(file_req, parsed_request, ticket);
+			else if (methodIsEither(parsed_request.getMethod(), {"GET", "HEAD"}))
 				fetchFile(file_req, parsed_request, request_path);
 			else if (parsed_request.getMethod() == "PUT")
 				putFile(file_req, parsed_request, request_path);
-			else if (!cgi_dir.empty())
-				executeCGI(file_req, parsed_request, ticket);
 			else
 			{
 				fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");

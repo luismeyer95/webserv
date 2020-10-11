@@ -17,7 +17,8 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"auth_basic", D::auth_basic},
 		{"auth_basic_user_file", D::auth_basic_user_file},
 		{"execute_cgi", D::execute_cgi},
-		{"cgi_split_path_info", D::cgi_split_path_info},
+		{"cgi_script_name", D::cgi_script_name},
+		{"cgi_path_info", D::cgi_path_info},
 		{"accept_methods", D::accept_methods},
 		{"max_request_body", D::max_request_body}
 	});
@@ -39,7 +40,8 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::auth_basic: return "auth_basic";
 		case D::auth_basic_user_file: return "auth_basic_user_file";
 		case D::execute_cgi: return "execute_cgi";
-		case D::cgi_split_path_info: return "cgi_split_path_info";
+		case D::cgi_script_name: return "cgi_script_name";
+		case D::cgi_path_info: return "cgi_path_info";
 		case D::accept_methods: return "accept_methods";
 		case D::max_request_body: return "max_request_body";
 	}
@@ -273,36 +275,33 @@ void ConfDirective::validate()
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
-			
 			if (parent->key != ContextKey::location)
 				throw dirExcept("`execute_cgi` directives belong in `location` blocks");
-
-			// if (values.at(0) != "php")
-			// 	throw dirExcept("only `php` is supported at this time");
-
-			auto count = std::count_if (
+			auto count_scriptname = std::count_if (
 				parent->directives.begin(), parent->directives.end(),
-				[] (const ConfDirective& d) {
-					return d.key == DirectiveKey::cgi_split_path_info;
-				}
+				[] (const ConfDirective& d) {return d.key == DirectiveKey::cgi_script_name;}
+			);
+			auto count_pathinfo = std::count_if (
+				parent->directives.begin(), parent->directives.end(),
+				[] (const ConfDirective& d) {return d.key == DirectiveKey::cgi_path_info;}
 			);
 
-			if (count != 1)
+			if (!(count_scriptname == 1 && count_pathinfo == 1))
 				throw dirExcept (
-					"an `execute_cgi` directive should be coupled with "
-					"a single `cgi_split_path_info` directive"
+					"`cgi_script_name` and `cgi_path_info` directives should be defined once"
+					" in the same block along with this directive"
 				);
 
 			break;
 		}
 
-		case D::cgi_split_path_info:
+		case D::cgi_script_name:
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
 
 			if (parent->key != ContextKey::location)
-				throw dirExcept("`cgi_split_path_info` directives belong in `location` blocks");
+				throw dirExcept("directive belongs in `location` blocks");
 			
 			auto count = std::count_if (
 				parent->directives.begin(), parent->directives.end(),
@@ -313,15 +312,33 @@ void ConfDirective::validate()
 
 			if (count != 1)
 				throw dirExcept (
-					"a `cgi_split_path_info` directive should be coupled with "
+					"directive should be coupled with "
 					"a single `execute_cgi` directive"
 				);
+			
+			break;
+		}
 
-			try {
-				Regex rgx(values.at(0));
-			} catch (const std::runtime_error& e) {
-				throw dirExcept("value should be a valid regex");
-			}
+		case D::cgi_path_info:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+
+			if (parent->key != ContextKey::location)
+				throw dirExcept("directive belongs in `location` blocks");
+			
+			auto count = std::count_if (
+				parent->directives.begin(), parent->directives.end(),
+				[] (const ConfDirective& d) {
+					return d.key == DirectiveKey::execute_cgi;
+				}
+			);
+
+			if (count != 1)
+				throw dirExcept (
+					"directive should be coupled with "
+					"a single `execute_cgi` directive"
+				);
 			
 			break;
 		}
@@ -330,9 +347,6 @@ void ConfDirective::validate()
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
-			
-			// if (parent->key != ContextKey::location)
-			// 	throw dirExcept("`accept_methods` directives belong in `location` blocks");
 			
 			Regex rgx_method("^GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|all$");
 			for (auto& s : values)
