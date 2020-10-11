@@ -493,6 +493,8 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
+		// std::cout << "HMMMMM ...." << std::endl;
+		// std::cout << "path: " << env.at(E::SCRIPT_FILENAME) << std::endl;
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
@@ -617,12 +619,12 @@ FileRequest	RequestRouter::requestFile (
 			&& checkMethod(parsed_request, file_req))
 		{
 			auto cgi_dir = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
-			if (!cgi_dir.empty())
-				executeCGI(file_req, parsed_request, ticket);
-			else if (methodIsEither(parsed_request.getMethod(), {"GET", "HEAD"}))
+			if (methodIsEither(parsed_request.getMethod(), {"GET", "HEAD"}))
 				fetchFile(file_req, parsed_request, request_path);
 			else if (parsed_request.getMethod() == "PUT")
 				putFile(file_req, parsed_request, request_path);
+			else if (!cgi_dir.empty())
+				executeCGI(file_req, parsed_request, ticket);
 			else
 			{
 				fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");

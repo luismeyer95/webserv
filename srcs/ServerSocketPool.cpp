@@ -185,7 +185,15 @@ void	ServerSocketPool::runServer(
 		{
 			iterator next = it + 1;
 			if (selected(*it, &copy_write))
-				pollWrite(*it);
+			{
+				bool closed = pollWrite(*it);
+				if (closed)
+				{
+					it = next;
+					++i;
+					continue;
+				}
+			}
 			if (selected(*it, &copy_read))
 				pollRead(*it);
 			it = next;
@@ -337,11 +345,10 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 	return total;
 }
 
-
-void	ServerSocketPool::pollWrite(Socket* s)
+// returns true if client connection was closed
+bool	ServerSocketPool::pollWrite(Socket* s)
 {
 	Logger& log = Logger::getInstance();
-
 	ClientSocket* cli = static_cast<ClientSocket*>(s);
 
 	// For all active http exchange tickets, send what is possible to send
@@ -379,7 +386,13 @@ void	ServerSocketPool::pollWrite(Socket* s)
 	}
 
 	if (cli->exchanges.empty())
+	{
 		FD_CLR(cli->socket_fd, &master_write);
+		log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
+		closeComm(cli);
+		return true;
+	}
+	return false;
 }
 
 

@@ -2,7 +2,8 @@
 #include <ServerSocketPool.hpp>
 #include <Sockets.hpp>
 
-const size_t default_max_body_size = 31457280; // 30MB
+// const size_t default_max_body_size = 31457280; // 30Mb
+const size_t default_max_body_size = 100457280; // ~100Mb
 const size_t default_max_header_size = 1000000;
 
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
@@ -68,8 +69,8 @@ void				RequestBuffer::readHeader(char *buf, size_t len)
 		if (isSet(headerBreak(request_buffer)))
 		{
 			splitHeaderPayload();
-			processHeader();
-			processRequestIfPossible();
+			if (processHeader())
+				processRequestIfPossible();
 		}
 	}
 }
@@ -104,17 +105,17 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 }
 
 
-void	RequestBuffer::processHeader()
+bool	RequestBuffer::processHeader()
 {
 	// header_break = headerBreak(request_buffer) + 4;
 	if (processError(static_cast<size_t>(header_break) > default_max_header_size, 431))
-		return;
+		return false;
 
 	// std::cout << "PARSED REQUEST: " << request_buffer.sub(0, header_break) << std::endl;
 
 	req_parser.parser(request_buffer.sub(0, header_break));
 	if (processError(req_parser.getError(), req_parser.getError()))
-		return;
+		return false;
 
 	URL url(req_parser.getResource());
 	std::string request_path = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
@@ -133,6 +134,8 @@ void	RequestBuffer::processHeader()
 		chunked_flag = true;
 	else
 		content_length = req_parser.getContentLength();
+	
+	return true;
 }
 
 

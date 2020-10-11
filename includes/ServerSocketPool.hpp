@@ -97,5 +97,5 @@ class ServerSocketPool
 			void (*request_handler)(HTTPExchange&, RequestRouter&)
 		);
 		void				pollRead(Socket* s);
-		void				pollWrite(Socket* s);
+		bool				pollWrite(Socket* s);
 };

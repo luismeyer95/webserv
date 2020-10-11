@@ -56,7 +56,7 @@ class RequestBuffer
 
 		void				readHeader(char *buf, size_t len);
 		void				readPayload(char *buf, size_t len);
-		void				processHeader();
+		bool				processHeader();
 		void				processRequest();
 		void				processRequestIfPossible();
 
