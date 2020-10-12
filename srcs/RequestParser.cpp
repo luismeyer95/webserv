@@ -424,7 +424,7 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
 void RequestParser::custom_headers(std::vector<std::string> &head)
 {
     std::vector<std::string> tmp;
-    Regex reg("^([Xx]-[0-9A-Za-z-]+): (.+)");
+    Regex reg("^([Xx]-[0-9A-Za-z-]+): (.+)$");
 
     // for (std::vector<std::string>::iterator it = head.begin() + 1; it != head.end(); it++)
     // {

@@ -431,8 +431,11 @@ bool		RequestRouter::checkMethod(RequestParser& parsed_request, FileRequest& fil
 
 	// std::cout << "ALLOWED: " << std::endl;
 	// for (auto& s : mthds)
-	// 	std::cout << s;
+	// 	dec_print(s.c_str());
 	// std::cout << std::endl;
+
+	// std::cout << "METHOD: ";
+	// dec_print(parsed_request.getMethod().c_str());
 
 	if (mthds.empty())
 	{
@@ -514,10 +517,6 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	env[E::PATH_INFO] = env[E::SCRIPT_NAME]; // ????
 
 	// check if the script is a file that exists before sending to execution
-	for (auto& s : env)
-	{
-		std::cout << envCGItoStr(s.first) << "=" << s.second << std::endl;
-	}
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
@@ -647,6 +646,7 @@ FileRequest	RequestRouter::requestFile (
 				putFile(file_req, parsed_request, request_path);
 			else
 			{
+				// std::cout << "METHOD REJECTED IN REQUESTFILE" << std::endl;
 				fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");
 				return file_req;
 			}

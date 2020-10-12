@@ -82,10 +82,10 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 	if (chunked_flag)
 	{
 		// std::cout << "reading payload for chunked" << std::endl;
-		if (processError(request_buffer.size() + len > max_body, 413))
-			return;
 		chunk_buffer.append((BYTE*)buf, len);
 		dechunk();
+		if (processError(chunked_body_len > max_body, 413))
+			return;
 		if (chunk_eof)
 			processRequest();
 	}
@@ -185,7 +185,7 @@ ssize_t			RequestBuffer::processChunk()
 	{
 		request_buffer.append(chunk_buffer.sub(hex_break + 2, hexnum));
 		chunk_buffer = chunk_buffer.sub(hex_break + 2 + hexnum + 2);
-		chunked_body_len += hexnumstr.size() + 2 + hexnum + 2;
+		chunked_body_len += hexnum;
 		return hexnum;
 	}
 	else

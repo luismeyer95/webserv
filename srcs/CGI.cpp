@@ -150,10 +150,10 @@ void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 void CGI::parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req)
 {
 	CGIResponseHeaders headers;
-	std::cout << "CGI headers: ";
+	// std::cout << "CGI headers: ";
 	for (auto& s : vec_headers)
 	{
-		std::cout << s << std::endl;
+		// std::cout << s << std::endl;
 		parseCGIHeader(s, headers);
 	}
 	
@@ -196,8 +196,8 @@ void CGI::executeCGI(FileRequest& file_req)
 	command.push_back(env.at(EnvCGI::SCRIPT_FILENAME));
 	std::vector<std::string> command_env = buildEnv(env);
 
-	for (auto& s : command_env)
-		std::cout << s << std::endl;
+	// for (auto& s : command_env)
+	// 	std::cout << s << std::endl;
 	// for (auto& s : command)
 	// 	std::cout << s << std::endl;
 

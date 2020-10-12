@@ -571,11 +571,8 @@ std::string http_index(std::string folder)
 std::string		format_env_key(std::string x_key)
 {
 	for (auto& c : x_key)
-	{
 		c = std::toupper(c);
-		if (c == '-')
-			c = '_';
-	}
+	x_key.replace(0, 2, "HTTP_X_");
 	return x_key;
 }
 
