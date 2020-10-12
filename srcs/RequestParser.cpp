@@ -424,25 +424,35 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
 void RequestParser::custom_headers(std::vector<std::string> &head)
 {
     std::vector<std::string> tmp;
-    Regex reg("^[0-9A-Za-z-]+: .+");
+    Regex reg("^([Xx]-[0-9A-Za-z-]+): (.+)");
 
-    for (std::vector<std::string>::iterator it = head.begin() + 1; it != head.end(); it++)
-    {
-        tmp = get_header_name(*it, ':');
-        for (std::vector<std::string>::iterator h = _headers.begin(); h != _headers.end(); h++)
-        {
-            if (tmp.at(0) == *h)
-                break ;
-            if (h + 1 == _headers.end())
-            {
-                if (reg.match(*it).first)
-                    _custom_headers.insert(std::pair<std::string,std::string>(tmp.at(0), tmp.at(1)));
-                else
-                {
-                    reportError(400);
-		            throw std::exception();
-                }
-            }
-        }
-    }
+    // for (std::vector<std::string>::iterator it = head.begin() + 1; it != head.end(); it++)
+    // {
+    //     tmp = get_header_name(*it, ':');
+    //     for (std::vector<std::string>::iterator h = _headers.begin(); h != _headers.end(); h++)
+    //     {
+    //         if (tmp.at(0) == *h)
+    //             break ;
+    //         if (h + 1 == _headers.end())
+    //         {
+    //             if (reg.match(*it).first)
+    //                 _custom_headers.insert(std::pair<std::string,std::string>(tmp.at(0), tmp.at(1)));
+    //             else
+    //             {
+    //                 reportError(400);
+	// 	            throw std::exception();
+    //             }
+    //         }
+    //     }
+    // }
+	for (auto& keyval : head)
+	{
+		auto res = reg.matchAll(keyval);
+		if (res.first)
+		{
+			auto& match_group = res.second; 
+			_custom_headers[match_group.at(1)] = match_group.at(2);
+		}
+	}
+
 }

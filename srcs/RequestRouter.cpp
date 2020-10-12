@@ -480,6 +480,7 @@ std::string		getParentDirectory(std::string script_path)
 		return script_path.substr(0, last + 1);
 }
 
+
 std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	FileRequest&		file_req,
 	RequestParser&		parsed_request,
@@ -536,7 +537,7 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	env[E::SERVER_PORT] = std::to_string(ticket.listeningPort());
 	env[E::SERVER_PROTOCOL] = "HTTP/1.1";	
 	env[E::SERVER_SOFTWARE] = "Webserv/1.0 (Unix)";
-
+	
 	return env;
 }
 

@@ -407,6 +407,7 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 	ByteBuffer& bb = response_buf.get();
 	while ((ret = send(cli->socket_fd, bb.get(), sendbytes, MSG_NOSIGNAL)) > 0)
 	{
+		
 		// std::cout << bb;
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;

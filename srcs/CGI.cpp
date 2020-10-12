@@ -81,6 +81,10 @@ std::vector<std::string> CGI::buildEnv(const std::map<EnvCGI, std::string>& env)
 			++i;
 		}
 	}
+
+	auto& xheaders = request.getCustomHeaders();
+	for (auto& pair : xheaders)
+		ret.push_back(format_env_key(pair.first) + "=" + pair.second);
 	for (auto& var : env)
 		ret.push_back(envCGItoStr(var.first) + "=" + var.second);
 	ret.push_back("REDIRECT_STATUS=200");
@@ -192,8 +196,8 @@ void CGI::executeCGI(FileRequest& file_req)
 	command.push_back(env.at(EnvCGI::SCRIPT_FILENAME));
 	std::vector<std::string> command_env = buildEnv(env);
 
-	// for (auto& s : command_env)
-	// 	std::cout << s << std::endl;
+	for (auto& s : command_env)
+		std::cout << s << std::endl;
 	// for (auto& s : command)
 	// 	std::cout << s << std::endl;
 

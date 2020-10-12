@@ -568,6 +568,18 @@ std::string http_index(std::string folder)
 	return (index);
 }
 
+std::string		format_env_key(std::string x_key)
+{
+	for (auto& c : x_key)
+	{
+		c = std::toupper(c);
+		if (c == '-')
+			c = '_';
+	}
+	return x_key;
+}
+
+
 // std::string atoi_base()
 // {
 // 	std::string base("0123456789ABCDEF")

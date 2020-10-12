@@ -132,6 +132,6 @@ class RequestParser {
 		std::string							getRawContentType() {return _raw_content_type;}
 		std::string							getRawUserAgent() {return _raw_user_agent;}
 		std::string							getTransferEncoding() {return _transfer_encoding;}
-		std::map<std::string, std::string>	getCustomHeaders() {return _custom_headers;}
+		std::map<std::string, std::string>&	getCustomHeaders() {return _custom_headers;}
 
 };

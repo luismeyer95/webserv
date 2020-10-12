@@ -32,3 +32,5 @@ std::vector<std::string>>& 	mime_types();
 std::string					get_mime_type(const std::string& path);
 size_t						peek_file_size(const std::string& filename);
 std::string					ntohexstr(size_t num);
+
+std::string					format_env_key(std::string x_key);
