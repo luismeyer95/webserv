@@ -21,6 +21,7 @@ RequestParser::RequestParser()
     _headers.push_back("Date");
     _headers.push_back("Host");
     _headers.push_back("Referer");
+    _headers.push_back("Transfer-Encoding");
     _headers.push_back("User-Agent");
 }
 
@@ -66,19 +67,26 @@ int RequestParser::parser(const ByteBuffer request)
     if (_protocol != "HTTP/1.1")
 		return reportError(505);
 
-    accept_charset_parser(temp);
-    accept_language_parser(temp);
-    allow_parser(temp);
-    authorization_parser(temp);
-    content_language_parser(temp);
-    content_length_parser(temp);
-    content_location_parser(temp);
-    content_type_parser(temp);
-    date_parser(temp);
-    host_parser(temp);
-    referer_parser(temp);
-    user_agent_parser(temp);
-	transfer_encoding(temp);
+    try
+    {
+        accept_charset_parser(temp);
+        accept_language_parser(temp);
+        allow_parser(temp);
+        authorization_parser(temp);
+        content_language_parser(temp);
+        content_length_parser(temp);
+        content_location_parser(temp);
+        content_type_parser(temp);
+        date_parser(temp);
+        host_parser(temp);
+        referer_parser(temp);
+        user_agent_parser(temp);
+        transfer_encoding(temp);
+        custom_headers(temp);
+    }catch(const std::exception& e)
+    {
+        return (_error);
+    }
 
     return (0);
 }
@@ -243,8 +251,7 @@ void RequestParser::content_length_parser(std::vector<std::string> &head)
 			_content_length = std::stoull(line.at(1));
 		} catch (const std::exception& e) {
 			reportError(400);
-			// throw std::exception();
-
+			throw std::exception();
 		}
         // _content_length = atoi(line.at(1).c_str());
     }
@@ -299,6 +306,11 @@ void RequestParser::date_parser(std::vector<std::string> &head)
         return;
     if (line.size() == 2 && is_http_date(trim(line.at(1))))
         _date = trim(line.at(1));
+    else
+    {
+        reportError(400);
+		throw std::exception();
+    }
 }
 
 void RequestParser::host_parser(std::vector<std::string> &head)
@@ -313,29 +325,29 @@ void RequestParser::host_parser(std::vector<std::string> &head)
     }
     if (j != 1)
     {
-        _error = 400;
-        return;
+        reportError(400);
+		throw std::exception();
     }
     line = header_finder(head, "Host");
     if (line.size() == 0)
     {
-        _error = 400;
-        return;
+        reportError(400);
+		throw std::exception();
     }
     if (line.size() == 2)
     {
         if (strsplit(line.at(1), ":").size() > 2)
         {
-            _error = 400;
-            return;
+            reportError(400);
+		    throw std::exception();
         }
         if (strsplit(line.at(1), ":").size() == 2)
         {
             line = strsplit(line.at(1), ":");
             if (!is_number(line.at(1)))
             {
-                _error = 400;
-                return;
+                reportError(400);
+		        throw std::exception();
             }
             _host_name = line.at(0);
             _host_ip = (unsigned short)atoi(line.at(1).c_str());
@@ -362,7 +374,8 @@ void RequestParser::referer_parser(std::vector<std::string> &head)
         }
         catch(const std::exception& e)
         {
-            return;
+            reportError(400);
+		    throw std::exception();
         }
     }
 }
@@ -376,7 +389,10 @@ void RequestParser::transfer_encoding(std::vector<std::string> &head)
     if (line.size() == 0)
         return;
     if (line.at(1) != "chunked")
-        _error = 400;
+    {
+        reportError(400);
+		throw std::exception();
+    }
     else
         _transfer_encoding = line.at(1);
 }
@@ -402,5 +418,31 @@ void RequestParser::user_agent_parser(std::vector<std::string> &head)
         _user_agent.comment.append(*it);
         if (it != tmp.end() - 1)
             _user_agent.comment.push_back(' ');
+    }
+}
+
+void RequestParser::custom_headers(std::vector<std::string> &head)
+{
+    std::vector<std::string> tmp;
+    Regex reg("^[0-9A-Za-z-]+: .+");
+
+    for (std::vector<std::string>::iterator it = head.begin() + 1; it != head.end(); it++)
+    {
+        tmp = get_header_name(*it, ':');
+        for (std::vector<std::string>::iterator h = _headers.begin(); h != _headers.end(); h++)
+        {
+            if (tmp.at(0) == *h)
+                break ;
+            if (h + 1 == _headers.end())
+            {
+                if (reg.match(*it).first)
+                    _custom_headers.insert(std::pair<std::string,std::string>(tmp.at(0), tmp.at(1)));
+                else
+                {
+                    reportError(400);
+		            throw std::exception();
+                }
+            }
+        }
     }
 }
