@@ -312,7 +312,6 @@ void	ServerSocketPool::pollRead(Socket* s)
 					msg = msg.sub(0, msg.strfind("\r\n\r\n"));
 				log.out() << "[request]: fd=" << cli->socket_fd << std::endl;
 				log.out(msg.str());
-				// request_handler(cli->newExchange(buff.extract()), conf);
 				if (!FD_ISSET(cli->socket_fd, &master_write))
 					FD_SET(cli->socket_fd, &master_write);
 			}

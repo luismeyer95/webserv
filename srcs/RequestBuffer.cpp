@@ -54,9 +54,6 @@ void				RequestBuffer::readHeader(char *buf, size_t len)
 	// would exceed max
 	if (request_buffer.size() + len > default_max_header_size)
 	{
-		std::cout << "req buf size: " << request_buffer.size() << std::endl;
-		std::cout << "len: " << request_buffer.size() << std::endl;
-		std::cout << "req buf size: " << request_buffer.size() << std::endl;
 		request_buffer.append((BYTE*)buf, default_max_header_size - request_buffer.size());
 		if (processError(!isSet(headerBreak(request_buffer)), 431))
 			return;

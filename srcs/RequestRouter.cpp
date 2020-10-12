@@ -216,7 +216,7 @@ std::string RequestRouter::expandCaptures(std::string to_expand, const std::vect
 	auto cap = capture_rgx.matchAll(to_expand);
 	while (cap.first)
 	{
-		if (cap.second.size() <= 1)
+		if (cap.second.size() < 2)
 			return to_expand;
 		std::string capvar = cap.second.at(1);
 		size_t cpos = to_expand.find(capvar);
@@ -255,6 +255,7 @@ std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfB
 	std::string loc_regex = getCurrentLocationPrefix();
 
 	auto res = Regex(loc_regex).matchAll(request_uri);
+
 	std::string matched = res.second.at(0);
 	size_t pos = request_uri.find(matched);
 	size_t len = matched.size();
@@ -279,10 +280,9 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 		try {
 			std::string alias = resolveAliasUri(request_uri, *tmp);
 			return alias;
-		} catch (...) {}
+		} catch (const std::exception& e) {}
 		tmp = tmp->parent;
 	}
-	// should never reach here
 	return "";	
 }
 
@@ -464,6 +464,22 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, RequestParser& par
 	return false;
 }
 
+std::string		getParentDirectory(std::string script_path)
+{
+	script_path = URL::reformatPath(script_path);
+	if (script_path == "/")
+		return script_path;
+	auto last = script_path.rfind('/');
+	if (last == script_path.size() - 1)
+	{
+		script_path.erase(last);
+		auto bis = script_path.rfind('/');
+		return script_path.substr(0, bis + 1);
+	}
+	else
+		return script_path.substr(0, last + 1);
+}
+
 std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	FileRequest&		file_req,
 	RequestParser&		parsed_request,
@@ -482,25 +498,34 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	env[E::GATEWAY_INTERFACE] = "CGI/1.1";
 
 	auto res = Regex(getCurrentLocationPrefix()).matchAll(request_path);
-	env[E::SCRIPT_NAME] = expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_script_name).at(0), res.second);
-	env[E::SCRIPT_NAME] = URL::reformatPath(env[E::SCRIPT_NAME]);
-	env[E::PATH_INFO] = expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_path_info).at(0), res.second);
+	env[E::SCRIPT_NAME] = URL::decode (
+		expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_script_name).at(0), res.second));
+	env[E::PATH_INFO] = URL::decode (
+		expandCaptures(getBoundRequestDirectiveValues(DirectiveKey::cgi_path_info).at(0), res.second));
 	env[E::PATH_INFO] = URL::reformatPath(env[E::PATH_INFO]);
-	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(env[E::SCRIPT_NAME]);
+
+
+	env[E::SCRIPT_FILENAME] = resolveUriToLocalPath(request_path);
+	auto pathinfo_pos = env[E::SCRIPT_FILENAME].rfind(env[E::PATH_INFO]);
+	if (pathinfo_pos != std::string::npos && env[E::PATH_INFO] != "/")
+		env[E::SCRIPT_FILENAME] = env[E::SCRIPT_FILENAME].substr(0, pathinfo_pos);
+
+	env[E::PATH_INFO] = env[E::SCRIPT_NAME]; // ????
+
 	// check if the script is a file that exists before sending to execution
+	for (auto& s : env)
+	{
+		std::cout << envCGItoStr(s.first) << "=" << s.second << std::endl;
+	}
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
-	saveBinding();
-	bindServer(parsed_request.getHost(), ticket.listeningAddress(), ticket.listeningPort());
-	bool located = bindLocation(env[E::PATH_INFO], parsed_request.getMethod());
-	if (!located)
-		env[E::PATH_INFO].clear();
-	env[E::PATH_TRANSLATED] = resolveUriToLocalPath(env[E::PATH_INFO]);
-	loadBinding();
+
+	std::string script_dir = URL::reformatPath(getParentDirectory(env.at(EnvCGI::SCRIPT_FILENAME)));
+	env[E::PATH_TRANSLATED] = script_dir + env[E::PATH_INFO];
 	env[E::QUERY_STRING] = url.get(URL::Component::Query);
 	env[E::REMOTE_ADDR] = ticket.clientAddress();
 	env[E::REMOTE_IDENT] = "";
@@ -534,9 +559,7 @@ void		RequestRouter::executeCGI(
 	std::string cwd_backup = get_current_dir();
 
 	// switch to the script's directory
-	size_t sn = env.at(EnvCGI::SCRIPT_FILENAME).rfind(env.at(EnvCGI::SCRIPT_NAME));
-	std::string script_dir = env.at(EnvCGI::SCRIPT_FILENAME).substr(0, sn);
-	chdir(script_dir.c_str());
+	chdir(getParentDirectory(env[E::SCRIPT_FILENAME]).c_str());
 
 	// run script and reload the saved directory
 	CGI cgi(parsed_request, env, cgi_bin);

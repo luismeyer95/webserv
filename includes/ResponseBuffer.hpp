@@ -6,7 +6,7 @@
 #include <Logger.hpp>
 
 const size_t MAXBUF = 8192;
-const int TIMEOUT = 4000000;
+const int TIMEOUT = 15000000;
 
 class ResponseBuffer
 {

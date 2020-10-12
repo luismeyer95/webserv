@@ -146,8 +146,12 @@ void CGI::parseCGIHeader(const std::string& header, CGIResponseHeaders& headers)
 void CGI::parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req)
 {
 	CGIResponseHeaders headers;
+	std::cout << "CGI headers: ";
 	for (auto& s : vec_headers)
+	{
+		std::cout << s << std::endl;
 		parseCGIHeader(s, headers);
+	}
 	
 	if (!headers.location.empty())
 	{
@@ -163,14 +167,14 @@ void CGI::parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequ
 
 	if (!headers.status.empty())
 	{
-		Regex status_rgx("^(200|302|400|501) (?:.+)$");
+		Regex status_rgx("^(200|302|400|500|501) (?:.+)$");
 		auto res = status_rgx.matchAll(headers.status);
 		if (!res.first)
 			scriptError("bad `Status` header in output of script");
 		
 		file_req.http_code = std::stoi(res.second.at(1));
 		if (file_req.http_code == 400)
-			throw ErrorCode(400, "Bad Request");
+			throw ErrorCode(502, "Bad Gateway");
 		if (file_req.http_code == 501)
 			throw ErrorCode(501, "Not Implemented");
 	}
