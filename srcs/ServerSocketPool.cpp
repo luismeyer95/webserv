@@ -122,7 +122,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 		);
 	log.out() << "Virtual host bound successfully to `" << host << ":" << port << "`\n";
 
-	listen(lstn->socket_fd, MAXQUEUE);
+	listen(lstn->socket_fd, 200);
 	
 	if (lstn->socket_fd > fd_max)
 		fd_max = lstn->socket_fd;

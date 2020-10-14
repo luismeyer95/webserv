@@ -9,7 +9,9 @@ const size_t default_max_header_size = 1000000;
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
 	: route(route), socket(sock), max_body(default_max_body_size),
 	header_break(-1), content_length(0), errcode(-1), processed(false), chunked_flag(false),
-	chunk_eof(false), chunked_body_len(0) {}
+	chunk_eof(false), chunked_body_len(0)
+{
+}
 
 template <typename T>
 bool				RequestBuffer::isSet(T var)
@@ -42,6 +44,9 @@ const ByteBuffer&	RequestBuffer::get() const
 void	RequestBuffer::append(char *buf, size_t len)
 {
 	// header not found yet
+	// if (processError(socket->socket_fd > 11, 503))
+	// 	return;
+
 	if (!isSet(header_break))
 		readHeader(buf, len);
 	else
@@ -208,12 +213,12 @@ void				RequestBuffer::processRequest()
 {
 	FileRequest file_request;
 
-	// std::cout << "Processed request buffer: ";
-	// http_print(request_buffer.str());
-
 	HTTPExchange& ticket = socket->newExchange(request_buffer);
 	if (isSet(errcode))
+	{
+		// std::cout << "ERROR " << errcode << " is SET" << std::endl;
 		route.fetchErrorPage(file_request, req_parser, errcode, get_http_string(errcode));
+	}
 	else
 	{
 		req_parser.getPayload() = request_buffer.sub(header_break);
@@ -222,16 +227,12 @@ void				RequestBuffer::processRequest()
 		file_request = route.requestFile(req_parser, ticket);
 	}
 
-	// std::cout << "Processed payload: " << req_parser.getPayload() << std::endl;
-
 	ResponseConstructor response;
 	ByteBuffer headers = response.constructor(req_parser, file_request);
 
 	SharedPtr<ResponseBuffer> response_buffer(file_request.response_buffer);
 	response_buffer->get().prepend(headers);
 
-	// std::cout << "response headers: " << headers << std::endl;
-	// Load the response in the http exchange ticket and mark as ready
 	ticket.bufferResponse(headers, response_buffer, true);
 
 	processed = true;

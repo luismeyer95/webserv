@@ -52,7 +52,7 @@ void ResponseConstructor::retry_after()
     if (_error == 503 || _error == 429 || _error == 301)
     {
         _retry_after = "Retry-After: ";
-        _retry_after.append("120");
+        _retry_after.append("15");
         _retry_after.append("\r\n");
         _header << _retry_after;
     }
