@@ -136,24 +136,24 @@ ResponseBufferProcessStream::ResponseBufferProcessStream (
 	{
 		close(pip_in[1]);
 		close(pip_out[0]);
-		timer_pid = fork();
-		if (timer_pid == -1)
-			scriptError(std::string("fork(): ") + strerror(errno));
-		if (!timer_pid)
-		{
-			close(pip_in[0]);
-			close(pip_out[1]);
+		// timer_pid = fork();
+		// if (timer_pid == -1)
+		// 	scriptError(std::string("fork(): ") + strerror(errno));
+		// if (!timer_pid)
+		// {
+		// 	close(pip_in[0]);
+		// 	close(pip_out[1]);
 
-			usleep(TIMEOUT);
-			if (kill(-worker_pid, SIGTERM) == -1)
-				kill(-worker_pid, SIGKILL);
-			exit(0);
-		}
-		else if (timer_pid > 0)
-		{
+		// 	usleep(TIMEOUT);
+		// 	if (kill(-worker_pid, SIGTERM) == -1)
+		// 		kill(-worker_pid, SIGKILL);
+		// 	exit(0);
+		// }
+		// else if (timer_pid > 0)
+		// {
 			feedRequestPayload(request_payload);
 			storeHeaders();
-		}
+		// }
 	}
 }
 
@@ -174,7 +174,7 @@ void ResponseBufferProcessStream::advance(size_t bytes)
 
 void	ResponseBufferProcessStream::execScript(const string& bin, const cstring_vec& argv, const cstring_vec& env)
 {
-	setpgid(0, 0);
+	// setpgid(0, 0);
 	close(2);
 	close(pip_out[1]);
 	dup2(pip_out[0], 0);
@@ -324,14 +324,14 @@ void ResponseBufferProcessStream::reap()
 	waitpid(WAIT_ANY, &pstatus, 0);
 	if (WIFEXITED(pstatus))
 	{
-		kill(timer_pid, SIGKILL);
-		waitpid(timer_pid, nullptr, 0);
+		// kill(timer_pid, SIGKILL);
+		// waitpid(timer_pid, nullptr, 0);
 		if (WEXITSTATUS(pstatus))
 			scriptError("script execution failed", false);
 	}
 	else
 	{
-		while (wait(nullptr) != -1);
+		// while (wait(nullptr) != -1);
 		scriptError("script execution time-out", false);
 	}
 }
