@@ -5,7 +5,7 @@
 #include <ErrorCode.hpp>
 #include <Logger.hpp>
 
-const size_t MAXBUF = 16384;
+const size_t MAXBUF = 4096;
 const int TIMEOUT = 15000000;
 
 class ResponseBuffer
