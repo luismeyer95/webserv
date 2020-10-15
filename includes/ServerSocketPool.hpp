@@ -66,13 +66,13 @@ class ServerSocketPool
 		int					fd_max;
 		fd_set				master_read;
 		fd_set				master_write;
-		ft::deque<Socket*>	socket_list;
+		std::vector<Socket*>	socket_list;
 
 		void (*connection_handler)(HTTPExchange&, RequestRouter&);
 		void (*request_handler)(HTTPExchange&, RequestRouter&);
 
 	public:
-		typedef ft::deque<Socket*>::iterator iterator;
+		typedef std::vector<Socket*>::iterator iterator;
 		ServerSocketPool();
 		~ServerSocketPool();
 
@@ -85,7 +85,7 @@ class ServerSocketPool
 
 		bool				selected(Socket* socket, fd_set* set);
 		void				closeComm(ClientSocket* comm);
-		ft::deque<Socket*>&	getSocketList();
+		std::vector<Socket*>&	getSocketList();
 
 		size_t				recvRequest(ClientSocket* cli, int& retflags);
 		size_t				sendResponse(ClientSocket* cli, int& retflags);

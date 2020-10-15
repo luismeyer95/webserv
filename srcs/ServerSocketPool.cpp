@@ -143,7 +143,7 @@ ServerSocketPool::~ServerSocketPool()
 	}
 }
 
-ft::deque<Socket*>&		ServerSocketPool::getSocketList()
+std::vector<Socket*>&		ServerSocketPool::getSocketList()
 {
 	return socket_list;
 }
@@ -179,25 +179,21 @@ void	ServerSocketPool::runServer(
 		// Push and pops will happen on the socket list in the poll calls.
 		// We need to ensure we don't process those that were created within
 		// the select scan loop, because otherwise we will select-test fds
-		// that did not go through a select() call, hence why we limit the
-		// loop's maximum index to the initial size of the socket list
-		while (i < size && it != socket_list.end())
+		// that did not go through a select() call, hence why we iterate over a
+		// copy of the socket list and not the list itself
+
+		auto select_list = socket_list;
+		
+		for (auto sock : select_list)
 		{
-			iterator next = it + 1;
-			if (selected(*it, &copy_write))
+			if (selected(sock, &copy_write))
 			{
-				bool closed = pollWrite(*it);
+				bool closed = pollWrite(sock);
 				if (closed)
-				{
-					it = next;
-					++i;
 					continue;
-				}
 			}
-			if (selected(*it, &copy_read))
-				pollRead(*it);
-			it = next;
-			++i;
+			if (selected(sock, &copy_read))
+				pollRead(sock);
 		}
 	}
 }
@@ -232,8 +228,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
 	comm->client_address = ipstr;
 
-	// log.out() << "connection ip = " << ipstr << std::endl;
-
 	fcntl(comm->socket_fd, F_SETFL, O_NONBLOCK);
 	lstn->comm_sockets.push_back(comm);
 	FD_SET(comm->socket_fd, &master_read);
@@ -246,8 +240,8 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 
 void	ServerSocketPool::closeComm(ClientSocket* comm)
 {
-	std::vector<ClientSocket*>& commlist = comm->lstn_socket->comm_sockets;
-	for (std::vector<ClientSocket*>::iterator it = commlist.begin(); it != commlist.end(); ++it)
+	auto& commlist = comm->lstn_socket->comm_sockets;
+	for (auto it = commlist.begin(); it != commlist.end(); ++it)
 	{
 		if (*it == comm)
 		{
@@ -255,7 +249,7 @@ void	ServerSocketPool::closeComm(ClientSocket* comm)
 			break;
 		}
 	}
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	for (auto it = socket_list.begin(); it != socket_list.end(); ++it)
 	{
 		if (!(*it)->isListener() && *it == comm)
 		{
@@ -263,6 +257,13 @@ void	ServerSocketPool::closeComm(ClientSocket* comm)
 			close(comm->socket_fd);
 			FD_CLR(comm->socket_fd, &master_read);
 			FD_CLR(comm->socket_fd, &master_write);
+
+			// std::cout << "deleting SOCKET " << comm << "\n";
+			// std::cout << "list after delete: " << std::endl;
+			// for (auto s : socket_list)
+			// 	std::cout << s << " ";
+			// std::cout << "\n";
+
 			delete comm;
 			comm = nullptr;
 			return;
@@ -378,8 +379,6 @@ bool	ServerSocketPool::pollWrite(Socket* s)
 				// Socket on write poll but no bytes sent, clear from write poll
 				FD_CLR(cli->socket_fd, &master_write);
 			}
-			else if (!cli->getExchange().end)
-				request_handler(cli->getExchange(), conf);
 			break;
 		}
 	}

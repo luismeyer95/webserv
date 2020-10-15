@@ -45,14 +45,14 @@ void	single_request(std::string request, int port)
 
 void	worker(std::string request, int port)
 {
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 50; ++i)
 		single_request(request, port);
 }
 
 void	ddos(int port, std::string request)
 {
 	std::vector<std::thread> th_list;
-	for (int i = 0; i < 15; ++i)
+	for (int i = 0; i < 256; ++i)
 	{
 		std::thread th(worker, request, port);
 		th_list.push_back(std::move(th));
