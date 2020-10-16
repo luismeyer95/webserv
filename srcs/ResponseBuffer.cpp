@@ -153,13 +153,14 @@ ResponseBufferProcessStream::ResponseBufferProcessStream (
 		// {
 			feedRequestPayload(request_payload);
 			storeHeaders();
+			storeResponse();
 		// }
 	}
 }
 
 ResponseBufferProcessStream::~ResponseBufferProcessStream()
 {
-	reap();
+	// reap();
 }
 
 bool ResponseBufferProcessStream::eof()
@@ -169,7 +170,8 @@ bool ResponseBufferProcessStream::eof()
 
 void ResponseBufferProcessStream::advance(size_t bytes)
 {
-	buffer = buffer.sub(bytes);
+	// buffer = buffer.sub(bytes);
+	buffer.advance(bytes);
 }
 
 void	ResponseBufferProcessStream::execScript(const string& bin, const cstring_vec& argv, const cstring_vec& env)
@@ -273,6 +275,13 @@ void ResponseBufferProcessStream::storeHeaders()
 			break;
 		}
 	}
+}
+
+void ResponseBufferProcessStream::storeResponse()
+{
+	while (!eof_flag)
+		readStream(MAXBUF);
+	reap();
 }
 
 std::vector<std::string>& ResponseBufferProcessStream::getHeaders()

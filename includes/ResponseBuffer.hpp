@@ -5,7 +5,7 @@
 #include <ErrorCode.hpp>
 #include <Logger.hpp>
 
-const size_t MAXBUF = 16384;
+const size_t MAXBUF = 262144;
 const int TIMEOUT = 15000000;
 
 class ResponseBuffer
@@ -83,6 +83,7 @@ class ResponseBufferProcessStream : public ResponseBuffer
 		void		feedRequestPayload(ByteBuffer request_payload);
 		bool		searchHeaderBreak(ssize_t& break_pos, ssize_t& break_len);
 		void		storeHeaders();
+		void		storeResponse();
 		string_vec& getHeaders();
 		void 		reap();
 

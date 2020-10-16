@@ -183,7 +183,6 @@ void	ServerSocketPool::runServer(
 		// copy of the socket list and not the list itself
 
 		auto select_list = socket_list;
-		
 		for (auto sock : select_list)
 		{
 			if (selected(sock, &copy_write))

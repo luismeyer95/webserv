@@ -17,7 +17,7 @@
 #include <queue>
 #include <deque>
 
-#define MAXBUF 65536
+#define MAXBUF 262144
 #define MAXQUEUE 30
 
 struct ClientSocket;
