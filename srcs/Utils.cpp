@@ -576,9 +576,8 @@ std::string		format_env_key(std::string x_key)
 	return x_key;
 }
 
-
-// std::string atoi_base()
-// {
-// 	std::string base("0123456789ABCDEF")
-// }
-
+ssize_t&			current_request()
+{
+	static ssize_t sock = -1;
+	return sock;
+}

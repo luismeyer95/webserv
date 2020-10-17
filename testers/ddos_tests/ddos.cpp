@@ -177,9 +177,6 @@ void	worker(std::string request)
 
 void	ddos(std::string request)
 {
-	// std::cout << "request:" << std::endl;
-	// std::cout << request << std::endl;
-
 	std::vector<std::thread> th_list;
 	for (size_t i = 0; i < workers; ++i)
 	{

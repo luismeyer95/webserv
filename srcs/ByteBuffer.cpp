@@ -25,6 +25,11 @@ void ByteBuffer::clear()
 	data.clear();
 }
 
+void	ByteBuffer::reserve(size_t size)
+{
+	data.reserve(head + size);
+}
+
 ByteBuffer::ByteBuffer(const ByteBuffer& o)
 {
 	*this = o;
@@ -54,10 +59,10 @@ ssize_t		ByteBuffer::strfind(const std::string& needle) const
 {
 	if (needle.empty())
 		return (0);
-	auto it = std::search(data.begin(), data.end(), needle.begin(), needle.end());
+	auto it = std::search(data.begin() + head, data.end(), needle.begin(), needle.end());
 	if (it == data.end())
 		return -1;
-	return std::distance(data.begin(), it);
+	return std::distance(data.begin() + head, it);
 }
 
 bool			ByteBuffer::empty() const
@@ -88,13 +93,19 @@ void	ByteBuffer::advance(size_t num)
 void	ByteBuffer::append(const BYTE* buffer, size_t size)
 {
 	if (size)
+	{
+		// data.reserve(data.size() + size);
 		data.insert(data.end(), buffer, buffer + size);
+	}
 }
 
 void	ByteBuffer::prepend(const BYTE* buffer, size_t size)
 {
 	if (size)
+	{
+		// data.reserve(data.size() + size);
 		data.insert(data.begin(), buffer, buffer + size);
+	}
 }
 
 void	ByteBuffer::append(const ByteBuffer& bb)

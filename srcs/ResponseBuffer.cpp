@@ -194,19 +194,11 @@ void ResponseBufferProcessStream::feedRequestPayload(ByteBuffer request_payload)
 	ssize_t		ret = 0;
 
 	signal(SIGPIPE, SIG_IGN);
-	// std::cout << "___________________________________________" << std::endl;
-	// std::cout << "PAYLOAD: " << request_payload << std::endl;
 	while ((ret = write(pip_out[1], request_payload.get(), sendbytes)) > 0)
 	{
-		// std::cout << "WROTE TO CGI: ";
-		// for (int i = 0; i < ret; ++i)
-		// 	std::cout << request_payload.get()[i];
-		// std::cout << std::endl;
-
 		request_payload.advance(ret);
 		sendbytes = request_payload.size();
 	}
-	// std::cout << "___________________________________________" << std::endl;
 	close(pip_out[1]);
 }
 
@@ -316,7 +308,7 @@ void ResponseBufferProcessStream::readStream(size_t bytes)
 		if (chunked_flag)
 		{
 			auto hexret = ntohexstr(static_cast<size_t>(ret));
-			// std::cout << "CHUNKING" << std::endl;
+			// buffer.reserve(buffer.size() + hexret.size() + ret + 4);
 			buffer.append((BYTE*)&hexret[0], hexret.size());
 			buffer.append((BYTE*)"\r\n", 2);
 			buffer.append((BYTE*)buf, ret);

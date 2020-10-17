@@ -154,17 +154,10 @@ void handle_sigint(int sig)
 	write(1, "\n", 1);
 }
 
-void	ServerSocketPool::runServer(
-	void (*connection_handler)(HTTPExchange&, RequestRouter& conf),
-	void (*request_handler)(HTTPExchange&, RequestRouter& conf)
-)
+void	ServerSocketPool::runServer()
 {
-	this->connection_handler = connection_handler;
-	this->request_handler = request_handler;
 	initFdset();
-
 	signal(SIGINT, handle_sigint);
-
 	while (true)
 	{
 		fd_set copy_read = master_read;
@@ -172,15 +165,6 @@ void	ServerSocketPool::runServer(
 		int socket_count = select(fd_max + 1, &copy_read, &copy_write, nullptr, nullptr);
 		if (socket_count == -1 && errno == EINTR)
 			break;
-		
-		size_t i = 0;
-		size_t size = socket_list.size();
-		iterator it = socket_list.begin();
-		// Push and pops will happen on the socket list in the poll calls.
-		// We need to ensure we don't process those that were created within
-		// the select scan loop, because otherwise we will select-test fds
-		// that did not go through a select() call, hence why we iterate over a
-		// copy of the socket list and not the list itself
 
 		auto select_list = socket_list;
 		for (auto sock : select_list)
@@ -209,7 +193,6 @@ bool	ServerSocketPool::selected(Socket* socket, fd_set* set)
 {
 	return FD_ISSET(socket->socket_fd, set);
 }
-
 
 ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 {
@@ -256,13 +239,6 @@ void	ServerSocketPool::closeComm(ClientSocket* comm)
 			close(comm->socket_fd);
 			FD_CLR(comm->socket_fd, &master_read);
 			FD_CLR(comm->socket_fd, &master_write);
-
-			// std::cout << "deleting SOCKET " << comm << "\n";
-			// std::cout << "list after delete: " << std::endl;
-			// for (auto s : socket_list)
-			// 	std::cout << s << " ";
-			// std::cout << "\n";
-
 			delete comm;
 			comm = nullptr;
 			return;
@@ -282,6 +258,10 @@ void	ServerSocketPool::pollRead(Socket* s)
 	}
 	else 
 	{
+		if (current_request() == -1)
+			current_request() = s->socket_fd;
+		else if (current_request() != s->socket_fd)
+			return;
 		ClientSocket* cli = static_cast<ClientSocket*>(s);
 		int retflags = 0;
 		size_t readbytes = recvRequest(cli, retflags);
@@ -294,18 +274,10 @@ void	ServerSocketPool::pollRead(Socket* s)
 		}
 		else
 		{
-			// log.out() << "[inbound]: "
-			// 	<< "fd="  << cli->socket_fd << ", "
-			// 	<< "size=" << readbytes << std::endl;
+			// log.out() << "[inbound]: " << "fd="  << cli->socket_fd << ", "
+			// 		  << "size=" << readbytes << std::endl;
 			if (retflags & (int)IOSTATE::READY)
 			{
-				// at least one request is fully buffered:
-				// - create exchange + call callback
-				// - put client fd on write queue
-				// - an exchange is done and popped from the queue when
-				//	 the request_handler has marked the end of the response
-				// - write poller will pop client from the write queue
-				//	 once the http exchange pool for this client is empty
 				RequestBuffer& buff = cli->req_buffer;
 				ByteBuffer msg(buff.get());
 				if (msg.strfind("\r\n\r\n") != -1)
@@ -349,43 +321,34 @@ bool	ServerSocketPool::pollWrite(Socket* s)
 {
 	Logger& log = Logger::getInstance();
 	ClientSocket* cli = static_cast<ClientSocket*>(s);
-
-	// For all active http exchange tickets, send what is possible to send
 	while (!cli->exchanges.empty())
 	{
 		int retflags = 0;
 		size_t sendbytes = sendResponse(cli, retflags);
-		log.out() << "[outbound]: "
-					<< "fd="  << cli->socket_fd << ", "
-					<< "size=" << sendbytes << std::endl;
-		
+		// log.out() << "[outbound]: " << "fd="  << cli->socket_fd << ", "
+		// 		  << "size=" << sendbytes << std::endl;
 		if (retflags & (int)IOSTATE::READY)
 		{
-			// Full response has been sent
 			std::string msg(cli->getExchange().response_headers.str());
 			if (msg.find("\r\n\r\n") != std::string::npos)
 				msg = msg.substr(0, msg.find("\r\n\r\n"));
 			log.out() << "[response]: fd=" << cli->socket_fd << std::endl;
 			log.out(msg);
-
 			cli->closeExchange();
 		}
 		else
 		{
-			// Full response has not been sent yet, break out
 			if (!(retflags & (int)IOSTATE::ONCE))
-			{
-				// Socket on write poll but no bytes sent, clear from write poll
 				FD_CLR(cli->socket_fd, &master_write);
-			}
 			break;
 		}
 	}
-
 	if (cli->exchanges.empty())
 	{
 		FD_CLR(cli->socket_fd, &master_write);
 		log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
+		if (current_request() == cli->socket_fd)
+			current_request() = -1;
 		closeComm(cli);
 		return true;
 	}

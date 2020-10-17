@@ -26,6 +26,7 @@ class ByteBuffer
 
 
 		bool			empty() const;
+		void			reserve(size_t size);
 		void			clear();
 		ByteBuffer		sub(size_t pos, size_t len = std::string::npos) const;
 

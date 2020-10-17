@@ -30,8 +30,6 @@ struct HTTPExchange
 		
 		ByteBuffer					response_headers;
 		SharedPtr<ResponseBuffer>	response_buffer;
-		// ByteBuffer		response_buffer;
-		// ByteBuffer		response;
 		bool			end;
 
 		std::string		client_address;
@@ -68,9 +66,6 @@ class ServerSocketPool
 		fd_set				master_write;
 		std::vector<Socket*>	socket_list;
 
-		void (*connection_handler)(HTTPExchange&, RequestRouter&);
-		void (*request_handler)(HTTPExchange&, RequestRouter&);
-
 	public:
 		typedef std::vector<Socket*>::iterator iterator;
 		ServerSocketPool();
@@ -90,12 +85,8 @@ class ServerSocketPool
 		size_t				recvRequest(ClientSocket* cli, int& retflags);
 		size_t				sendResponse(ClientSocket* cli, int& retflags);
 
-		// void				preprocessRequest(HTTPExchange&);
+		void				runServer();
 
-		void				runServer(
-			void (*connection_handler)(HTTPExchange&, RequestRouter&) ,
-			void (*request_handler)(HTTPExchange&, RequestRouter&)
-		);
 		void				pollRead(Socket* s);
 		bool				pollWrite(Socket* s);
 };
