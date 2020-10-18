@@ -30,6 +30,11 @@ class SharedPtr
 			this->obj = obj;
 		}
 
+		T*	get() const
+		{
+			return obj;
+		}
+
 		SharedPtr(T* obj)
 			: counter(new size_t(1)), obj(obj) {}
 		

@@ -14,10 +14,14 @@ class RequestRouter
 {
 	friend class ServerSocketPool;
 	private:
-		std::shared_ptr<ConfBlockDirective> main;
+		SharedPtr<ConfBlockDirective> main;
 		ConfBlockDirective*			route_binding;
 		ConfBlockDirective*			saved_binding;
 	public:
+		RequestRouter();
+		RequestRouter(const Config& conf);
+		RequestRouter& operator=(const Config& conf);
+
 		void		bindServer (
 			const std::string& request_servname,
 			const std::string& request_ip_host,
@@ -31,11 +35,6 @@ class RequestRouter
 
 		void		saveBinding();
 		void		loadBinding();
-
-
-		RequestRouter();
-		RequestRouter(const Config& conf);
-		RequestRouter& operator=(const Config& conf);
 
 		FileRequest	requestFile (
 			RequestParser&		parsed_request,
@@ -62,8 +61,6 @@ class RequestRouter
 		std::string resolveUriToLocalPath(const std::string& request_uri);
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
 		std::string expandCaptures(std::string to_expand, const std::vector<std::string>& match_groups);
-		
-
 
 		bool		checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth);
 		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);
@@ -71,14 +68,10 @@ class RequestRouter
 		void		checkRedirect(RequestParser& parsed_request, HTTPExchange& ticket, FileRequest& file_req);
 		bool		checkAutoindex(FileRequest& file_req, RequestParser& parsed_request, const std::string& path);
 		bool		methodIsEither(const std::string& method, const std::vector<std::string>& list);
-
 		std::string	getAuthUser(const std::string& basic_auth);
-
-
 
 		std::vector<std::string>		getBoundRequestDirectiveValues(DirectiveKey dirkey);
 		std::string 					getCurrentLocationPrefix();
-		
 		static ConfBlockDirective&		getBlock(ConfBlockDirective& b, ContextKey key);
 		static ConfDirective&			getDirective(ConfBlockDirective& b, DirectiveKey key);
 
@@ -91,13 +84,12 @@ struct FileRequest
 		std::string					http_string;
 		std::string					file_path;
 		std::string					last_modified;
-		// ByteBuffer					file_content;
-		SharedPtr<ResponseBuffer>	response_buffer;
 		std::string					content_type;
 		ssize_t						content_length;
 		std::string					content_location;
-		std::vector<std::string>	allowed_methods;
 		std::string					realm;
+		std::vector<std::string>	allowed_methods;
+		SharedPtr<ResponseBuffer>	response_buffer;
 
 	FileRequest()
 		: http_code(200), content_length(-1){}

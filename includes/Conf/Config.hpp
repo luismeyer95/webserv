@@ -3,6 +3,7 @@
 #include "ConfBlockDirective.hpp"
 #include <Regex.hpp>
 #include <ErrorCode.hpp>
+#include <SharedPtr.hpp>
 
 class RequestRouter;
 
@@ -12,7 +13,7 @@ class Config
 	public:
 		Config(const std::string& conf_path);
 	private:
-		std::shared_ptr<ConfBlockDirective>		main;
+		SharedPtr<ConfBlockDirective>	main;
 		std::string					conf_path;
 		std::string					conf_file;
 

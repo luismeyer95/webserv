@@ -13,7 +13,7 @@ Config::Config(const std::string& conf_path)
 		tokenizeConf(in);
 		in.close();
 		try {
-			main = std::make_shared<ConfBlockDirective>(context(1, ContextKey::main, {}));
+			main = SharedPtr<ConfBlockDirective>(new ConfBlockDirective(context(1, ContextKey::main, {})));
 			link(nullptr, *main);
 			main->validate();
 		} catch (const ConfError& e) {
@@ -52,7 +52,6 @@ void Config::tokenizeConf(std::ifstream& in)
 		bool open_quote = false;
 		for (auto& c : line)
 		{	
-			// whitespace or delim
 			if (!open_quote && (isWhitespace(c) || isDelimiter(c)))
 			{
 				if (!buf.empty())
@@ -79,10 +78,6 @@ void Config::tokenizeConf(std::ifstream& in)
 		}
 		line_nb++;
 	}
-
-	// for (auto& s : tokens)
-	// 	std::cout << s << std::endl;
-	// exit(0);
 }
 
 ConfBlockDirective Config::context (
