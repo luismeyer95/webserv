@@ -118,9 +118,9 @@ void	ByteBuffer::prepend(const ByteBuffer& bb)
 	prepend(bb.get(), bb.size());
 }
 
-void	ByteBuffer::append(const std::ostringstream& stream)
+void	ByteBuffer::append(const std::string& str)
 {
-	append((BYTE*)stream.str().c_str(), stream.str().size());
+	append((BYTE*)str.c_str(), str.size());
 }
 
 void	ByteBuffer::appendFile(const std::string& filename)
