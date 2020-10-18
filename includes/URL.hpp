@@ -2,6 +2,7 @@
 
 #include "header.h"
 #include "Regex.hpp"
+#include <Utils.hpp>
 #include <list>
 
 // Used to generate helper objects for splitting URLs into components

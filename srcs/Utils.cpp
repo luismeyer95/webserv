@@ -1,17 +1,5 @@
 #include <Utils.hpp>
 
-// std::string filetostr(std::string filename)
-// {
-// 	std::ostringstream out(std::ios::out | std::ios::binary) ; // *** binary
-// 	std::ifstream in(filename.c_str());
-
-// 	std::string line;
-// 	while(std::getline(in, line))
-// 		out << line << "\n";
-
-// 	return out.str();
-// }
-
 std::string filetostr(std::string filename)
 {
 	int fd = open(filename.c_str(), O_RDONLY, 0644);

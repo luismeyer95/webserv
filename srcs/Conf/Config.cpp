@@ -39,14 +39,14 @@ bool Config::isDelimiter(char c)
 
 void Config::tokenizeConf(std::ifstream& in)
 {
-	std::stringstream stream;
+	std::string out;
 	std::string line;
 
 	int line_nb = 1;
 	while (getline(in, line, '\n'))
 	{
 		line = line.substr(0, line.find('#'));
-		stream << line << '\n';
+		out += line + "\n";
 		std::string buf;
 		buf.reserve(128);
 		bool open_quote = false;

@@ -229,38 +229,36 @@ std::string URL::getFullURL()
 // and the characters matching the regex
 std::string URL::encode(const Regex& rgx, const std::string& str)
 {
-	std::stringstream ss;
+	std::string out;
 	for (auto& c : str)
 	{
 		bool found = rgx.match(std::string(1, c)).first;
 		if (c & 0b10000000 || found)
 		{
 			unsigned char uc = c;
-			ss << "%" << std::hex << static_cast<int>(uc);
-			ss << std::dec;
+			out += "%" + ntohexstr(static_cast<int>(uc));
 		}
 		else
-			ss << c;
+			out += c;
 	}
-	return ss.str();
+	return out;
 }
 
 // Percent encodes the given string from UTF-8. Percent encoding is only applied on non-ASCII characters.
 std::string URL::encode(const std::string& str)
 {
-	std::stringstream ss;
+	std::string out;
 	for (auto& c : str)
 	{
 		if (c & 0b10000000)
 		{
 			unsigned char uc = c;
-			ss << "%" << std::hex << static_cast<int>(uc);
-			ss << std::dec;
+			out += "%" + ntohexstr(static_cast<int>(uc));
 		}
 		else
-			ss << c;
+			out += c;
 	}
-	return ss.str();
+	return out;
 }
 
 std::string URL::encode(URL::Component comp_charset, const std::string& str)
@@ -295,7 +293,7 @@ std::string URL::encode(URL::Component comp_charset, const std::string& str)
 // Performs percent-encoded to UTF-8 conversion and returns the result
 std::string URL::decode(const std::string& str)
 {
-	std::stringstream ss;
+	std::string out;
 
 	size_t i = 0;
 	while (str[i])
@@ -304,13 +302,13 @@ std::string URL::decode(const std::string& str)
 		{
 			int nb = std::stoi(str.substr(i + 1, 2), nullptr, 16);
 			char c = static_cast<char>(nb);
-			ss << c;
+			out += c;
 			i += 3;
 		}
 		else
-			ss << str[i++];
+			out += str[i++];
 	}
-	return ss.str();
+	return out;
 }
 
 // REGEX FOR COMPONENTS
