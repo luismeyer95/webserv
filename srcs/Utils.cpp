@@ -1,15 +1,36 @@
 #include <Utils.hpp>
 
-std::string filetostr( std::string filename )
+// std::string filetostr(std::string filename)
+// {
+// 	std::ostringstream out(std::ios::out | std::ios::binary) ; // *** binary
+// 	std::ifstream in(filename.c_str());
+
+// 	std::string line;
+// 	while(std::getline(in, line))
+// 		out << line << "\n";
+
+// 	return out.str();
+// }
+
+std::string filetostr(std::string filename)
 {
-	std::ostringstream dosString( std::ios::out | std::ios::binary ) ; // *** binary
-	std::ifstream inFile( filename.c_str() ) ;
+	int fd = open(filename.c_str(), O_RDONLY, 0644);
+	if (fd == -1)
+		throw std::runtime_error("could not open file");
 
-	std::string line;
-	while( std::getline(inFile, line) )
-		dosString << line << "\n" ;
-
-	return dosString.str();
+	char buf[8192 + 1];
+	ssize_t ret = 0;
+	std::string out;
+	
+	while ( (ret = read(fd, buf, 8192)) > 0 )
+	{
+		buf[ret] = 0;
+		out += buf;
+	}
+	close(fd);
+	if (ret == -1)
+		throw std::runtime_error("read(): " + std::string(strerror(errno)));
+	return out;
 }
 
 std::vector<std::string> strsplit(const std::string& str, const std::string& delim_set)
