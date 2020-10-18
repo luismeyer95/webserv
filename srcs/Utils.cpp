@@ -575,9 +575,3 @@ std::string		format_env_key(std::string x_key)
 	x_key.replace(0, 2, "HTTP_X_");
 	return x_key;
 }
-
-ssize_t&			current_request()
-{
-	static ssize_t sock = -1;
-	return sock;
-}

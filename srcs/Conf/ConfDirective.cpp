@@ -348,25 +348,21 @@ void ConfDirective::validate()
 			if (values.empty())
 				throw dirExcept("missing value(s)");
 			
-			Regex rgx_method("^GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|all$");
+			Regex rgx_method("^GET|HEAD|POST|PUT|all$");
 			for (auto& s : values)
 			{
 				if (!rgx_method.match(s).first)
-					throw dirExcept("not a valid HTTP/1.1 method (`" + s + "`)");
+					throw dirExcept("not a supported method (`" + s + "`)");
 			}
 
 			if (std::find(values.begin(), values.end(), "all") != values.end())
 			{
 				values.clear();
-				values.reserve(8);
+				values.reserve(4);
 				values.push_back("GET");
 				values.push_back("HEAD");
 				values.push_back("PUT");
 				values.push_back("POST");
-				values.push_back("DELETE");
-				values.push_back("CONNECT");
-				values.push_back("OPTIONS");
-				values.push_back("TRACE");
 			}
 
 			break;

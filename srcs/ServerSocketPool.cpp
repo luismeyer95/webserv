@@ -54,19 +54,17 @@ unsigned short	HTTPExchange::listeningPort()
 */
 
 ServerSocketPool::ServerSocketPool()
-	: fd_max(-1)
+	: fd_max(-1), current_request(-1)
 {
 	
 }
 
 void	ServerSocketPool::setConfig(RequestRouter conf)
 {
-	this->conf = conf;
-
-	ConfBlockDirective& main = *conf.main;
-
 	typedef std::pair<std::string, unsigned short> hp_pair;
+	ConfBlockDirective& main = *conf.main;
 	std::set<hp_pair> added_hostports;
+	this->conf = conf;
 
 	for (auto& b : main.blocks)
 	{
@@ -102,7 +100,6 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1)
 		throw std::runtime_error("Failed to create socket. " + std::string(strerror(errno)));
-	
 
 	Listener* lstn = new Listener();
 	lstn->socket_fd = sock;
@@ -130,7 +127,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 
 ServerSocketPool::~ServerSocketPool()
 {
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	for (auto it = socket_list.begin(); it != socket_list.end(); ++it)
 	{
 		if (*it)
 		{
@@ -181,11 +178,26 @@ void	ServerSocketPool::runServer()
 	}
 }
 
+bool				ServerSocketPool::enqueue(Socket *sock)
+{
+	if (current_request == -1)
+		current_request = sock->socket_fd;
+	else if (current_request != sock->socket_fd)
+		return false;
+	return true;
+}
+
+void				ServerSocketPool::dequeue(Socket *sock)
+{
+	if (current_request == sock->socket_fd)
+		current_request = -1;
+}
+
 void	ServerSocketPool::initFdset()
 {
 	FD_ZERO(&master_read);
 	FD_ZERO(&master_write);
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	for (auto it = socket_list.begin(); it != socket_list.end(); ++it)
 		FD_SET((*it)->socket_fd, &master_read);
 }
 
@@ -253,29 +265,23 @@ void	ServerSocketPool::pollRead(Socket* s)
 	if (s->isListener())
 	{
 		log.out() << "[connection]\n";
-		// create the communication socket for that connection
 		ClientSocket* client_socket = acceptConnection((Listener*)s);
 	}
 	else 
 	{
-		if (current_request() == -1)
-			current_request() = s->socket_fd;
-		else if (current_request() != s->socket_fd)
+		if (!enqueue(s))
 			return;
 		ClientSocket* cli = static_cast<ClientSocket*>(s);
 		int retflags = 0;
 		size_t readbytes = recvRequest(cli, retflags);
 		if (!(retflags & (int)IOSTATE::ONCE))
 		{
-			// if socket has been read-selected but recv() read 0 bytes, socket should be closed
-			// and removed from the pool
 			log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
+			dequeue(cli);
 			closeComm(cli);
 		}
 		else
 		{
-			// log.out() << "[inbound]: " << "fd="  << cli->socket_fd << ", "
-			// 		  << "size=" << readbytes << std::endl;
 			if (retflags & (int)IOSTATE::READY)
 			{
 				RequestBuffer& buff = cli->req_buffer;
@@ -316,7 +322,6 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 	return total;
 }
 
-// returns true if client connection was closed
 bool	ServerSocketPool::pollWrite(Socket* s)
 {
 	Logger& log = Logger::getInstance();
@@ -325,8 +330,6 @@ bool	ServerSocketPool::pollWrite(Socket* s)
 	{
 		int retflags = 0;
 		size_t sendbytes = sendResponse(cli, retflags);
-		// log.out() << "[outbound]: " << "fd="  << cli->socket_fd << ", "
-		// 		  << "size=" << sendbytes << std::endl;
 		if (retflags & (int)IOSTATE::READY)
 		{
 			std::string msg(cli->getExchange().response_headers.str());
@@ -347,8 +350,7 @@ bool	ServerSocketPool::pollWrite(Socket* s)
 	{
 		FD_CLR(cli->socket_fd, &master_write);
 		log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
-		if (current_request() == cli->socket_fd)
-			current_request() = -1;
+		dequeue(cli);
 		closeComm(cli);
 		return true;
 	}
@@ -368,7 +370,6 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 	ByteBuffer& bb = response_buf.get();
 	while ((ret = send(cli->socket_fd, bb.get(), sendbytes, MSG_NOSIGNAL)) > 0)
 	{
-		// std::cout << bb;
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;

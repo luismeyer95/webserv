@@ -34,6 +34,3 @@ size_t						peek_file_size(const std::string& filename);
 std::string					ntohexstr(size_t num);
 
 std::string					format_env_key(std::string x_key);
-
-ssize_t&					current_request();
-
