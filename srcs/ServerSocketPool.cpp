@@ -71,7 +71,8 @@ void	ServerSocketPool::setConfig(RequestRouter conf)
 		if (b.key == ContextKey::server)
 		{
 			std::string host_port = RequestRouter::getDirective(b, DirectiveKey::listen).values.at(0);
-			auto tokens = tokenizer(host_port, ':');
+			// auto tokens = tokenizer(host_port, ':');
+			auto tokens = strsplit(host_port, ":");
 			std::string host = tokens.at(0);
 			if (host == "localhost")
 				host = "127.0.0.1";

@@ -2,10 +2,8 @@
 #include <ServerSocketPool.hpp>
 #include <Sockets.hpp>
 
-// const size_t default_max_body_size = 31457280; // 30Mb
 const size_t default_max_body_size = 100457280; // ~100Mb
 const size_t default_max_header_size = 1000000;
-const size_t max_concurrent_payload_request_count = 7;
 
 RequestBuffer::RequestBuffer(RequestRouter& route, ClientSocket* sock)
 	: route(route), socket(sock), max_body(default_max_body_size),
@@ -120,9 +118,9 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 	}
 	else
 	{
-		if (request_buffer.size() + len >= neededLength()) // 1159 + 8 > 155
+		if (request_buffer.size() + len >= neededLength())
 		{
-			request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
+			request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size());
 			processRequest();
 		}
 		else

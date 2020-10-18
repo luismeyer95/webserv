@@ -19,7 +19,7 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
 	(void)req;
 
     _error = file_request.http_code;
-    _code = get_http_code(file_request.http_code);
+    // _code = get_http_code(file_request.http_code);
     _first_line.append(std::to_string(_error) + " " + get_http_string(_error) + "\r\n");
 
     _header << _first_line;

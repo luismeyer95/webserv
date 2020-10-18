@@ -58,7 +58,7 @@ class ResponseBufferProcessStream : public ResponseBuffer
 		fd_type		pip_out[2];
 		int			pstatus;
 		pid_t		worker_pid;
-		// pid_t		timer_pid;
+		pid_t		timer_pid;
 
 		bool		eof_flag;
 		bool		chunked_flag;

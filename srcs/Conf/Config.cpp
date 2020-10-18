@@ -6,14 +6,14 @@ Config::Config(const std::string& conf_path)
 	directive_key_lookup(directiveKeyLookup())
 {
 	tokens.reserve(128);
-
 	std::ifstream in(conf_path);
 	if (in.is_open())
 	{
 		tokenizeConf(in);
 		in.close();
 		try {
-			main = SharedPtr<ConfBlockDirective>(new ConfBlockDirective(context(1, ContextKey::main, {})));
+			main = SharedPtr<ConfBlockDirective>
+				(new ConfBlockDirective(context(1, ContextKey::main, {})));
 			link(nullptr, *main);
 			main->validate();
 		} catch (const ConfError& e) {

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sleep 20
+while true; do sleep 30; done

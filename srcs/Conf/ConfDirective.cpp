@@ -75,15 +75,16 @@ void ConfDirective::validate()
 			if (col == std::string::npos)
 				throw dirExcept("value should be formatted as follows : <host>:<port>");
 
-			auto strs = tokenizer(values.at(0), ':');
+			// auto strs = tokenizer(values.at(0), ':');
+			auto strs = strsplit(values.at(0), ":");
 			auto ipv4 = Regex (
 				"^(([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\\.){3}([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$"
 			).match(strs.at(0));
 			if (!ipv4.first && strs.at(0) != "localhost")
 				throw std::runtime_error
-					("<host> component should either be a valid ipv4 address or `localhost`");
+					("host component should either be a valid ipv4 address or `localhost`");
 
-			ConfError oor = dirExcept("out of range <port> number");
+			ConfError oor = dirExcept("out of range port number");
 			int port;
 			try {
 				port = std::stoi(strs.at(1));
@@ -248,8 +249,9 @@ void ConfDirective::validate()
 				{
 					if (line.empty())
 						continue;
-					auto tokens = tokenizer(line, ':');
-					if (tokens.size() != 2 || tokens.at(0).empty() || tokens.at(1).empty())
+					// auto tokens = tokenizer(line, ':');
+					auto tokens = strsplit(line, ":");
+					if (tokens.size() != 2)
 						throw dirExcept ("`" + path + "` "
 							"user-pass file entries require the following format: "
 							"<user> ':' base64(<user> ':' <password>)"
