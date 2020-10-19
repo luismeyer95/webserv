@@ -21,10 +21,12 @@ bool                        is_number(const std::string s);
 bool                        is_http_date(std::string str);
 std::string                 trim(const std::string &str);
 bool                        check_str_len(const std::string &str, int min, int max);
+std::string					reformat_path(std::string input_path);
 std::string                 get_http_code(int i);
 std::string					get_http_string(int code);
 std::string					get_current_dir();
-std::string                 http_index(std::string folder);
+// std::string                 http_index(std::string folder);
+std::string					http_index(std::string root, std::string relative_part, std::string request_uri);
 std::string                 itoa(int i);
 
 std::map<std::string,
@@ -34,3 +36,5 @@ size_t						peek_file_size(const std::string& filename);
 std::string					ntohexstr(size_t num);
 
 std::string					format_env_key(std::string x_key);
+
+std::string					preset_index_html();
