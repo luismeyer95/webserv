@@ -338,7 +338,11 @@ bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_
 	if (autoindex_vals.empty() || autoindex_vals.at(0) == "off")
 		return false;
 
-	std::string autoindex_html = http_index(path);
+	std::string cur_dir = reformat_path(get_current_dir());
+	std::string rel_path = reformat_path(path.c_str() + cur_dir.size());
+	std::string request_uri = URL::decode(reformat_path(parsed_request.getResource()));
+
+	std::string autoindex_html = http_index(cur_dir, rel_path, request_uri);
 	if (parsed_request.getMethod() != "HEAD")
 		file_req.response_buffer->get().append((BYTE*)autoindex_html.c_str(), autoindex_html.size());
 	file_req.content_length = autoindex_html.size();
