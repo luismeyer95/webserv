@@ -6,7 +6,7 @@
 /*   By: luis <luis@student.42lyon.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/10/12 22:33:22 by luis             ###   ########lyon.fr   */
+/*   Updated: 2020/10/18 13:12:31 by luis             ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,11 +34,6 @@
 
 #include <string>
 #include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <fstream>
-#include <limits>
-
 #include <queue>
 #include <vector>
 #include <map>

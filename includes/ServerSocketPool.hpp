@@ -17,7 +17,7 @@
 #include <queue>
 #include <deque>
 
-#define MAXBUF 65536
+#define MAXBUF 262144
 #define MAXQUEUE 30
 
 struct ClientSocket;
@@ -30,8 +30,6 @@ struct HTTPExchange
 		
 		ByteBuffer					response_headers;
 		SharedPtr<ResponseBuffer>	response_buffer;
-		// ByteBuffer		response_buffer;
-		// ByteBuffer		response;
 		bool			end;
 
 		std::string		client_address;
@@ -45,7 +43,11 @@ struct HTTPExchange
 		);
 
 		const ByteBuffer	request;
-		void				bufferResponse(const ByteBuffer& headers, SharedPtr<ResponseBuffer> buf, bool mark_end = false);
+		void				bufferResponse (
+			const ByteBuffer& headers,
+			SharedPtr<ResponseBuffer> buf,
+			bool mark_end = false
+		);
 		ResponseBuffer&		getResponse();
 
 		std::string			clientAddress();
@@ -61,41 +63,37 @@ class ServerSocketPool
 			READY = 2
 		};
 
-		RequestRouter		conf;
+		RequestRouter			conf;
 
-		int					fd_max;
-		fd_set				master_read;
-		fd_set				master_write;
+		int						fd_max;
+		fd_set					master_read;
+		fd_set					master_write;
 		std::vector<Socket*>	socket_list;
 
-		void (*connection_handler)(HTTPExchange&, RequestRouter&);
-		void (*request_handler)(HTTPExchange&, RequestRouter&);
+		int						current_request;
 
 	public:
-		typedef std::vector<Socket*>::iterator iterator;
 		ServerSocketPool();
 		~ServerSocketPool();
 
-		void				setConfig(RequestRouter conf_handler);
+		void					setConfig(RequestRouter conf_handler);
 
-		void				addListener(const std::string& host, unsigned short port);
-		ClientSocket*		acceptConnection(Listener* lstn);
+		void					addListener(const std::string& host, unsigned short port);
+		ClientSocket*			acceptConnection(Listener* lstn);
 
-		void				initFdset();
+		void					initFdset();
 
-		bool				selected(Socket* socket, fd_set* set);
-		void				closeComm(ClientSocket* comm);
+		bool					selected(Socket* socket, fd_set* set);
+		bool					enqueue(Socket *sock);
+		void					dequeue(Socket *sock);
+		void					closeComm(ClientSocket* comm);
 		std::vector<Socket*>&	getSocketList();
 
-		size_t				recvRequest(ClientSocket* cli, int& retflags);
-		size_t				sendResponse(ClientSocket* cli, int& retflags);
+		size_t					recvRequest(ClientSocket* cli, int& retflags);
+		size_t					sendResponse(ClientSocket* cli, int& retflags);
 
-		// void				preprocessRequest(HTTPExchange&);
+		void					runServer();
 
-		void				runServer(
-			void (*connection_handler)(HTTPExchange&, RequestRouter&) ,
-			void (*request_handler)(HTTPExchange&, RequestRouter&)
-		);
-		void				pollRead(Socket* s);
-		bool				pollWrite(Socket* s);
+		void					pollRead(Socket* s);
+		bool					pollWrite(Socket* s);
 };

@@ -34,20 +34,6 @@ std::pair<size_t, size_t>	Tokenizer::find_first_of_str
 	return {pos, len};
 }
 
-
-// this function retrieves tokens inside str according to the rules
-// given during construction.
-// - delim_set: this set of strings defines the order of appearance of delimiters.
-//				get_token() should be called delim_set.size() + 1 times to retrieve
-//				all the tokens.
-// - skip_set:	this set MUST be a subset of delim_set. it informs the object which of
-//				the delimiters should be excluded from the tokens.
-// every call walks the delim_set, returns the next token in str and advances the string.
-// the next token spans from the beginning of str to the first character of the first string 
-// found amongst the string delimiters in delim_set. usually the front of the delim_set is
-// the expected delimiter and popped at the end of the call, but if one of the following one
-// is found, next calls will pop front and return empty string until that delimiter is at
-// the front to reflect the empty tokens.
 std::string Tokenizer::get_token(std::string& str)
 {
 	if (delim_set.empty())
@@ -147,10 +133,6 @@ URL::URL (
 URL::URL(const std::string& encoded_url)
 	: _encoded_url(encoded_url)
 {
-
-	// scheme processed separately, since the tokenizer
-	// object assumes the presence of a token implies the presence
-	// of the previous delimiter. (having "://" isn't required for a host token)
 	size_t scheme_delim = _encoded_url.find("://");
 	if (scheme_delim != std::string::npos)
 	{
@@ -247,40 +229,36 @@ std::string URL::getFullURL()
 // and the characters matching the regex
 std::string URL::encode(const Regex& rgx, const std::string& str)
 {
-	std::stringstream ss;
-
+	std::string out;
 	for (auto& c : str)
 	{
 		bool found = rgx.match(std::string(1, c)).first;
 		if (c & 0b10000000 || found)
 		{
 			unsigned char uc = c;
-			ss << "%" << std::hex << static_cast<int>(uc);
-			ss << std::dec;
+			out += "%" + ntohexstr(static_cast<int>(uc));
 		}
 		else
-			ss << c;
+			out += c;
 	}
-	return ss.str();
+	return out;
 }
 
 // Percent encodes the given string from UTF-8. Percent encoding is only applied on non-ASCII characters.
 std::string URL::encode(const std::string& str)
 {
-	std::stringstream ss;
-
+	std::string out;
 	for (auto& c : str)
 	{
 		if (c & 0b10000000)
 		{
 			unsigned char uc = c;
-			ss << "%" << std::hex << static_cast<int>(uc);
-			ss << std::dec;
+			out += "%" + ntohexstr(static_cast<int>(uc));
 		}
 		else
-			ss << c;
+			out += c;
 	}
-	return ss.str();
+	return out;
 }
 
 std::string URL::encode(URL::Component comp_charset, const std::string& str)
@@ -315,7 +293,7 @@ std::string URL::encode(URL::Component comp_charset, const std::string& str)
 // Performs percent-encoded to UTF-8 conversion and returns the result
 std::string URL::decode(const std::string& str)
 {
-	std::stringstream ss;
+	std::string out;
 
 	size_t i = 0;
 	while (str[i])
@@ -324,13 +302,13 @@ std::string URL::decode(const std::string& str)
 		{
 			int nb = std::stoi(str.substr(i + 1, 2), nullptr, 16);
 			char c = static_cast<char>(nb);
-			ss << c;
+			out += c;
 			i += 3;
 		}
 		else
-			ss << str[i++];
+			out += str[i++];
 	}
-	return ss.str();
+	return out;
 }
 
 // REGEX FOR COMPONENTS
@@ -452,13 +430,6 @@ bool		URL::check(const std::string& rgx, const std::string& str, bool thrw, cons
 		throw std::runtime_error(error);
 	return res.first;
 }
-
-// bool	URL::operator==(const URL& o)
-// {
-// 	auto d = URL::decode;
-// 	return	d(_scheme) == d(o._scheme)
-// 			&& d()
-// }
 
 void	URL::printComponents()
 {

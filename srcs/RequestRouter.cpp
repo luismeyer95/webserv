@@ -136,7 +136,8 @@ void	RequestRouter::bindServer (
 		if (block.key == ContextKey::server)
 		{
 			std::string host_port = RequestRouter::getDirective(block, DirectiveKey::listen).values.at(0);
-			auto tokens = tokenizer(host_port, ':');
+			// auto tokens = tokenizer(host_port, ':');
+			auto tokens = strsplit(host_port, ":");
 			std::string host = tokens.at(0);
 			if (host == "localhost")
 				host = "127.0.0.1";
@@ -174,7 +175,6 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 	if (vals.empty())
 	{
 		std::string tmp = make_html_error_page(code, msg);
-		// file_req.file_content.append((BYTE*)tmp.data(), tmp.length());
 		file_req.content_length = tmp.length();
 		if (parsed_request.getMethod() != "HEAD")
 			file_req.response_buffer->get().append((BYTE*)tmp.data(), tmp.length());
@@ -188,14 +188,12 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 				size_t xxx = uri.find("xxx");
 				uri.replace(xxx, 3, std::to_string(code));
 				try {
-					// file_req.file_content.appendFile(uri);
 					file_req.content_length = peek_file_size(uri);
 					if (parsed_request.getMethod() != "HEAD")
 						file_req.response_buffer->get().appendFile(uri);
 					return;
 				} catch (const std::runtime_error& e) {
 					std::string errpage = make_html_error_page(code, msg);
-					// file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
 					file_req.content_length = errpage.length();
 					if (parsed_request.getMethod() != "HEAD")
 						file_req.response_buffer->get().append((BYTE*)errpage.data(), errpage.length());
@@ -203,7 +201,6 @@ void	RequestRouter::fetchErrorPage(FileRequest& file_req, RequestParser& parsed_
 				}
 			}
 		std::string errpage = make_html_error_page(code, msg);
-		// file_req.file_content.append((BYTE*)errpage.data(), errpage.length());
 		file_req.content_length = errpage.length();
 		if (parsed_request.getMethod() != "HEAD")
 			file_req.response_buffer->get().append((BYTE*)errpage.data(), errpage.length());
@@ -358,9 +355,6 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 	file_req.response_buffer.set(new ResponseBuffer);
 	std::string path = resolveUriToLocalPath(request_uri);
 
-	Logger& log = Logger::getInstance();
-	// log.hl(BOLDWHITE "RESOLVED PATH", path);
-
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
 	{
@@ -417,7 +411,8 @@ std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
 	auto userpwds = getBoundRequestDirectiveValues(DirectiveKey::auth_basic_user_file);
 	for (auto& userpass : userpwds)
 	{
-		auto entry = tokenizer(userpass, ':');
+		// auto entry = tokenizer(userpass, ':');
+		auto entry = strsplit(userpass, ":");
 		std::string pass = entry.at(1);
 		if (pass == basic_auth)
 			return entry.at(0);
@@ -428,15 +423,6 @@ std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
 bool		RequestRouter::checkMethod(RequestParser& parsed_request, FileRequest& file_req)
 {
 	auto mthds = getBoundRequestDirectiveValues(DirectiveKey::accept_methods);
-
-	// std::cout << "ALLOWED: " << std::endl;
-	// for (auto& s : mthds)
-	// 	dec_print(s.c_str());
-	// std::cout << std::endl;
-
-	// std::cout << "METHOD: ";
-	// dec_print(parsed_request.getMethod().c_str());
-
 	if (mthds.empty())
 	{
 		file_req.allowed_methods.clear();
@@ -516,14 +502,12 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 
 	env[E::PATH_INFO] = env[E::SCRIPT_NAME]; // ????
 
-	// check if the script is a file that exists before sending to execution
 	struct stat filecheck;
 	if (stat(env.at(E::SCRIPT_FILENAME).c_str(), &filecheck) != 0 || !(filecheck.st_mode & S_IFREG))
 	{
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
-
 	std::string script_dir = URL::reformatPath(getParentDirectory(env.at(EnvCGI::SCRIPT_FILENAME)));
 	env[E::PATH_TRANSLATED] = script_dir + env[E::PATH_INFO];
 	env[E::QUERY_STRING] = url.get(URL::Component::Query);
@@ -547,11 +531,9 @@ void		RequestRouter::executeCGI(
 )
 {
 	using E = EnvCGI;
-
 	auto env = setCGIEnv(file_req, parsed_request, ticket);
 	if (env.empty())
 		return;
-
 	auto cgi_bin = getBoundRequestDirectiveValues(DirectiveKey::execute_cgi);
 	auto auth_basic_val = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
 
@@ -600,17 +582,6 @@ void	RequestRouter::checkRedirect(RequestParser& parsed_request, HTTPExchange& t
 	}
 }
 
-// bool	RequestRouter::checkBodyLength(RequestParser& parsed_request, FileRequest& file_req)
-// {
-// 	auto max_body_dir = getBoundRequestDirectiveValues(DirectiveKey::max_request_body);
-// 	if (max_body_dir.empty())
-// 		return true;
-// 	if (parsed_request.getContentLength() <= std::stoull(max_body_dir.at(0)))
-// 		return true;
-// 	fetchErrorPage(file_req, parsed_request, 413, "Payload Too Large");
-// 	return false;
-// }
-
 bool RequestRouter::methodIsEither(const std::string& method, const std::vector<std::string>& list)
 {
 	return std::find(list.begin(), list.end(), method) != list.end();
@@ -646,7 +617,6 @@ FileRequest	RequestRouter::requestFile (
 				putFile(file_req, parsed_request, request_path);
 			else
 			{
-				// std::cout << "METHOD REJECTED IN REQUESTFILE" << std::endl;
 				fetchErrorPage(file_req, parsed_request, 405, "Method Not Allowed");
 				return file_req;
 			}

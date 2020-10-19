@@ -54,26 +54,25 @@ unsigned short	HTTPExchange::listeningPort()
 */
 
 ServerSocketPool::ServerSocketPool()
-	: fd_max(-1)
+	: fd_max(-1), current_request(-1)
 {
 	
 }
 
 void	ServerSocketPool::setConfig(RequestRouter conf)
 {
-	this->conf = conf;
-
-	ConfBlockDirective& main = *conf.main;
-
 	typedef std::pair<std::string, unsigned short> hp_pair;
+	ConfBlockDirective& main = *conf.main;
 	std::set<hp_pair> added_hostports;
+	this->conf = conf;
 
 	for (auto& b : main.blocks)
 	{
 		if (b.key == ContextKey::server)
 		{
 			std::string host_port = RequestRouter::getDirective(b, DirectiveKey::listen).values.at(0);
-			auto tokens = tokenizer(host_port, ':');
+			// auto tokens = tokenizer(host_port, ':');
+			auto tokens = strsplit(host_port, ":");
 			std::string host = tokens.at(0);
 			if (host == "localhost")
 				host = "127.0.0.1";
@@ -102,7 +101,6 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1)
 		throw std::runtime_error("Failed to create socket. " + std::string(strerror(errno)));
-	
 
 	Listener* lstn = new Listener();
 	lstn->socket_fd = sock;
@@ -130,7 +128,7 @@ void	ServerSocketPool::addListener(const std::string& host, unsigned short port)
 
 ServerSocketPool::~ServerSocketPool()
 {
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	for (auto it = socket_list.begin(); it != socket_list.end(); ++it)
 	{
 		if (*it)
 		{
@@ -154,17 +152,10 @@ void handle_sigint(int sig)
 	write(1, "\n", 1);
 }
 
-void	ServerSocketPool::runServer(
-	void (*connection_handler)(HTTPExchange&, RequestRouter& conf),
-	void (*request_handler)(HTTPExchange&, RequestRouter& conf)
-)
+void	ServerSocketPool::runServer()
 {
-	this->connection_handler = connection_handler;
-	this->request_handler = request_handler;
 	initFdset();
-
 	signal(SIGINT, handle_sigint);
-
 	while (true)
 	{
 		fd_set copy_read = master_read;
@@ -172,18 +163,8 @@ void	ServerSocketPool::runServer(
 		int socket_count = select(fd_max + 1, &copy_read, &copy_write, nullptr, nullptr);
 		if (socket_count == -1 && errno == EINTR)
 			break;
-		
-		size_t i = 0;
-		size_t size = socket_list.size();
-		iterator it = socket_list.begin();
-		// Push and pops will happen on the socket list in the poll calls.
-		// We need to ensure we don't process those that were created within
-		// the select scan loop, because otherwise we will select-test fds
-		// that did not go through a select() call, hence why we iterate over a
-		// copy of the socket list and not the list itself
 
 		auto select_list = socket_list;
-		
 		for (auto sock : select_list)
 		{
 			if (selected(sock, &copy_write))
@@ -198,11 +179,26 @@ void	ServerSocketPool::runServer(
 	}
 }
 
+bool				ServerSocketPool::enqueue(Socket *sock)
+{
+	if (current_request == -1)
+		current_request = sock->socket_fd;
+	else if (current_request != sock->socket_fd)
+		return false;
+	return true;
+}
+
+void				ServerSocketPool::dequeue(Socket *sock)
+{
+	if (current_request == sock->socket_fd)
+		current_request = -1;
+}
+
 void	ServerSocketPool::initFdset()
 {
 	FD_ZERO(&master_read);
 	FD_ZERO(&master_write);
-	for (iterator it = socket_list.begin(); it != socket_list.end(); ++it)
+	for (auto it = socket_list.begin(); it != socket_list.end(); ++it)
 		FD_SET((*it)->socket_fd, &master_read);
 }
 
@@ -210,7 +206,6 @@ bool	ServerSocketPool::selected(Socket* socket, fd_set* set)
 {
 	return FD_ISSET(socket->socket_fd, set);
 }
-
 
 ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 {
@@ -257,13 +252,6 @@ void	ServerSocketPool::closeComm(ClientSocket* comm)
 			close(comm->socket_fd);
 			FD_CLR(comm->socket_fd, &master_read);
 			FD_CLR(comm->socket_fd, &master_write);
-
-			// std::cout << "deleting SOCKET " << comm << "\n";
-			// std::cout << "list after delete: " << std::endl;
-			// for (auto s : socket_list)
-			// 	std::cout << s << " ";
-			// std::cout << "\n";
-
 			delete comm;
 			comm = nullptr;
 			return;
@@ -278,35 +266,25 @@ void	ServerSocketPool::pollRead(Socket* s)
 	if (s->isListener())
 	{
 		log.out() << "[connection]\n";
-		// create the communication socket for that connection
 		ClientSocket* client_socket = acceptConnection((Listener*)s);
 	}
 	else 
 	{
+		if (!enqueue(s))
+			return;
 		ClientSocket* cli = static_cast<ClientSocket*>(s);
 		int retflags = 0;
 		size_t readbytes = recvRequest(cli, retflags);
 		if (!(retflags & (int)IOSTATE::ONCE))
 		{
-			// if socket has been read-selected but recv() read 0 bytes, socket should be closed
-			// and removed from the pool
 			log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
+			dequeue(cli);
 			closeComm(cli);
 		}
 		else
 		{
-			// log.out() << "[inbound]: "
-			// 	<< "fd="  << cli->socket_fd << ", "
-			// 	<< "size=" << readbytes << std::endl;
 			if (retflags & (int)IOSTATE::READY)
 			{
-				// at least one request is fully buffered:
-				// - create exchange + call callback
-				// - put client fd on write queue
-				// - an exchange is done and popped from the queue when
-				//	 the request_handler has marked the end of the response
-				// - write poller will pop client from the write queue
-				//	 once the http exchange pool for this client is empty
 				RequestBuffer& buff = cli->req_buffer;
 				ByteBuffer msg(buff.get());
 				if (msg.strfind("\r\n\r\n") != -1)
@@ -345,48 +323,35 @@ size_t	ServerSocketPool::recvRequest(ClientSocket* cli, int& retflags)
 	return total;
 }
 
-// returns true if client connection was closed
 bool	ServerSocketPool::pollWrite(Socket* s)
 {
 	Logger& log = Logger::getInstance();
 	ClientSocket* cli = static_cast<ClientSocket*>(s);
-
-	// For all active http exchange tickets, send what is possible to send
 	while (!cli->exchanges.empty())
 	{
 		int retflags = 0;
 		size_t sendbytes = sendResponse(cli, retflags);
-		log.out() << "[outbound]: "
-					<< "fd="  << cli->socket_fd << ", "
-					<< "size=" << sendbytes << std::endl;
-		
 		if (retflags & (int)IOSTATE::READY)
 		{
-			// Full response has been sent
 			std::string msg(cli->getExchange().response_headers.str());
 			if (msg.find("\r\n\r\n") != std::string::npos)
 				msg = msg.substr(0, msg.find("\r\n\r\n"));
 			log.out() << "[response]: fd=" << cli->socket_fd << std::endl;
 			log.out(msg);
-
 			cli->closeExchange();
 		}
 		else
 		{
-			// Full response has not been sent yet, break out
 			if (!(retflags & (int)IOSTATE::ONCE))
-			{
-				// Socket on write poll but no bytes sent, clear from write poll
 				FD_CLR(cli->socket_fd, &master_write);
-			}
 			break;
 		}
 	}
-
 	if (cli->exchanges.empty())
 	{
 		FD_CLR(cli->socket_fd, &master_write);
 		log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
+		dequeue(cli);
 		closeComm(cli);
 		return true;
 	}
@@ -406,7 +371,6 @@ size_t	ServerSocketPool::sendResponse(ClientSocket* cli, int& retflags)
 	ByteBuffer& bb = response_buf.get();
 	while ((ret = send(cli->socket_fd, bb.get(), sendbytes, MSG_NOSIGNAL)) > 0)
 	{
-		// std::cout << bb;
 		response_buf.advance(ret);
 		retflags |= (int)IOSTATE::ONCE;
 		total += ret;

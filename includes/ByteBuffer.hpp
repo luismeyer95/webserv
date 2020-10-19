@@ -26,12 +26,13 @@ class ByteBuffer
 
 
 		bool			empty() const;
+		void			reserve(size_t size);
 		void			clear();
 		ByteBuffer		sub(size_t pos, size_t len = std::string::npos) const;
 
 		void			append(const ByteBuffer& bb);
 		void			append(const BYTE* buffer, size_t size);
-		void			append(const std::ostringstream& stream);
+		void			append(const std::string& str);
 		void			prepend(const BYTE* buffer, size_t size);
 		void			prepend(const ByteBuffer& bb);
 
@@ -40,15 +41,6 @@ class ByteBuffer
 
 		ByteBuffer		operator+(const ByteBuffer& o);
 		ByteBuffer&		operator+=(const ByteBuffer& o);
-
-		template <typename T>
-		friend ByteBuffer& operator<<(ByteBuffer& buf, T elem)
-		{
-			std::ostringstream stream;
-			stream << elem;
-			buf.append(stream);
-			return buf;
-		}
 
 		friend std::ostream& operator<<(std::ostream& o, const ByteBuffer& bb)
 		{

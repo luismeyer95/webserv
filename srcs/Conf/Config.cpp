@@ -6,14 +6,14 @@ Config::Config(const std::string& conf_path)
 	directive_key_lookup(directiveKeyLookup())
 {
 	tokens.reserve(128);
-
 	std::ifstream in(conf_path);
 	if (in.is_open())
 	{
 		tokenizeConf(in);
 		in.close();
 		try {
-			main = std::make_shared<ConfBlockDirective>(context(1, ContextKey::main, {}));
+			main = SharedPtr<ConfBlockDirective>
+				(new ConfBlockDirective(context(1, ContextKey::main, {})));
 			link(nullptr, *main);
 			main->validate();
 		} catch (const ConfError& e) {
@@ -39,20 +39,19 @@ bool Config::isDelimiter(char c)
 
 void Config::tokenizeConf(std::ifstream& in)
 {
-	std::stringstream stream;
+	std::string out;
 	std::string line;
 
 	int line_nb = 1;
 	while (getline(in, line, '\n'))
 	{
 		line = line.substr(0, line.find('#'));
-		stream << line << '\n';
+		out += line + "\n";
 		std::string buf;
 		buf.reserve(128);
 		bool open_quote = false;
 		for (auto& c : line)
 		{	
-			// whitespace or delim
 			if (!open_quote && (isWhitespace(c) || isDelimiter(c)))
 			{
 				if (!buf.empty())
@@ -79,10 +78,6 @@ void Config::tokenizeConf(std::ifstream& in)
 		}
 		line_nb++;
 	}
-
-	// for (auto& s : tokens)
-	// 	std::cout << s << std::endl;
-	// exit(0);
 }
 
 ConfBlockDirective Config::context (

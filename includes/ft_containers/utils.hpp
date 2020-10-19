@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lumeyer <lumeyer@student.le-101.fr>        +#+  +:+       +#+        */
+/*   By: luis <luis@student.42lyon.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/05/08 15:08:39 by luis              #+#    #+#             */
-/*   Updated: 2020/07/01 09:57:42 by lumeyer          ###   ########lyon.fr   */
+/*   Updated: 2020/10/18 13:11:46 by luis             ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,10 @@
 #include "Allocator.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+#include <limits>
 #include <string>
 #include <cmath>
 #include <unistd.h>

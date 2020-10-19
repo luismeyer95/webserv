@@ -8,7 +8,7 @@ RequestParser::RequestParser()
        _authorization(""), _content_length(0), _content_location(""),
         _date(""), _host_name(""), _host_ip(0), 
         _referer(""),
-        _req_methods({"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE"})
+        _req_methods({"GET", "HEAD", "POST", "PUT"})
 {
     _headers.push_back("Accept-Charset");
     _headers.push_back("Accept-Language");
@@ -196,7 +196,7 @@ void RequestParser::allow_parser(std::vector<std::string> &head)
          {
              if (trim(*it) == _req_methods.at(i))
                 break;
-            if (i == _req_methods.size() - 1)//if method does not exist what to do ?
+            if (i == _req_methods.size() - 1)
                 return;
          }
          _allow.push_back(trim(*it));
@@ -234,7 +234,6 @@ void RequestParser::content_language_parser(std::vector<std::string> &head)
     {
         if (language.match(trim(*it)).first)
             _content_language.push_back(trim(*it));
-        //else Error ?
     }
 }
 
@@ -253,7 +252,6 @@ void RequestParser::content_length_parser(std::vector<std::string> &head)
 			reportError(400);
 			throw std::exception();
 		}
-        // _content_length = atoi(line.at(1).c_str());
     }
 }
 
@@ -265,7 +263,7 @@ void RequestParser::content_location_parser(std::vector<std::string> &head)
     if (line.size() == 0)
         return;
     if (line.size() == 2)
-        _content_location = line.at(1); //CHECK URL SYNTAX
+        _content_location = line.at(1);
 }
 
 void RequestParser::content_type_parser(std::vector<std::string> &head)

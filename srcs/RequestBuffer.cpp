@@ -2,7 +2,6 @@
 #include <ServerSocketPool.hpp>
 #include <Sockets.hpp>
 
-// const size_t default_max_body_size = 31457280; // 30Mb
 const size_t default_max_body_size = 100457280; // ~100Mb
 const size_t default_max_header_size = 1000000;
 
@@ -43,15 +42,10 @@ const ByteBuffer&	RequestBuffer::get() const
 
 void	RequestBuffer::append(char *buf, size_t len)
 {
-	// header not found yet
-	// if (processError(socket->socket_fd > 11, 503))
-	// 	return;
-
 	if (!isSet(header_break))
 		readHeader(buf, len);
 	else
 		readPayload(buf, len);
-	// std::cout << "REQUEST BUF AFTER PAYLOAD READ: " << request_buffer << std::endl;
 }
 
 void				RequestBuffer::readHeader(char *buf, size_t len)
@@ -82,11 +76,39 @@ void	RequestBuffer::splitHeaderPayload()
 	header_break = headerBreak(request_buffer) + 4;
 }
 
+void			RequestBuffer::dechunk()
+{
+	ssize_t ret;
+	while ((ret = processChunk()) && isSet(ret));
+	if (!ret)
+		chunk_eof = true;
+}
+
+ssize_t			RequestBuffer::processChunk()
+{
+	ssize_t hex_break = chunk_buffer.strfind("\r\n");
+	if (!isSet(hex_break))
+		return -1;
+	std::string hexnumstr = chunk_buffer.sub(0, hex_break).str();
+	size_t hexnum = 0;
+	hexnum = std::stoull(hexnumstr, nullptr, 16); 
+	if (chunk_buffer.size() >= hexnumstr.size() + 2 + hexnum + 2
+		&& chunk_buffer.sub(hex_break + 2 + hexnum).strfind("\r\n") == 0)
+	{
+		request_buffer.append(chunk_buffer.sub(hex_break + 2, hexnum));
+		chunk_buffer = chunk_buffer.sub(hex_break + 2 + hexnum + 2);
+		// chunk_buffer.advance(hex_break + 2 + hexnum + 2);
+		chunked_body_len += hexnum;
+		return hexnum;
+	}
+	else
+		return -1;
+}
+
 void				RequestBuffer::readPayload(char *buf, size_t len)
 {
 	if (chunked_flag)
 	{
-		// std::cout << "reading payload for chunked" << std::endl;
 		chunk_buffer.append((BYTE*)buf, len);
 		dechunk();
 		if (processError(chunked_body_len > max_body, 413))
@@ -96,9 +118,9 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 	}
 	else
 	{
-		if (request_buffer.size() + len >= neededLength()) // 1159 + 8 > 155
+		if (request_buffer.size() + len >= neededLength())
 		{
-			request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size()); // 155 - 1159
+			request_buffer.append((BYTE*)buf, neededLength() - request_buffer.size());
 			processRequest();
 		}
 		else
@@ -109,11 +131,8 @@ void				RequestBuffer::readPayload(char *buf, size_t len)
 
 bool	RequestBuffer::processHeader()
 {
-	// header_break = headerBreak(request_buffer) + 4;
 	if (processError(static_cast<size_t>(header_break) > default_max_header_size, 431))
 		return false;
-
-	// std::cout << "PARSED REQUEST: " << request_buffer.sub(0, header_break) << std::endl;
 
 	req_parser.parser(request_buffer.sub(0, header_break));
 	if (processError(req_parser.getError(), req_parser.getError()))
@@ -131,7 +150,6 @@ bool	RequestBuffer::processHeader()
 			max_body = std::stoull(max_req_body.at(0));
 	}
 
-	// std::cout << "PARSED CONTENT LEN: " << req_parser.getContentLength() << std::endl;
 	if (req_parser.getTransferEncoding() == "chunked")
 		chunked_flag = true;
 	else
@@ -169,34 +187,6 @@ void	RequestBuffer::processRequestIfPossible()
 }
 
 
-void			RequestBuffer::dechunk()
-{
-	ssize_t ret;
-	while ((ret = processChunk()) && isSet(ret));
-	if (!ret)
-		chunk_eof = true;
-}
-
-ssize_t			RequestBuffer::processChunk()
-{
-	ssize_t hex_break = chunk_buffer.strfind("\r\n");
-	if (!isSet(hex_break))
-		return -1;
-	std::string hexnumstr = chunk_buffer.sub(0, hex_break).str();
-	size_t hexnum = 0;
-	hexnum = std::stoull(hexnumstr, nullptr, 16); 
-	if (chunk_buffer.size() >= hexnumstr.size() + 2 + hexnum + 2
-		&& chunk_buffer.sub(hex_break + 2 + hexnum).strfind("\r\n") == 0)
-	{
-		request_buffer.append(chunk_buffer.sub(hex_break + 2, hexnum));
-		chunk_buffer = chunk_buffer.sub(hex_break + 2 + hexnum + 2);
-		chunked_body_len += hexnum;
-		return hexnum;
-	}
-	else
-		return -1;
-	
-}
 
 bool				RequestBuffer::processError(bool expr, int code)
 {
@@ -216,7 +206,6 @@ void				RequestBuffer::processRequest()
 	HTTPExchange& ticket = socket->newExchange(request_buffer);
 	if (isSet(errcode))
 	{
-		// std::cout << "ERROR " << errcode << " is SET" << std::endl;
 		route.fetchErrorPage(file_request, req_parser, errcode, get_http_string(errcode));
 	}
 	else
@@ -234,7 +223,7 @@ void				RequestBuffer::processRequest()
 	response_buffer->get().prepend(headers);
 
 	ticket.bufferResponse(headers, response_buffer, true);
-
+	
 	processed = true;
 }
 

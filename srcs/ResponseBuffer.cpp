@@ -131,35 +131,38 @@ ResponseBufferProcessStream::ResponseBufferProcessStream (
 	if (worker_pid == -1)
 		scriptError(std::string("fork(): ") + strerror(errno));
 	if (!worker_pid)
+	{
+		setpgid(0, 0);
 		execScript(bin, argv, env);
+	}
 	else if (worker_pid > 0)
 	{
 		close(pip_in[1]);
 		close(pip_out[0]);
-		// timer_pid = fork();
-		// if (timer_pid == -1)
-		// 	scriptError(std::string("fork(): ") + strerror(errno));
-		// if (!timer_pid)
-		// {
-		// 	close(pip_in[0]);
-		// 	close(pip_out[1]);
+		timer_pid = fork();
+		if (timer_pid == -1)
+			scriptError(std::string("fork(): ") + strerror(errno));
+		if (!timer_pid)
+		{
+			close(pip_in[0]);
+			close(pip_out[1]);
 
-		// 	usleep(TIMEOUT);
-		// 	if (kill(-worker_pid, SIGTERM) == -1)
-		// 		kill(-worker_pid, SIGKILL);
-		// 	exit(0);
-		// }
-		// else if (timer_pid > 0)
-		// {
+			usleep(TIMEOUT);
+			if (kill(-worker_pid, SIGTERM) == -1)
+				kill(-worker_pid, SIGKILL);
+			exit(0);
+		}
+		else if (timer_pid > 0)
+		{
 			feedRequestPayload(request_payload);
 			storeHeaders();
-		// }
+			storeResponse();
+		}
 	}
 }
 
 ResponseBufferProcessStream::~ResponseBufferProcessStream()
 {
-	reap();
 }
 
 bool ResponseBufferProcessStream::eof()
@@ -169,12 +172,11 @@ bool ResponseBufferProcessStream::eof()
 
 void ResponseBufferProcessStream::advance(size_t bytes)
 {
-	buffer = buffer.sub(bytes);
+	buffer.advance(bytes);
 }
 
 void	ResponseBufferProcessStream::execScript(const string& bin, const cstring_vec& argv, const cstring_vec& env)
 {
-	// setpgid(0, 0);
 	close(2);
 	close(pip_out[1]);
 	dup2(pip_out[0], 0);
@@ -192,19 +194,11 @@ void ResponseBufferProcessStream::feedRequestPayload(ByteBuffer request_payload)
 	ssize_t		ret = 0;
 
 	signal(SIGPIPE, SIG_IGN);
-	// std::cout << "___________________________________________" << std::endl;
-	// std::cout << "PAYLOAD: " << request_payload << std::endl;
 	while ((ret = write(pip_out[1], request_payload.get(), sendbytes)) > 0)
 	{
-		// std::cout << "WROTE TO CGI: ";
-		// for (int i = 0; i < ret; ++i)
-		// 	std::cout << request_payload.get()[i];
-		// std::cout << std::endl;
-
 		request_payload.advance(ret);
 		sendbytes = request_payload.size();
 	}
-	// std::cout << "___________________________________________" << std::endl;
 	close(pip_out[1]);
 }
 
@@ -275,6 +269,13 @@ void ResponseBufferProcessStream::storeHeaders()
 	}
 }
 
+void ResponseBufferProcessStream::storeResponse()
+{
+	while (!eof_flag)
+		readStream(MAXBUF);
+	reap();
+}
+
 std::vector<std::string>& ResponseBufferProcessStream::getHeaders()
 {
 	return cgi_headers_buf;
@@ -307,7 +308,6 @@ void ResponseBufferProcessStream::readStream(size_t bytes)
 		if (chunked_flag)
 		{
 			auto hexret = ntohexstr(static_cast<size_t>(ret));
-			// std::cout << "CHUNKING" << std::endl;
 			buffer.append((BYTE*)&hexret[0], hexret.size());
 			buffer.append((BYTE*)"\r\n", 2);
 			buffer.append((BYTE*)buf, ret);
@@ -324,14 +324,14 @@ void ResponseBufferProcessStream::reap()
 	waitpid(WAIT_ANY, &pstatus, 0);
 	if (WIFEXITED(pstatus))
 	{
-		// kill(timer_pid, SIGKILL);
-		// waitpid(timer_pid, nullptr, 0);
+		kill(timer_pid, SIGKILL);
+		waitpid(timer_pid, nullptr, 0);
 		if (WEXITSTATUS(pstatus))
 			scriptError("script execution failed", false);
 	}
 	else
 	{
-		// while (wait(nullptr) != -1);
+		while (wait(nullptr) != -1);
 		scriptError("script execution time-out", false);
 	}
 }

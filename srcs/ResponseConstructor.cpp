@@ -19,12 +19,11 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
 	(void)req;
 
     _error = file_request.http_code;
-    _code = get_http_code(file_request.http_code);
     _first_line.append(std::to_string(_error) + " " + get_http_string(_error) + "\r\n");
 
-    _header << _first_line;
+	_header.append(_first_line);
     date();
-    _header << _server;
+	_header.append(_server);
     content_type(file_request);
     content_length(file_request);
 	content_location(file_request);
@@ -33,8 +32,8 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     allow(file_request);
     www_authenticate(file_request);
     retry_after();
-	_header << "Connection: close\r\n";
-    _header << "\r\n";
+	_header.append("Connection: close\r\n");
+	_header.append("\r\n");
 
     return (_header);
 }
@@ -44,7 +43,7 @@ void ResponseConstructor::date()
     _date = "Date: ";
     _date.append(get_gmt_time(time(0)));
     _date.append("\r\n");
-    _header << _date;
+	_header.append(_date);
 }
 
 void ResponseConstructor::retry_after()
@@ -54,7 +53,7 @@ void ResponseConstructor::retry_after()
         _retry_after = "Retry-After: ";
         _retry_after.append("15");
         _retry_after.append("\r\n");
-        _header << _retry_after;
+		_header.append(_retry_after);
     }
 }
 
@@ -66,34 +65,36 @@ void ResponseConstructor::www_authenticate(FileRequest& file_request)
         _www_authenticate.append("realm=");
         _www_authenticate.append(file_request.realm);
         _www_authenticate.append("\r\n");
-        _header << _www_authenticate;
+		_header.append(_www_authenticate);
     }
 }
 
 void ResponseConstructor::last_modified(FileRequest& file_request)
 {
 	if (!file_request.last_modified.empty())
-		_header << "Last-Modified: " << file_request.last_modified << "\r\n";
+	{
+		_header.append("Last-Modified: " + file_request.last_modified + "\r\n");
+	}
 }
 
 void ResponseConstructor::content_length(FileRequest& file_request)
 {
 	if (file_request.content_length >= 0)
-    	_header << "Content-Length: " << file_request.content_length << "\r\n";
+		_header.append("Content-Length: " + std::to_string(file_request.content_length) + "\r\n");
 	else if (file_request.content_length == -1)
-		_header << "Transfer-Encoding: chunked\r\n";
+		_header.append("Transfer-Encoding: chunked\r\n");
 }
 
 void ResponseConstructor::content_type(FileRequest& file_request)
 {
 	if (!file_request.content_type.empty())
-		_header << "Content-Type: " << file_request.content_type << "\r\n";
+		_header.append("Content-Type: " + file_request.content_type + "\r\n");
 }
 
 void ResponseConstructor::location(FileRequest& file_request)
 {
 	if (_error == 302)
-		_header << "Location: " << file_request.redirect_uri << "\r\n";
+		_header.append("Location: " + file_request.redirect_uri + "\r\n");
 }
 
 void ResponseConstructor::allow(FileRequest& file_request)
@@ -108,12 +109,12 @@ void ResponseConstructor::allow(FileRequest& file_request)
                 _allow.append(", ");
         }
         _allow.append("\r\n");
-        _header << _allow;
+		_header.append(_allow);
     }
 }
 
 void ResponseConstructor::content_location(FileRequest& file_request)
 {
 	if (!file_request.content_location.empty())
-		_header << "Content-Location: " << file_request.content_location << "\r\n";
+		_header.append("Content-Location: " + file_request.content_location + "\r\n");
 }

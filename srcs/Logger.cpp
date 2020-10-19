@@ -57,7 +57,7 @@ std::ostream&		Logger::out(bool entry, bool timeheader)
 void		Logger::out(const std::string& str)
 {
 	std::ostream& o = _file.is_open() ? _file : std::cout;
-	std::vector<std::string> tokens = tokenizer(str, '\n');
+	std::vector<std::string> tokens = strsplit(str, "\n");
 	std::string s;
 	for (size_t i = 0; i < tokens.size(); ++i)
 	{

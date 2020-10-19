@@ -34,7 +34,6 @@ class RequestBuffer
 
 		ByteBuffer			request_buffer;
 
-
 		template <typename T>
 		bool				isSet(T var);
 		ssize_t				headerBreak(ByteBuffer& bb);
@@ -47,12 +46,8 @@ class RequestBuffer
 
 		void				splitHeaderPayload();
 
-		void				add(char *buf, size_t len);
-
 		ssize_t				processChunk();
 		void				dechunk();
-
-
 
 		void				readHeader(char *buf, size_t len);
 		void				readPayload(char *buf, size_t len);
