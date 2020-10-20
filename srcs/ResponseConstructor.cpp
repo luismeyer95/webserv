@@ -63,7 +63,7 @@ void ResponseConstructor::www_authenticate(FileRequest& file_request)
     {
         _www_authenticate = "WWW-Authenticate: Basic ";
         _www_authenticate.append("realm=");
-        _www_authenticate.append(file_request.realm);
+        _www_authenticate.append("\"" + file_request.realm + "\"");
         _www_authenticate.append("\r\n");
 		_header.append(_www_authenticate);
     }
