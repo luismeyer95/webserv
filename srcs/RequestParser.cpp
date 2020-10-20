@@ -67,6 +67,11 @@ int RequestParser::parser(const ByteBuffer request)
     if (_protocol != "HTTP/1.1")
 		return reportError(505);
 
+    for (std::vector<std::string>::iterator it = ++temp.begin(); it != temp.end(); it++)
+    {
+        if ((*it).find(":") == std::string::npos || (*it).find(":") == (*it).size())
+            return (reportError(400));
+    }
     try
     {
         accept_charset_parser(temp);
