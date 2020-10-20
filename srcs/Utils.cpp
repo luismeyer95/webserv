@@ -127,16 +127,9 @@ std::string trim(const std::string &str)
 std::vector<std::string> get_header_name(std::string str, char c)
 {
 	std::vector<std::string> out;
-	std::stringstream   stream(str);
-	std::string         temp;
-	
-	getline(stream, temp, c);
-	out.push_back(temp);
-	getline(stream, temp, '\r');
-	out.push_back(trim(temp));
-	/*
+
 	out.push_back(str.substr(0, str.find(c)));
-	out.push_back(str.substr(0, str.find('\n')));*/
+	out.push_back(trim(str.substr(str.find(c) + 1)));
 	return (out);
 }
 
