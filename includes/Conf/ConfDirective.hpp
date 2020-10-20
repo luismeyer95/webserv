@@ -32,7 +32,7 @@ enum class DirectiveKey
 	listen, server_name, root, alias, error_page,
 	internal, index, autoindex, auth_basic, auth_basic_user_file,
 	execute_cgi, accept_methods, max_request_body, cgi_script_name,
-	cgi_path_info
+	cgi_path_info, set_dir
 };
 
 std::map<std::string, DirectiveKey> directiveKeyLookup();
@@ -58,5 +58,7 @@ struct ConfDirective
 
 	private:
 		ConfError					dirExcept(const std::string& err);
+		ConfDirective*				searchDirective(ConfBlockDirective *b, DirectiveKey key);
+		std::string					getSetDir();
 
 };

@@ -10,6 +10,8 @@
 #include <Conf.hpp>
 #include <URL.hpp>
 
+const std::string running_dir = get_cur_dir();
+
 int main(int ac, char **av)
 {	
 	if (ac != 2)

@@ -6,7 +6,7 @@
 /*   By: luis <luis@student.42lyon.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/06/22 16:52:33 by lumeyer           #+#    #+#             */
-/*   Updated: 2020/10/18 13:12:31 by luis             ###   ########lyon.fr   */
+/*   Updated: 2020/10/20 10:52:21 by luis             ###   ########lyon.fr   */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,3 +39,5 @@
 #include <map>
 #include <algorithm>
 #include "Containers.hpp"
+
+extern const std::string running_dir;

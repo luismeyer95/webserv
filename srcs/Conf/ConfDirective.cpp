@@ -20,7 +20,8 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"cgi_script_name", D::cgi_script_name},
 		{"cgi_path_info", D::cgi_path_info},
 		{"accept_methods", D::accept_methods},
-		{"max_request_body", D::max_request_body}
+		{"max_request_body", D::max_request_body},
+		{"set_dir", D::set_dir}
 	});
 }
 
@@ -44,6 +45,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::cgi_path_info: return "cgi_path_info";
 		case D::accept_methods: return "accept_methods";
 		case D::max_request_body: return "max_request_body";
+		case D::set_dir: return "set_dir";
 	}
 }
 
@@ -61,6 +63,34 @@ ConfError ConfDirective::dirExcept(const std::string& err)
 	);
 }
 
+ConfDirective*	ConfDirective::searchDirective(ConfBlockDirective *b, DirectiveKey key)
+{
+	ConfBlockDirective* tmp = b;
+	while (tmp)
+	{
+		auto it = std::find_if (
+			tmp->directives.begin(),
+			tmp->directives.end(),
+			[&] (ConfDirective dir) { return dir.key == key; }
+		);
+		if (it != tmp->directives.end())
+			return &(*it);
+		tmp = tmp->parent;
+	}
+	return nullptr;
+}
+
+std::string					ConfDirective::getSetDir()
+{
+	auto servroot_dir = searchDirective(parent, DirectiveKey::set_dir);
+	if (servroot_dir == nullptr)
+		return running_dir;
+	else
+	{
+		servroot_dir->validate();
+		return servroot_dir->values.at(0);
+	}
+}
 
 void ConfDirective::validate()
 {
@@ -100,19 +130,6 @@ void ConfDirective::validate()
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
-			auto it = values.begin();
-			for (;it != values.end(); ++it)
-			{
-				if (it->at(0) == '~')
-				{
-					try {
-						Regex rgx(it->substr(1));
-					}
-					catch (const std::runtime_error& e) {
-						throw dirExcept("invalid regex pattern");
-					}
-				}		
-			}
 			break;
 		}
 
@@ -120,9 +137,12 @@ void ConfDirective::validate()
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
-			
+
+			auto servroot = getSetDir();
+
 			struct stat buffer;
-			std::string path = "." + values.at(0);
+			std::string path = servroot + values.at(0);
+
 			if (stat(path.c_str(), &buffer) != 0)
 				throw dirExcept("path doesn't exist");
 			else if (!(buffer.st_mode & S_IFDIR))
@@ -166,11 +186,14 @@ void ConfDirective::validate()
 				throw dirExcept("missing value(s)");
 			auto res = Regex("^/.*xxx[^/]*").match(*it);
 			if (!res.first)
-				throw dirExcept("partial uri must start with a `/` and "
+				throw dirExcept("relative path must start with a `/` and "
 					"contain a `xxx` substring for error code substitution");
-			std::string uri = "." + *it;
+			std::string uri = *it;
 			size_t xxx = uri.find("xxx");
 			uri.erase(xxx, 3);
+			auto servroot = getSetDir();
+			uri = servroot + uri;
+			xxx += servroot.size();
 			for (auto itb = values.begin(); itb != it; ++itb)
 			{
 				struct stat buffer;
@@ -233,7 +256,7 @@ void ConfDirective::validate()
 				throw dirExcept("excess values");
 			
 			struct stat buffer;
-			std::string path = "." + values.at(0);
+			std::string path = getSetDir() + values.at(0);
 			if (stat(path.c_str(), &buffer) != 0)
 				throw dirExcept("path doesn't exist");
 			else if (!(buffer.st_mode & S_IFREG))
@@ -249,7 +272,6 @@ void ConfDirective::validate()
 				{
 					if (line.empty())
 						continue;
-					// auto tokens = tokenizer(line, ':');
 					auto tokens = strsplit(line, ":");
 					if (tokens.size() != 2)
 						throw dirExcept ("`" + path + "` "
@@ -384,6 +406,20 @@ void ConfDirective::validate()
 			} catch (const std::out_of_range& e) {
 				throw dirExcept("value must fit in a 64-bit unsigned integer");
 			}
+			break;
+		}
+
+		case D::set_dir:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			
+			std::string path = values.at(0);
+			struct stat buffer;
+			if (stat(path.c_str(), &buffer) != 0)
+				throw dirExcept("path must exist and be either absolute or relative");
+			else if (!(buffer.st_mode & S_IFDIR))
+				throw dirExcept("path should point to a directory");
 			break;
 		}
 	}

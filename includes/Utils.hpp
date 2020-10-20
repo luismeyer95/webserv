@@ -24,7 +24,9 @@ bool                        check_str_len(const std::string &str, int min, int m
 std::string					reformat_path(std::string input_path);
 std::string                 get_http_code(int i);
 std::string					get_http_string(int code);
-std::string					get_current_dir();
+std::string					get_cur_dir();
+void						set_current_dir(const std::string& path);
+
 // std::string                 http_index(std::string folder);
 std::string					http_index(std::string root, std::string relative_part, std::string request_uri);
 std::string                 itoa(int i);

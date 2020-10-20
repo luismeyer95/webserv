@@ -17,6 +17,8 @@ class RequestRouter
 		SharedPtr<ConfBlockDirective> main;
 		ConfBlockDirective*			route_binding;
 		ConfBlockDirective*			saved_binding;
+
+		std::string					dir_backup;
 	public:
 		RequestRouter();
 		RequestRouter(const Config& conf);
@@ -27,7 +29,10 @@ class RequestRouter
 			const std::string& request_ip_host,
 			unsigned short request_port
 		);
-		bool		bindLocation(const std::string& request_uri, const std::string& request_method);
+		bool		bindLocation
+			(FileRequest& file_req, RequestParser& parsed_request,
+			const std::string& request_uri, const std::string& request_method);
+		void		setLocationDir();
 		bool		hasMethod(const std::string& method, ConfBlockDirective& location_block);
 		bool		saveMostSpecificLocation (
 			const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc

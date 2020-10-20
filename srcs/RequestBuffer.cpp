@@ -142,7 +142,8 @@ bool	RequestBuffer::processHeader()
 	std::string request_path = URL::decode(URL::reformatPath(url.get(URL::Component::Path)));
 
 	route.bindServer(req_parser.getHost(), socket->lstn_socket->address_str, socket->lstn_socket->port);
-	bool located = route.bindLocation(request_path, req_parser.getMethod());
+	FileRequest file_req; // only there for the bindLocation() dependency
+	bool located = route.bindLocation(file_req, req_parser, request_path, req_parser.getMethod());
 	if (located)
 	{
 		auto max_req_body = route.getBoundRequestDirectiveValues(DirectiveKey::max_request_body);

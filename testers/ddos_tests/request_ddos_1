@@ -1,5 +1,0 @@
-GET / HTTP/1.1
-Host: localhost:8002
-User-Agent: ddos_tester
-Accept-Encoding: gzip
-

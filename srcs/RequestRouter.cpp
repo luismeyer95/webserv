@@ -3,9 +3,9 @@
 #include <CGI.hpp>
 
 RequestRouter::RequestRouter()
-	: route_binding(nullptr)
+	: route_binding(nullptr), saved_binding(nullptr), dir_backup()
 {
-	
+	dir_backup = get_cur_dir();
 }
 
 RequestRouter::RequestRouter(const Config& conf)
@@ -95,9 +95,12 @@ bool	RequestRouter::hasMethod(const std::string& method, ConfBlockDirective& loc
 	catch (const std::exception& e) { return true; }
 }
 
-bool	RequestRouter::bindLocation(const std::string& request_uri, const std::string& request_method)
+bool	RequestRouter::bindLocation
+	(FileRequest& file_req, RequestParser& parsed_request,
+	const std::string& request_uri, const std::string& request_method)
 {
 	ConfBlockDirective* most_specific_prefix_loc = nullptr;
+	ConfBlockDirective* first_matching_regex = nullptr;
 
 	if (saveMostSpecificLocation(request_uri, most_specific_prefix_loc))
 		return true;
@@ -113,6 +116,8 @@ bool	RequestRouter::bindLocation(const std::string& request_uri, const std::stri
 					route_binding = &block;
 					return true;
 				}
+				else if (res.first && !first_matching_regex)
+					first_matching_regex = &block;
 			}
 		}
 	if (most_specific_prefix_loc)
@@ -120,6 +125,13 @@ bool	RequestRouter::bindLocation(const std::string& request_uri, const std::stri
 		route_binding = most_specific_prefix_loc;
 		return true;
 	}
+	if (first_matching_regex)
+	{
+		route_binding = first_matching_regex;
+		checkMethod(parsed_request, file_req);
+	}
+	else
+		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 	return false;
 }
 
@@ -260,7 +272,7 @@ std::string RequestRouter::resolveAliasUri(const std::string& request_uri, ConfB
 	std::string expanded_alias = expandCaptures(alias, res.second);
 	std::string res_uri = request_uri;
 	res_uri.replace(pos, len, expanded_alias);
-	return get_current_dir() + res_uri;
+	return get_cur_dir() + reformat_path(res_uri);
 }
 
 std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri)
@@ -271,7 +283,7 @@ std::string 	RequestRouter::resolveUriToLocalPath(const std::string& request_uri
 	{
 		try {
 			std::string root = getDirective(*tmp, DirectiveKey::root).values.at(0);
-			std::string path = URL::reformatPath(get_current_dir() + root + request_uri);
+			std::string path = URL::reformatPath(get_cur_dir() + root + request_uri);
 			return path;
 		} catch (...) {}
 		try {
@@ -338,7 +350,7 @@ bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_
 	if (autoindex_vals.empty() || autoindex_vals.at(0) == "off")
 		return false;
 
-	std::string cur_dir = reformat_path(get_current_dir());
+	std::string cur_dir = reformat_path(get_cur_dir());
 	std::string rel_path = reformat_path(path.c_str() + cur_dir.size());
 	std::string request_uri = URL::decode(reformat_path(parsed_request.getResource()));
 
@@ -374,7 +386,6 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 			if (stat(ipath.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
 			{
 				try {
-					// file_req.file_content.appendFile(ipath);
 					if (parsed_request.getMethod() != "HEAD")
 						file_req.response_buffer->get().appendFile(ipath);
 					file_req.content_length = peek_file_size(ipath);
@@ -415,7 +426,6 @@ std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
 	auto userpwds = getBoundRequestDirectiveValues(DirectiveKey::auth_basic_user_file);
 	for (auto& userpass : userpwds)
 	{
-		// auto entry = tokenizer(userpass, ':');
 		auto entry = strsplit(userpass, ":");
 		std::string pass = entry.at(1);
 		if (pass == basic_auth)
@@ -542,10 +552,10 @@ void		RequestRouter::executeCGI(
 	auto auth_basic_val = getBoundRequestDirectiveValues(DirectiveKey::auth_basic);
 
 	// backup current directory
-	std::string cwd_backup = get_current_dir();
+	std::string cwd_backup = get_cur_dir();
 
 	// switch to the script's directory
-	chdir(getParentDirectory(env[E::SCRIPT_FILENAME]).c_str());
+	set_current_dir(getParentDirectory(env[E::SCRIPT_FILENAME]));
 
 	// run script and reload the saved directory
 	CGI cgi(parsed_request, env, cgi_bin);
@@ -557,7 +567,7 @@ void		RequestRouter::executeCGI(
 		fetchErrorPage(file_req, parsed_request, e.code(), e.str());
 		return;
 	}
-	chdir(cwd_backup.c_str());
+	set_current_dir(cwd_backup);
 
 	// filling out the remaining request information
 	file_req.file_path = env.at(E::SCRIPT_FILENAME);
@@ -591,6 +601,15 @@ bool RequestRouter::methodIsEither(const std::string& method, const std::vector<
 	return std::find(list.begin(), list.end(), method) != list.end();
 }
 
+void		RequestRouter::setLocationDir()
+{
+	auto server_dir = getBoundRequestDirectiveValues(DirectiveKey::set_dir);
+	if (server_dir.empty())
+		set_current_dir(dir_backup);
+	else
+		set_current_dir(server_dir.at(0));
+}
+
 FileRequest	RequestRouter::requestFile (
 	RequestParser&		parsed_request,
 	HTTPExchange&		ticket
@@ -604,11 +623,10 @@ FileRequest	RequestRouter::requestFile (
 
 	FileRequest file_req;
 	bindServer(parsed_request.getHost(), request_ip, request_port);
-	bool located = bindLocation(request_path, parsed_request.getMethod());
-	if (!located)
-		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
-	else
+	bool located = bindLocation(file_req, parsed_request, request_path, parsed_request.getMethod());
+	if (located)
 	{
+		setLocationDir();
 		if (checkAuthorization(file_req, parsed_request, parsed_request.getAuthorization())
 			&& checkMethod(parsed_request, file_req))
 		{

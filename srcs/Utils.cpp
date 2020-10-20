@@ -243,13 +243,18 @@ bool is_http_date(std::string str)
 	return (1);
 }
 
-std::string get_current_dir()
+std::string get_cur_dir()
 {
-	char buf[2048];
+	char buf[4096];
 
 	if (!getcwd(buf, sizeof(buf)))
 		return "";
-	return std::string(buf);
+	return buf;
+}
+
+void set_current_dir(const std::string& path)
+{
+	chdir(path.c_str());
 }
 
 std::string get_http_string(int code)
