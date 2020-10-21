@@ -530,6 +530,13 @@ std::string http_index(std::string root, std::string relative_part, std::string 
 	return (index);
 }
 
+std::string		strtoupper(std::string s)
+{
+	for (auto& c : s)
+		c = std::toupper(c);
+	return s;
+}
+
 std::string		format_env_key(std::string x_key)
 {
 	for (auto& c : x_key)

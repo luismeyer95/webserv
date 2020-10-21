@@ -109,12 +109,12 @@ ResponseBufferFileStream::~ResponseBufferFileStream()
 **		-------------------
 */
 
-void ResponseBufferProcessStream::scriptError(const std::string& errlog, bool thrw)
+void ResponseBufferProcessStream::scriptError(const std::string& errlog, int code, bool thrw)
 {
 	Logger& log = Logger::getInstance();
 	log.hl(BOLDRED "CGI Failure", std::string(BOLDWHITE) + file_path + ": " + errlog);
 	if (thrw)
-		throw ErrorCode(500, "Internal Server Error");
+		throw ErrorCode(code, get_http_string(code));
 }
 
 // Constructs a CGI process-output stream buffer
@@ -256,7 +256,7 @@ void ResponseBufferProcessStream::storeHeaders()
 		{
 			cgi_headers_buf = strsplit(buffer.sub(0, header_break).str(), "\r\n");
 			if (cgi_headers_buf.empty())
-				scriptError("no headers found in output of script");
+				scriptError("no headers found in output of script", 502);
 			buffer = buffer.sub(header_break + header_break_len);
 			if (chunked_flag && !buffer.empty())
 			{
@@ -327,11 +327,11 @@ void ResponseBufferProcessStream::reap()
 		kill(timer_pid, SIGKILL);
 		waitpid(timer_pid, nullptr, 0);
 		if (WEXITSTATUS(pstatus))
-			scriptError("script execution failed", false);
+			scriptError("script execution failed", 500);
 	}
 	else
 	{
 		while (wait(nullptr) != -1);
-		scriptError("script execution time-out", false);
+		scriptError("script execution time-out", 504);
 	}
 }

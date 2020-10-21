@@ -67,6 +67,10 @@ class RequestRouter
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
 		std::string expandCaptures(std::string to_expand, const std::vector<std::string>& match_groups);
 
+		std::string	typemapValue();
+		void		negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
+
+
 		bool		checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth);
 		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);
 		bool		checkBodyLength(RequestParser& parsed_request, FileRequest& file_req);

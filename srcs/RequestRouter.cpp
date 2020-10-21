@@ -366,6 +366,21 @@ bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_
 	return true;
 }
 
+std::string	RequestRouter::typemapValue()
+{
+	auto tm_values = getBoundRequestDirectiveValues(DirectiveKey::typemap);
+	if (tm_values.empty())
+		return "";
+	return tm_values.at(0);
+}
+
+void	RequestRouter::negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
+{
+	(void)file_req;
+	(void)parsed_request;
+	(void)request_uri;
+}
+
 void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
 {
 	file_req.response_buffer.set(new ResponseBuffer);
@@ -374,7 +389,10 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 	struct stat buffer;
 	if (stat(path.c_str(), &buffer) != 0)
 	{
-		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
+		if (typemapValue() == "on")
+			negotiateURI(file_req, parsed_request, request_uri);
+		else
+			fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
 	else if (!(buffer.st_mode & S_IFREG))

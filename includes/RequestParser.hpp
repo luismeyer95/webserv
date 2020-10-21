@@ -31,6 +31,7 @@ class RequestParser {
 		ByteBuffer							_payload;
 
 
+		std::vector<std::string>			_accept;
 		std::vector<std::string>			_accept_charset;
 		std::vector<std::string>			_accept_language;
 		std::vector<std::string>			_allow;
@@ -56,6 +57,7 @@ class RequestParser {
 
 		std::vector<std::string>			_req_methods;
 
+		void accept_parser(std::vector<std::string>& head);
 		void accept_charset_parser(std::vector<std::string> &head);
 		void accept_language_parser(std::vector<std::string> &head);
 		void allow_parser(std::vector<std::string> &head);
@@ -81,6 +83,7 @@ class RequestParser {
 		std::string							getMethod() {return _method;}
 		std::string&						getResource() {return _resource;}
 		std::string							getProtocol() {return _protocol;}
+		std::vector<std::string>			getAccept() {return _accept;}
 		std::vector<std::string>			getAcceptCharset() {return _accept_charset;}
 		std::vector<std::string>			getAcceptLanguage() {return _accept_language;}
 		std::vector<std::string>			getAllow() {return _allow;}

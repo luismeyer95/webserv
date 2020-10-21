@@ -71,7 +71,7 @@ class ResponseBufferProcessStream : public ResponseBuffer
 		void		advance(size_t bytes);
 		bool		eof();
 
-		void		scriptError(const std::string& errlog, bool thrw = true);
+		void		scriptError(const std::string& errlog, int code = 500, bool thrw = true);
 
 		// Constructs a CGI process-output stream buffer
 		ResponseBufferProcessStream (

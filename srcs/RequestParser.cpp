@@ -10,6 +10,7 @@ RequestParser::RequestParser()
         _referer(""),
         _req_methods({"GET", "HEAD", "POST", "PUT"})
 {
+    _headers.push_back("Accept");
     _headers.push_back("Accept-Charset");
     _headers.push_back("Accept-Language");
     _headers.push_back("Allow");
@@ -74,6 +75,7 @@ int RequestParser::parser(const ByteBuffer request)
     }
     try
     {
+		accept_parser(temp);
         accept_charset_parser(temp);
         accept_language_parser(temp);
         allow_parser(temp);
@@ -96,6 +98,38 @@ int RequestParser::parser(const ByteBuffer request)
     return (0);
 }
 
+void RequestParser::accept_parser(std::vector<std::string>& head)
+{
+	// Accept: text/html;q=0.6 , text/json;q=0.3
+	auto keyval = header_finder(head, "Accept");
+
+	if (keyval.empty())
+		return;
+	auto items = strsplit(keyval.at(1), " ,");
+	ft::multimap<double, std::string, std::greater<double> > mime_map;
+	for (auto& it : items)
+	{
+		auto tokens = strsplit(it, ";");
+		auto& mime = tokens.at(0);
+		double q = 1.0;
+
+		if (tokens.size() > 1)
+		{
+			auto q_tokens = strsplit(tokens.at(1), "=");
+			if (q_tokens.size() == 2 && q_tokens.at(0) == "q")
+			{
+				try {
+					q = std::stod(q_tokens.at(1));
+				} catch (const std:: exception&) {
+					q = 1.0;
+				}
+			}
+		}
+		mime_map.insert(std::pair<double, std::string>(q, mime));
+	}
+	for (auto& e : mime_map)
+		_accept.push_back(e.second);
+}
 
 void RequestParser::accept_charset_parser(std::vector<std::string> &head)
 {

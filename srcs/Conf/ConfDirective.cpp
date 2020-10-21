@@ -21,7 +21,8 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"cgi_path_info", D::cgi_path_info},
 		{"accept_methods", D::accept_methods},
 		{"max_request_body", D::max_request_body},
-		{"set_dir", D::set_dir}
+		{"set_dir", D::set_dir},
+		{"typemap", D::typemap}
 	});
 }
 
@@ -46,6 +47,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::accept_methods: return "accept_methods";
 		case D::max_request_body: return "max_request_body";
 		case D::set_dir: return "set_dir";
+		case D::typemap: return "typemap";
 	}
 }
 
@@ -420,6 +422,17 @@ void ConfDirective::validate()
 				throw dirExcept("path must exist and be either absolute or relative");
 			else if (!(buffer.st_mode & S_IFDIR))
 				throw dirExcept("path should point to a directory");
+			break;
+		}
+
+		case D::typemap:
+		{
+			if (values.empty())
+				throw dirExcept("missing value(s)");
+			
+			if (!(values.at(0) == "on" || values.at(0) == "off"))
+				throw dirExcept("directive can only have values `on` and `off`");
+
 			break;
 		}
 	}

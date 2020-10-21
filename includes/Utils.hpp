@@ -40,3 +40,4 @@ std::string					ntohexstr(size_t num);
 std::string					format_env_key(std::string x_key);
 
 std::string					preset_index_html();
+std::string					strtoupper(std::string s);

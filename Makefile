@@ -32,7 +32,9 @@ SRCS	=	main.cpp \
 			ResponseConstructor.cpp \
 			RequestBuffer.cpp \
 			ResponseBuffer.cpp \
-			Sockets.cpp
+			Sockets.cpp \
+			ContentNegotiation.cpp
+
 
 INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				Logger.hpp \
@@ -52,6 +54,7 @@ INCLUDE	=	$(addprefix $(INC_DIR)/, \
 				ResponseBuffer.hpp \
 				Sockets.hpp \
 				SharedPtr.hpp \
+				ContentNegotiation.hpp \
 			)
 
 OBJS		= $(SRCS:.cpp=.o)
