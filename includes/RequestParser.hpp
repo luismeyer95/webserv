@@ -6,41 +6,11 @@
 #include <Utils.hpp>
 #include <ByteBuffer.hpp>
 
-// struct ContentType {
-// 	std::string media_type;
-// 	std::string subtype;
-// 	std::string charset;
-// 	std::string boundary;
-// };
-
-// struct UserAgent {
-// 	std::string product;
-// 	std::string version;
-// 	std::string comment;
-// };
-
 struct ContentType {
 	std::string media_type;
 	std::string subtype;
 	std::string charset;
 	std::string boundary;
-};
-
-struct Authorization {
-	std::string method;
-	std::string basic;
-
-	std::string username;
-	std::string realm;
-	std::string domain;
-	std::string nonce;
-	std::string opaque;
-	std::string algorithm;
-	std::string uri;
-	std::string qop;
-	std::string response;
-	std::string nc;
-	std::string cnonce;
 };
 
 struct UserAgent {

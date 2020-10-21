@@ -126,12 +126,12 @@ void RequestParser::accept_charset_parser(std::vector<std::string> &head)
             w.push_back(atoi(tmp2.c_str()));
         }
         else
-            w.push_back(1);
+            w.push_back(10);
          _accept_charset.push_back(trim(line.at(0)));
     }
     for (unsigned long i = 0; i < _accept_charset.size() - 1; i++)
     {
-        if (w.at(i) > w.at(i + 1))
+        if (w.at(i) < w.at(i + 1))
         {
             w.push_back(w.at(i));
             w.erase(w.begin() + i);
@@ -171,12 +171,12 @@ void RequestParser::accept_language_parser(std::vector<std::string> &head)
             w.push_back(atoi(tmp2.c_str()));
         }
         else
-            w.push_back(1);
+            w.push_back(10);
          _accept_language.push_back(trim(line.at(0)));
     }
     for (unsigned long i = 0; i < _accept_language.size() - 1; i++)
     {
-        if (w.at(i) > w.at(i + 1))
+        if (w.at(i) < w.at(i + 1))
         {
             w.push_back(w[i]);
             w.erase(w.begin() + i);
