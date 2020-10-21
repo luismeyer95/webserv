@@ -26,6 +26,8 @@ class TypemapParser
 
 		std::vector<std::string>	tokenize(std::string& tm_content);
 
+		void						typemap_error(const std::string& s);
+
 		bool is_header(const std::string& s);
 		void axiom();
 		void variant();
@@ -50,7 +52,10 @@ class ContentNegotiation
 {
 	private:
 		RequestParser&			req_parser;
+
+		ssize_t					get_pos_score(const std::string& s, const std::vector<std::string>& vec);
+		std::vector<double>		score_variants(std::vector<Variant> variants);
 	public:
 		ContentNegotiation(RequestParser& req_parser);
-		std::string				negotiate(const std::vector<Variant>& variants);
+		Variant					negotiate(const std::vector<Variant>& variants);
 };

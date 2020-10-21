@@ -3,6 +3,7 @@
 #include <Conf/Config.hpp>
 #include <ByteBuffer.hpp>
 #include <RequestParser.hpp>
+#include <ContentNegotiation.hpp>
 #include <SharedPtr.hpp>
 #include <CGI.hpp>
 
@@ -62,13 +63,15 @@ class RequestRouter
 
 		void		fetchErrorPage(FileRequest& file_req, RequestParser& parsed_request, int code, const std::string& msg);
 		void		fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
+		void		setFileRequest(FileRequest& file_req, RequestParser& parsed_request, const std::string& filepath);
+
 		void		putFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
 		std::string resolveUriToLocalPath(const std::string& request_uri);
 		std::string resolveAliasUri(const std::string& request_uri, ConfBlockDirective& block);
 		std::string expandCaptures(std::string to_expand, const std::vector<std::string>& match_groups);
 
 		std::string	typemapValue();
-		void		negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
+		bool		negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
 
 
 		bool		checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth);
@@ -88,14 +91,15 @@ class RequestRouter
 
 struct FileRequest
 {
-		std::string					redirect_uri;
 		int							http_code;
+		ssize_t						content_length;
+		std::string					content_location;
+		std::string					content_language;
+		std::string					content_type;
+		std::string					redirect_uri;
 		std::string					http_string;
 		std::string					file_path;
 		std::string					last_modified;
-		std::string					content_type;
-		ssize_t						content_length;
-		std::string					content_location;
 		std::string					realm;
 		std::vector<std::string>	allowed_methods;
 		SharedPtr<ResponseBuffer>	response_buffer;

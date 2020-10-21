@@ -545,6 +545,22 @@ std::string		format_env_key(std::string x_key)
 	return x_key;
 }
 
+std::string		get_parent_dir(std::string script_path)
+{
+	script_path = reformat_path(script_path);
+	if (script_path == "/")
+		return script_path;
+	auto last = script_path.rfind('/');
+	if (last == script_path.size() - 1)
+	{
+		script_path.erase(last);
+		auto bis = script_path.rfind('/');
+		return script_path.substr(0, bis + 1);
+	}
+	else
+		return script_path.substr(0, last + 1);
+}
+
 std::string preset_index_html()
 {
 	return

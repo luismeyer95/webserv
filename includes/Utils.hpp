@@ -22,10 +22,15 @@ bool                        is_http_date(std::string str);
 std::string                 trim(const std::string &str);
 bool                        check_str_len(const std::string &str, int min, int max);
 std::string					reformat_path(std::string input_path);
+std::string 				join_paths(const std::string& root, const std::string& rel);
+
 std::string                 get_http_code(int i);
 std::string					get_http_string(int code);
 std::string					get_cur_dir();
 void						set_current_dir(const std::string& path);
+std::string					get_parent_dir(std::string script_path);
+
+
 
 // std::string                 http_index(std::string folder);
 std::string					http_index(std::string root, std::string relative_part, std::string request_uri);

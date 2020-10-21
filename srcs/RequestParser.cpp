@@ -75,9 +75,9 @@ int RequestParser::parser(const ByteBuffer request)
     }
     try
     {
-		accept_parser(temp);
-        accept_charset_parser(temp);
-        accept_language_parser(temp);
+		_accept = accept_parser_template("Accept", temp);
+		_accept_charset = accept_parser_template("Accept-Charset", temp);
+		_accept_language = accept_parser_template("Accept-Language", temp);
         allow_parser(temp);
         authorization_parser(temp);
         content_language_parser(temp);
@@ -98,13 +98,13 @@ int RequestParser::parser(const ByteBuffer request)
     return (0);
 }
 
-void RequestParser::accept_parser(std::vector<std::string>& head)
+std::vector<std::string> RequestParser::accept_parser_template(std::string header_key, std::vector<std::string>& head)
 {
 	// Accept: text/html;q=0.6 , text/json;q=0.3
-	auto keyval = header_finder(head, "Accept");
+	auto keyval = header_finder(head, header_key);
 
 	if (keyval.empty())
-		return;
+		return {};
 	auto items = strsplit(keyval.at(1), " ,");
 	ft::multimap<double, std::string, std::greater<double> > mime_map;
 	for (auto& it : items)
@@ -127,98 +127,10 @@ void RequestParser::accept_parser(std::vector<std::string>& head)
 		}
 		mime_map.insert(std::pair<double, std::string>(q, mime));
 	}
+	std::vector<std::string> ret;
 	for (auto& e : mime_map)
-		_accept.push_back(e.second);
-}
-
-void RequestParser::accept_charset_parser(std::vector<std::string> &head)
-{
-    std::vector<std::string> line;
-    std::vector<std::string> tmp;
-    std::vector<int> w;
-    std::string tmp2;
-    Regex weight("q=[0-9]\\.[0-9]( )*,");
-    Regex num("[0-9]\\.[0-9]");
-
-    line = header_finder(head, "Accept-Charset");
-    if (line.size() == 0)
-        return;
-    _raw_accept_charset = line.at(1);
-    line = strsplit(line.at(1), ",");
-    for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
-    {
-        tmp = strsplit(*it, ";");
-        if (tmp.size() > 2)
-            return ((void)_accept_charset.clear());
-        if (tmp.size() == 2 && weight.match(tmp.at(1)).first)
-        {
-            tmp2 = num.match(weight.match(tmp.at(1)).second).second;
-            tmp = strsplit(tmp2, ".");
-            tmp2.clear();
-            tmp2.append(tmp.at(0));
-            tmp2.append(tmp.at(1));
-            w.push_back(atoi(tmp2.c_str()));
-        }
-        else
-            w.push_back(10);
-         _accept_charset.push_back(trim(line.at(0)));
-    }
-    for (unsigned long i = 0; i < _accept_charset.size() - 1; i++)
-    {
-        if (w.at(i) < w.at(i + 1))
-        {
-            w.push_back(w.at(i));
-            w.erase(w.begin() + i);
-            _accept_charset.push_back(_accept_charset.at(i));
-            _accept_charset.erase(_accept_charset.begin() + i);
-            i = 0;
-        }
-    }
-}
-
-void RequestParser::accept_language_parser(std::vector<std::string> &head)
-{
-    std::vector<std::string> line;
-    std::vector<std::string> tmp;
-    std::vector<int> w;
-    std::string tmp2;
-    Regex weight("q=[0-9]\\.[0-9]( )*,");
-    Regex num("[0-9]\\.[0-9]");
-    
-    line = header_finder(head, "Accept-Language");
-    if (line.size() == 0)
-        return;
-    _raw_accept_language = line.at(1);
-    line = strsplit(line.at(1), ",");
-    for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); it++)
-    {
-        tmp = strsplit(*it, ";");
-        if (tmp.size() > 2)
-            return ((void)_accept_language.clear());
-        if (tmp.size() == 2 && weight.match(tmp.at(1)).first)
-        {
-            tmp2 = num.match(weight.match(tmp.at(1)).second).second;
-            tmp = strsplit(tmp2, ".");
-            tmp2.clear();
-            tmp2.append(tmp.at(0));
-            tmp2.append(tmp.at(1));
-            w.push_back(atoi(tmp2.c_str()));
-        }
-        else
-            w.push_back(10);
-         _accept_language.push_back(trim(line.at(0)));
-    }
-    for (unsigned long i = 0; i < _accept_language.size() - 1; i++)
-    {
-        if (w.at(i) < w.at(i + 1))
-        {
-            w.push_back(w[i]);
-            w.erase(w.begin() + i);
-            _accept_language.push_back(_accept_language.at(i));
-            _accept_language.erase(_accept_language.begin() + i);
-            i = 0;
-        }
-    }
+		ret.push_back(e.second);
+	return ret;
 }
 
 void RequestParser::allow_parser(std::vector<std::string> &head)

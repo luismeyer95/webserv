@@ -35,6 +35,7 @@ class ResponseConstructor {
 		void www_authenticate(FileRequest& file_request);
 		void last_modified(FileRequest& file_request);
 		void content_length(FileRequest& file_request);
+		void content_language(FileRequest& file_request);
 		void content_location(FileRequest& file_request);
 		void location(FileRequest& file_request);
 		void content_type(FileRequest& file_request);

@@ -14,11 +14,7 @@
 const std::string running_dir = get_cur_dir();
 
 int main(int ac, char **av)
-{	
-	// TypemapParser tm;
-	// tm.parse(av[1]);
-	// exit(0);
-
+{
 	if (ac != 2)
 	{
 		std::cout << "usage: " << av[0] << " <configuration file>" << std::endl;

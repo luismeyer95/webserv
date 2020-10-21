@@ -368,17 +368,77 @@ bool	RequestRouter::checkAutoindex(FileRequest& file_req, RequestParser& parsed_
 
 std::string	RequestRouter::typemapValue()
 {
-	auto tm_values = getBoundRequestDirectiveValues(DirectiveKey::typemap);
+	auto tm_values = getBoundRequestDirectiveValues(DirectiveKey::variant_search);
 	if (tm_values.empty())
 		return "";
 	return tm_values.at(0);
 }
 
-void	RequestRouter::negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
+bool	RequestRouter::negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& resolved_uri)
 {
-	(void)file_req;
-	(void)parsed_request;
-	(void)request_uri;
+	Logger& log = Logger::getInstance();
+	std::string typemap_path = reformat_path(resolved_uri) + ".var";
+	TypemapParser tm_parser;
+	std::vector<Variant> variants;
+	try {
+		variants = tm_parser.parse(typemap_path);
+	} catch (const std::exception& e) {
+		log.hl(BOLDRED "ERROR", BOLDWHITE + std::string(e.what()));
+		return fetchErrorPage(file_req, parsed_request, 404, "Not Found"), false;
+	}
+	ContentNegotiation nego(parsed_request);
+	Variant var = nego.negotiate(variants);
+	std::string chosen = var.uri;
+	if (chosen.empty())
+		return fetchErrorPage(file_req, parsed_request, 404, "Not Found"), false;
+	else
+	{
+		std::string chosen_path = join_paths(get_parent_dir(resolved_uri), chosen);
+		struct stat buffer;
+		if (stat(chosen_path.c_str(), &buffer) != 0 || !(buffer.st_mode & S_IFREG))
+			return fetchErrorPage(file_req, parsed_request, 404, "Not Found"), false;
+		try {
+			if (parsed_request.getMethod() != "HEAD")
+				file_req.response_buffer->get().appendFile(chosen_path);
+			file_req.content_length = peek_file_size(chosen_path);
+			file_req.file_path = chosen_path;
+			file_req.http_code = 200;
+			file_req.http_string = "OK";
+			file_req.last_modified = get_gmt_time(buffer.st_mtime);
+			file_req.content_type = var.type;
+			if (!var.charset.empty())
+				file_req.content_type += "; charset=" + var.charset;
+			file_req.content_language = var.language;
+		} catch (const std::runtime_error& e) {
+			return fetchErrorPage(file_req, parsed_request, 404, "Not Found"), false;
+		}
+	}
+	return true;
+}
+
+void	RequestRouter::setFileRequest(FileRequest& file_req, RequestParser& parsed_request, const std::string& filepath)
+{
+	struct stat buffer;
+	int stat_ret = stat(filepath.c_str(), &buffer);
+	if (stat_ret == 0 && (buffer.st_mode & S_IFREG))
+	{
+		try {
+			if (parsed_request.getMethod() != "HEAD")
+				file_req.response_buffer->get().appendFile(filepath);
+			file_req.content_length = peek_file_size(filepath);
+			file_req.file_path = filepath;
+			file_req.http_code = 200;
+			file_req.http_string = "OK";
+			file_req.last_modified = get_gmt_time(buffer.st_mtime);
+			file_req.content_type = get_mime_type(filepath);
+			return;
+		} catch (const std::runtime_error& e) {
+			return fetchErrorPage(file_req, parsed_request, 404, "Not Found");
+		}
+	}
+	else
+		return fetchErrorPage(file_req, parsed_request, 404, "Not Found");
+
 }
 
 void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri)
@@ -390,10 +450,9 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 	if (stat(path.c_str(), &buffer) != 0)
 	{
 		if (typemapValue() == "on")
-			negotiateURI(file_req, parsed_request, request_uri);
+			return (void)negotiateURI(file_req, parsed_request, path);
 		else
-			fetchErrorPage(file_req, parsed_request, 404, "Not Found");
-		return;
+			return fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 	}
 	else if (!(buffer.st_mode & S_IFREG))
 	{
@@ -401,42 +460,17 @@ void	RequestRouter::fetchFile(FileRequest& file_req, RequestParser& parsed_reque
 		for (auto ipath : index_paths)
 		{
 			ipath = path + "/" + ipath;
-			if (stat(ipath.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG))
-			{
-				try {
-					if (parsed_request.getMethod() != "HEAD")
-						file_req.response_buffer->get().appendFile(ipath);
-					file_req.content_length = peek_file_size(ipath);
-					file_req.file_path = ipath;
-					file_req.http_code = 200;
-					file_req.http_string = "OK";
-					file_req.last_modified = get_gmt_time(buffer.st_mtime);
-					file_req.content_type = get_mime_type(ipath);
-					return;
-				} catch (const std::runtime_error& e) {
-					fetchErrorPage(file_req, parsed_request, 404, "Not Found");
-					return;
-				}
-			}
+			int stat_ret = stat(ipath.c_str(), &buffer);
+			if (stat_ret == 0 && (buffer.st_mode & S_IFREG))
+				return setFileRequest(file_req, parsed_request, ipath);
+			else if (stat_ret && typemapValue() == "on" && negotiateURI(file_req, parsed_request, ipath))
+				return;				
 		}
 		if (!checkAutoindex(file_req, parsed_request, path))
 			fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return;
 	}
-
-	try {
-		if (parsed_request.getMethod() != "HEAD")
-			file_req.response_buffer->get().appendFile(path);
-		file_req.content_length = peek_file_size(path);
-		file_req.file_path = path;
-		file_req.http_code = 200;
-		file_req.http_string = "OK";
-		file_req.last_modified = get_gmt_time(buffer.st_mtime);
-		file_req.content_type = get_mime_type(path);
-	} catch (const std::runtime_error& e) {
-		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
-		return;
-	}
+	setFileRequest(file_req, parsed_request, path);
 }
 
 std::string	RequestRouter::getAuthUser(const std::string& basic_auth)
@@ -485,23 +519,6 @@ bool	RequestRouter::checkAuthorization(FileRequest& file_req, RequestParser& par
 	return false;
 }
 
-std::string		getParentDirectory(std::string script_path)
-{
-	script_path = URL::reformatPath(script_path);
-	if (script_path == "/")
-		return script_path;
-	auto last = script_path.rfind('/');
-	if (last == script_path.size() - 1)
-	{
-		script_path.erase(last);
-		auto bis = script_path.rfind('/');
-		return script_path.substr(0, bis + 1);
-	}
-	else
-		return script_path.substr(0, last + 1);
-}
-
-
 std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 	FileRequest&		file_req,
 	RequestParser&		parsed_request,
@@ -540,7 +557,7 @@ std::map<EnvCGI, std::string>	RequestRouter::setCGIEnv (
 		fetchErrorPage(file_req, parsed_request, 404, "Not Found");
 		return {};
 	}
-	std::string script_dir = URL::reformatPath(getParentDirectory(env.at(EnvCGI::SCRIPT_FILENAME)));
+	std::string script_dir = URL::reformatPath(get_parent_dir(env.at(EnvCGI::SCRIPT_FILENAME)));
 	env[E::PATH_TRANSLATED] = script_dir + env[E::PATH_INFO];
 	env[E::QUERY_STRING] = url.get(URL::Component::Query);
 	env[E::REMOTE_ADDR] = ticket.clientAddress();
@@ -573,7 +590,7 @@ void		RequestRouter::executeCGI(
 	std::string cwd_backup = get_cur_dir();
 
 	// switch to the script's directory
-	set_current_dir(getParentDirectory(env[E::SCRIPT_FILENAME]));
+	set_current_dir(get_parent_dir(env[E::SCRIPT_FILENAME]));
 
 	// run script and reload the saved directory
 	CGI cgi(parsed_request, env, cgi_bin);

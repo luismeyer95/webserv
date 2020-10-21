@@ -57,9 +57,7 @@ class RequestParser {
 
 		std::vector<std::string>			_req_methods;
 
-		void accept_parser(std::vector<std::string>& head);
-		void accept_charset_parser(std::vector<std::string> &head);
-		void accept_language_parser(std::vector<std::string> &head);
+		std::vector<std::string> accept_parser_template(std::string header_key, std::vector<std::string>& head);
 		void allow_parser(std::vector<std::string> &head);
 		void authorization_parser(std::vector<std::string> &head);
 		void content_language_parser(std::vector<std::string> &head);

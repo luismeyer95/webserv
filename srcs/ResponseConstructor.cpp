@@ -22,12 +22,13 @@ ByteBuffer ResponseConstructor::constructor(RequestParser &req, FileRequest &fil
     _first_line.append(std::to_string(_error) + " " + get_http_string(_error) + "\r\n");
 
 	_header.append(_first_line);
+    content_type(file_request);
+	content_language(file_request);
+	content_location(file_request);
+    content_length(file_request);
+    last_modified(file_request);
     date();
 	_header.append(_server);
-    content_type(file_request);
-    content_length(file_request);
-	content_location(file_request);
-    last_modified(file_request);
 	location(file_request);
     allow(file_request);
     www_authenticate(file_request);
@@ -83,6 +84,12 @@ void ResponseConstructor::content_length(FileRequest& file_request)
 		_header.append("Content-Length: " + std::to_string(file_request.content_length) + "\r\n");
 	else if (file_request.content_length == -1)
 		_header.append("Transfer-Encoding: chunked\r\n");
+}
+
+void ResponseConstructor::content_language(FileRequest& file_request)
+{
+	if (!file_request.content_language.empty())
+		_header.append("Content-Language: " + file_request.content_language + "\r\n");	
 }
 
 void ResponseConstructor::content_type(FileRequest& file_request)

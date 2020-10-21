@@ -14,6 +14,11 @@ TypemapParser::TypemapParser()
 	
 }
 
+void	TypemapParser::typemap_error(const std::string& s)
+{
+	throw std::runtime_error(s + " (" + typemap_path + ")");
+}
+
 bool TypemapParser::is_header(const std::string& s)
 {
 	auto h = strtoupper(s);
@@ -28,17 +33,15 @@ std::vector<Variant> TypemapParser::parse(const std::string& typemap_path)
 
 	std::string typemap = filetostr(typemap_path);
 	tokens = tokenize(typemap);
-	// for (auto& str : tokens)
-	// 	http_print(str);
 	axiom();
-	// for (auto& e : variants)
-	// {
-	// 	std::cout << e.uri << std::endl;
-	// 	std::cout << "type: " << e.type << std::endl;
-	// 	std::cout << "lang: " << e.language << std::endl;
-	// 	std::cout << "charset: " << e.charset << std::endl;
-	// }
 
+	for (auto& v : variants)
+	{
+		if (v.type.empty())
+			v.type = get_mime_type(v.uri);
+		if (v.language.empty())
+			v.language = "*";
+	}
 	return variants;
 }
 
@@ -69,7 +72,7 @@ void TypemapParser::header(Variant& var)
 {
 	auto key = peek();
 	if (!is_header(key))
-		throw std::runtime_error("unrecognized header in typemap");
+		typemap_error("unrecognized header in variant map");
 	next();
 	eat(":");
 	if (strtoupper(key) == "CONTENT-TYPE")
@@ -106,9 +109,9 @@ void TypemapParser::charset_value(Variant& var)
 void		TypemapParser::eat(const std::string& s)
 {
 	if (!more())
-		throw std::runtime_error("unexpected end of file while parsing typemap (" + typemap_path + ")");
+		typemap_error("unexpected end of file while parsing variant map");
 	if (s != peek())
-		throw std::runtime_error("bad token `" + peek() + "` in typemap (" + typemap_path + ")");
+		typemap_error("bad token `" + peek() + "` in variant map");
 	next();
 }
 
@@ -162,9 +165,60 @@ std::vector<std::string> TypemapParser::tokenize(std::string& tm_content)
 ContentNegotiation::ContentNegotiation(RequestParser& req_parser)
 	: req_parser(req_parser) {}
 
-std::string ContentNegotiation::negotiate(const std::vector<Variant>& variants)
+ssize_t		ContentNegotiation::get_pos_score(const std::string& s, const std::vector<std::string>& vec)
+{
+	if (s == "*" || s == "*/*")
+		return vec.size();
+	auto it = std::find(vec.begin(), vec.end(), s);
+	if (it == vec.end())
+		return -1;
+	return std::distance(it, vec.end());
+}
+
+std::vector<double>		ContentNegotiation::score_variants(std::vector<Variant> variants)
 {
 	auto accept_charset = req_parser.getAcceptCharset();
 	auto accept_language = req_parser.getAcceptLanguage();
 	auto accept = req_parser.getAccept();
+
+	double charset_mult = 3;
+	double type_mult = 2;
+	double lang_mult = 1.25;
+
+	std::vector<double> scores;
+	for (auto& variant : variants)
+	{
+		double score = 0;
+		
+		ssize_t type_pos = get_pos_score(variant.type, accept);
+		ssize_t charset_pos = get_pos_score(variant.charset, accept_charset);
+		ssize_t lang_pos = get_pos_score(variant.language, accept_language);
+		if ((type_pos == -1 && !accept.empty()) ||
+			(charset_pos == -1 && !accept_charset.empty()) ||
+			(lang_pos == -1 && !accept_language.empty()))
+		{
+			scores.push_back(-1.0);
+		}
+		else
+		{
+			score += type_pos != -1 ? type_pos * type_mult : 0;
+			score += charset_pos != -1 ? charset_pos * charset_mult : 0;
+			score += lang_pos != -1 ? lang_pos * lang_mult : 0;
+			scores.push_back(score);
+		}
+	}
+	return scores;
+}
+
+Variant ContentNegotiation::negotiate(const std::vector<Variant>& variants)
+{
+	std::vector<double> scores = score_variants(variants);
+
+	auto max_score = std::max_element(scores.begin(), scores.end());
+	size_t chosen_index = std::distance(scores.begin(), max_score);
+	
+	if (scores.at(chosen_index) == -1)
+		return {};
+	else
+		return variants.at(chosen_index);
 }

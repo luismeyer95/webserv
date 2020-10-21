@@ -22,7 +22,7 @@ std::map<std::string, DirectiveKey> directiveKeyLookup()
 		{"accept_methods", D::accept_methods},
 		{"max_request_body", D::max_request_body},
 		{"set_dir", D::set_dir},
-		{"typemap", D::typemap}
+		{"variant_search", D::variant_search}
 	});
 }
 
@@ -47,7 +47,7 @@ std::string directiveKeyToString(DirectiveKey key)
 		case D::accept_methods: return "accept_methods";
 		case D::max_request_body: return "max_request_body";
 		case D::set_dir: return "set_dir";
-		case D::typemap: return "typemap";
+		case D::variant_search: return "variant_search";
 	}
 }
 
@@ -425,7 +425,7 @@ void ConfDirective::validate()
 			break;
 		}
 
-		case D::typemap:
+		case D::variant_search:
 		{
 			if (values.empty())
 				throw dirExcept("missing value(s)");
