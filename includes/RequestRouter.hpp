@@ -34,10 +34,11 @@ class RequestRouter
 			(FileRequest& file_req, RequestParser& parsed_request,
 			const std::string& request_uri, const std::string& request_method);
 		void		setLocationDir();
-		bool		hasMethod(const std::string& method, ConfBlockDirective& location_block);
 		bool		saveMostSpecificLocation (
 			const std::string& request_uri, ConfBlockDirective*& most_specific_prefix_loc
 		);
+
+		bool		hasMethod(const std::string& method, ConfBlockDirective& location_block);
 
 		void		saveBinding();
 		void		loadBinding();
@@ -72,7 +73,6 @@ class RequestRouter
 
 		std::string	typemapValue();
 		bool		negotiateURI(FileRequest& file_req, RequestParser& parsed_request, const std::string& request_uri);
-
 
 		bool		checkAuthorization(FileRequest& file_req, RequestParser& parsed_request, const std::string& basic_auth);
 		bool		checkMethod(RequestParser& parsed_request, FileRequest& file_req);

@@ -18,14 +18,12 @@
 
 class Logger {
 	private:
-		bool				_log;
-		std::string 		_logpath;
-		std::ofstream		_file;
+		bool					_log;
+		std::string 			_logpath;
+		std::ofstream			_file;
 
 		Logger();
-
-		std::string			getTime();
-
+		std::string				getTime();
 	public:
 		~Logger();
 

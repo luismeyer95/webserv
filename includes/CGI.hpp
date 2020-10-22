@@ -38,19 +38,15 @@ class CGI
 
 		ByteBuffer								buffer;
 
-		std::vector<std::string>		parseShebangCommand(const std::string& cgi_scriptname);
-		std::vector<char*>			toArrayOfCStr(const std::vector<std::string>& vec);
-		std::vector<std::string>		buildEnv(const std::map<EnvCGI, std::string>& env);
+		std::vector<std::string>				parseShebangCommand(const std::string& cgi_scriptname);
+		std::vector<char*>						toArrayOfCStr(const std::vector<std::string>& vec);
+		std::vector<std::string>				buildEnv(const std::map<EnvCGI, std::string>& env);
 
 
-		void			parseCGIHeader(const std::string& header, CGIResponseHeaders& headers);
-
-		void			parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req);
-
-
-		void			redirectLocalURI(const std::string& location_value);
-
-		void			scriptError(const std::string& errlog);
+		void									parseCGIHeader(const std::string& header, CGIResponseHeaders& headers);
+		void									parseCGIResponse(const std::vector<std::string>& vec_headers, FileRequest& file_req);
+		void									redirectLocalURI(const std::string& location_value);
+		void									scriptError(const std::string& errlog);
 		
 	public:
 		CGI(RequestParser& request_parser, const std::map<EnvCGI, std::string>& env, std::vector<std::string> command);

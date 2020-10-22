@@ -148,7 +148,6 @@ void	RequestRouter::bindServer (
 		if (block.key == ContextKey::server)
 		{
 			std::string host_port = RequestRouter::getDirective(block, DirectiveKey::listen).values.at(0);
-			// auto tokens = tokenizer(host_port, ':');
 			auto tokens = strsplit(host_port, ":");
 			std::string host = tokens.at(0);
 			if (host == "localhost")
@@ -315,7 +314,7 @@ void	RequestRouter::putFile(FileRequest& file_req, RequestParser& parsed_request
 	if (st_ret != 0 || (buffer.st_mode & S_IFREG))
 	{
 		int in;
-		if (!assertOrError((in = open(path.c_str(), O_RDWR | O_CREAT, 0644)) != -1,
+		if (!assertOrError((in = open(path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644)) != -1,
 			file_req, parsed_request, 500, "Internal Server Error"))
 			return;
 		const void *buf = parsed_request.getPayload().get();

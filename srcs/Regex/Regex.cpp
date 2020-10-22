@@ -87,7 +87,7 @@ std::pair<bool, std::string> Regex::match(const std::string& str) const
 std::pair<bool, std::vector<std::string> > Regex::matchAll(const std::string& str) const
 {
 	std::vector<char>			path;
-	std::vector<std::set<int>>	path_tags;
+	std::vector<ft::set<int>>	path_tags;
 
 	std::vector< std::vector<NFATransition> > all_trans;
 	all_trans.reserve(str.size());
@@ -172,7 +172,7 @@ void	Regex::setNextStates(
 
 void Regex::constructPath (
 	const std::vector< std::vector<NFATransition> > & all_trans,
-	std::vector<char>& path, std::vector<std::set<int>>& path_tags
+	std::vector<char>& path, std::vector<ft::set<int>>& path_tags
 ) const
 {
 	NFAState* last = automaton.end;
@@ -192,7 +192,7 @@ void Regex::constructPath (
 }
 
 std::string Regex::buildCapture (
-	const std::vector<char>& path, const std::vector<std::set<int>>& tags, int capture
+	const std::vector<char>& path, const std::vector<ft::set<int>>& tags, int capture
 ) const
 {
 	std::string cap;
@@ -211,7 +211,7 @@ std::string Regex::buildCapture (
 }
 
 std::vector<std::string> Regex::buildAllCaptures (
-	const std::vector<char>& path, const std::vector<std::set<int>>& tags
+	const std::vector<char>& path, const std::vector<ft::set<int>>& tags
 ) const
 {
 	std::vector<std::string> captures;

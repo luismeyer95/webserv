@@ -46,8 +46,6 @@ class Regex
 	public:
 		Regex();
 		Regex(const std::string& pattern);
-		// Regex& operator=(const Regex& o);
-		// Regex(const Regex& o);
 		~Regex();
 
 		static std::string			escapeSymbols(const std::string& str);
@@ -57,14 +55,14 @@ class Regex
 
 		void constructPath (
 			const std::vector< std::vector<NFATransition> > & all_trans,
-			std::vector<char>& path, std::vector<std::set<int>>& path_tags
+			std::vector<char>& path, std::vector<ft::set<int>>& path_tags
 		) const ;
 
 		std::string buildCapture (
-			const std::vector<char>& path, const std::vector<std::set<int>>& tags, int capture
+			const std::vector<char>& path, const std::vector<ft::set<int>>& tags, int capture
 		) const;
 
 		std::vector<std::string> buildAllCaptures (
-			const std::vector<char>& path, const std::vector<std::set<int>>& tags
+			const std::vector<char>& path, const std::vector<ft::set<int>>& tags
 		) const;
 };

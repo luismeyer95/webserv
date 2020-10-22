@@ -266,44 +266,27 @@ void RequestParser::host_parser(std::vector<std::string> &head)
 {
     std::vector<std::string> line;
 
-    int j = 0;
-    for (std::vector<std::string>::iterator it = head.begin(); it != head.end(); it++)
-    {
-        if (strsplit(*it, ":").at(0) == "Host")
-            j++;
-    }
-    if (j != 1)
-    {
-        reportError(400);
+	auto keyval = header_finder(head, "Host");
+	if (keyval.empty())
+		return;
+	auto hostport = strsplit(keyval.at(1), ":");
+	if (hostport.size() == 1)
+		_host_name = hostport.at(0);
+	else if (hostport.size() == 2)
+	{
+		try {
+			_host_name = hostport.at(0);
+			_host_ip = std::stoi(hostport.at(1));
+		} catch (const std::exception& e) {
+			reportError(400);
+			throw std::exception();
+		}
+	}
+	else
+	{
+		reportError(400);
 		throw std::exception();
-    }
-    line = header_finder(head, "Host");
-    if (line.size() == 0)
-    {
-        reportError(400);
-		throw std::exception();
-    }
-    if (line.size() == 2)
-    {
-        if (strsplit(line.at(1), ":").size() > 2)
-        {
-            reportError(400);
-		    throw std::exception();
-        }
-        if (strsplit(line.at(1), ":").size() == 2)
-        {
-            line = strsplit(line.at(1), ":");
-            if (!is_number(line.at(1)))
-            {
-                reportError(400);
-		        throw std::exception();
-            }
-            _host_name = line.at(0);
-            _host_ip = (unsigned short)atoi(line.at(1).c_str());
-        }
-        else
-            _host_name = line.at(1);
-    }
+	}
 }
 
 void RequestParser::referer_parser(std::vector<std::string> &head)

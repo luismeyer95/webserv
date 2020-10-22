@@ -1,0 +1,4 @@
+GET /file HTTP/1.1
+Accept-Language: fr;q=0.4, en;q=0.6
+Accept-Charset: utf-8;q=0.6, iso-8859-2
+

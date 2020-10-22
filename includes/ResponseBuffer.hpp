@@ -27,25 +27,25 @@ class ResponseBuffer
 		virtual bool 		eof();
 		virtual string_vec& getHeaders();
 
-		virtual ~ResponseBuffer();
+		virtual 			~ResponseBuffer();
 };
 
 class ResponseBufferFileStream : public ResponseBuffer
 {
 	protected:
-		fd_type		in;
-		string		file_path;
-		bool		eof_flag;
-		bool		chunked_flag;
+		fd_type				in;
+		string				file_path;
+		bool				eof_flag;
+		bool				chunked_flag;
 
 	public:
 		ResponseBufferFileStream(const string& filename, bool chunked);
 
-		ByteBuffer& get(size_t bytes = MAXBUF);
-		bool 		eof();
-		void		advance(size_t bytes);
-		void		readStream(size_t bytes);
-		void		scriptError(const std::string& errlog, bool thrw = true);
+		ByteBuffer& 		get(size_t bytes = MAXBUF);
+		bool 				eof();
+		void				advance(size_t bytes);
+		void				readStream(size_t bytes);
+		void				scriptError(const std::string& errlog, bool thrw = true);
 
 		~ResponseBufferFileStream();
 };

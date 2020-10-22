@@ -11,17 +11,17 @@ class Tokenizer
 	private:
 		int head;
 
-		std::list<std::string> delim_set;
-		std::list<std::string> skip_set;
+		std::list<std::string>		delim_set;
+		std::list<std::string> 		skip_set;
 
-		std::pair<size_t, size_t> find_first_of_str
+		std::pair<size_t, size_t>	find_first_of_str
 			(const std::string& str, const std::list<std::string>& strs);
 	public:
 		Tokenizer
 			(const std::list<std::string>& delim_set, const std::list<std::string>& skip_set);
 
-		std::string get_token(std::string& str);
-		void		reset();
+		std::string 				get_token(std::string& str);
+		void						reset();
 };
 
 class URL
@@ -37,13 +37,14 @@ class URL
 		std::string _query;
 		std::string _fragment;
 
-		bool				check (
+		bool check (
 			const std::string& rgx, const std::string& str, bool thrw, const std::string& error
 		);
 
 	public:
 
-		enum class Component {
+		enum class Component
+		{
 			Scheme, Host, Port, Path, Query, Fragment
 		};
 
@@ -81,6 +82,4 @@ class URL
 
 		void				printComponents();
 		void				printDecoded();
-
-		// bool				operator==(const URL& o);
 };

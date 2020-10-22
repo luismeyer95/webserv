@@ -7,12 +7,12 @@ class NFAState;
 class NFATransition
 {
 	public:
-		std::set<int>	capture_tags;
+		ft::set<int>	capture_tags;
 		NFAState*		start_state;
 		NFAState*		transition_state;
 		char			symbol;
 
-		NFATransition(NFAState *start, char symbol, NFAState *end, const std::set<int>& capture_tags)
+		NFATransition(NFAState *start, char symbol, NFAState *end, const ft::set<int>& capture_tags)
 			: capture_tags(capture_tags), start_state(start), transition_state(end), symbol(symbol) {}
 		
 		// Null transition
@@ -33,7 +33,7 @@ class NFAState
 
 		std::vector<NFAState*>		epsilon_transitions;
 		std::map<char, NFAState*>	transition;
-		std::set<int>				capture_tags;
+		ft::set<int>				capture_tags;
 		bool is_end;
 
 		// Link state to another to form automatas
@@ -45,15 +45,9 @@ class NFAState
 		// NFAState* transit(char c);
 		std::vector<NFATransition> transit(char c, std::vector<NFAState*>& next_states);
 
-
-
-
 		void	setNextStates (
 			NFAState *state,
 			std::vector<NFAState*>& next_states,
 			std::vector<NFAState*>& visited
 		) const;
-
-
-
 };

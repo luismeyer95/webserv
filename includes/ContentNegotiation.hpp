@@ -28,19 +28,19 @@ class TypemapParser
 
 		void						typemap_error(const std::string& s);
 
-		bool is_header(const std::string& s);
-		void axiom();
-		void variant();
-		void headers(Variant& var);
-		void header(Variant& var);
-		void type_value(Variant& var);
-		void lang_value(Variant& var);
-		void charset_value(Variant& var);
+		bool 						is_header(const std::string& s);
+		void 						axiom();
+		void 						variant();
+		void 						headers(Variant& var);
+		void 						header(Variant& var);
+		void 						type_value(Variant& var);
+		void 						lang_value(Variant& var);
+		void 						charset_value(Variant& var);
 
-		void		eat(const std::string& s);
-		std::string peek();
-		void 		next();
-		bool 		more();
+		void						eat(const std::string& s);
+		std::string 				peek();
+		void 						next();
+		bool 						more();
 
 	public:
 		TypemapParser();

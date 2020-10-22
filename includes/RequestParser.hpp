@@ -91,8 +91,8 @@ class RequestParser {
 		std::string							getContentLocation() {return _content_location;}
 		ContentType							getContentType() {return _content_type;}
 		std::string							getDate() {return _date;}
-		std::string							getHost() {return _host_name;}
-		unsigned short						getIpHost() {return _host_ip;}
+		std::string&						getHost() {return _host_name;}
+		unsigned short&						getIpHost() {return _host_ip;}
 		std::string							getReferer() {return _referer;}
 		UserAgent							getUserAgent() {return _user_agent;}
 		int									getError() {return _error;}

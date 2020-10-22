@@ -1,15 +1,15 @@
-file_representations/file.en.html
+file_variants/file.en.html
 Content-type: text/html;charset=utf-8
 Content-language: en
 
-file_representations/file.es.html
+file_variants/file.es.html
 Content-type: text/html;charset=utf-8
 Content-language: es
 
-file_representations/file.en.json
+file_variants/file.en.json
 Content-type: application/json;charset=utf-8
 Content-language: en
 
-file_representations/file.fr.html
+file_variants/file.fr.html
 Content-type: text/html;charset=iso-8859-2
 Content-language: fr

@@ -11,11 +11,6 @@
 #include <ResponseBuffer.hpp>
 #include <Sockets.hpp>
 #include <SharedPtr.hpp>
-#include <map>
-#include <list>
-#include <vector>
-#include <queue>
-#include <deque>
 
 #define MAXBUF 262144
 #define MAXQUEUE 30
@@ -30,11 +25,11 @@ struct HTTPExchange
 		
 		ByteBuffer					response_headers;
 		SharedPtr<ResponseBuffer>	response_buffer;
-		bool			end;
+		bool						end;
 
-		std::string		client_address;
-		std::string		server_address;
-		unsigned short	port;
+		std::string					client_address;
+		std::string					server_address;
+		unsigned short				port;
 
 	public:
 		HTTPExchange (

@@ -63,7 +63,7 @@ void	ServerSocketPool::setConfig(RequestRouter conf)
 {
 	typedef std::pair<std::string, unsigned short> hp_pair;
 	ConfBlockDirective& main = *conf.main;
-	std::set<hp_pair> added_hostports;
+	ft::set<hp_pair> added_hostports;
 	this->conf = conf;
 
 	for (auto& b : main.blocks)
