@@ -1,6 +1,6 @@
 CC			=	clang++-6.0
 
-FWARN		=	-Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable
+FWARN		=	-Wall -Wextra -Werror
 FSTD		=	-std=c++11
 FDEBUG		=	-g
 FOPTI		=	-O3 -Ofast

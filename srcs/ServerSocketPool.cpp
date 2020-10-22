@@ -212,7 +212,6 @@ ClientSocket*	ServerSocketPool::acceptConnection(Listener* lstn)
 	ClientSocket* comm = new ClientSocket(conf);
 	comm->lstn_socket = lstn;
 
-	Logger& log = Logger::getInstance(); 
 	char ipstr[INET_ADDRSTRLEN];
 
 	struct sockaddr store;
@@ -266,7 +265,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 	if (s->isListener())
 	{
 		log.out() << "[connection]\n";
-		ClientSocket* client_socket = acceptConnection((Listener*)s);
+		acceptConnection((Listener*)s);
 	}
 	else 
 	{
@@ -274,7 +273,7 @@ void	ServerSocketPool::pollRead(Socket* s)
 			return;
 		ClientSocket* cli = static_cast<ClientSocket*>(s);
 		int retflags = 0;
-		size_t readbytes = recvRequest(cli, retflags);
+		recvRequest(cli, retflags);
 		if (!(retflags & (int)IOSTATE::ONCE))
 		{
 			log.out() << "<disconnect fd=" << cli->socket_fd  << ">" << std::endl;
@@ -330,7 +329,7 @@ bool	ServerSocketPool::pollWrite(Socket* s)
 	while (!cli->exchanges.empty())
 	{
 		int retflags = 0;
-		size_t sendbytes = sendResponse(cli, retflags);
+		sendResponse(cli, retflags);
 		if (retflags & (int)IOSTATE::READY)
 		{
 			std::string msg(cli->getExchange().response_headers.str());
